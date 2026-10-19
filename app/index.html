@@ -64,7 +64,7 @@
 <section class="hoja completa" id="hoja-rep" hidden aria-label="Reproduciendo" role="dialog">
   <canvas id="r-ondas" aria-hidden="true"></canvas>
   <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span class="suave">Reproduciendo</span><button class="ib" id="r-cola" aria-label="Cola"></button></div>
-  <div class="portada-grande"><img id="r-port" alt=""><canvas id="r-viz" width="320" height="80" hidden></canvas></div>
+  <div class="portada-grande"><img id="r-port" alt=""><i class="cd-brillo" aria-hidden="true"></i><canvas id="r-viz" width="320" height="80" hidden></canvas></div>
   <button class="chip" id="r-buscar-port" type="button" hidden style="align-self:center;margin:-6px 0 8px">Buscar carátula en internet</button>
   <div class="datos"><h2 id="r-titulo"></h2><p id="r-artista"></p><p class="suave" id="r-album"></p></div>
   <div class="chips" id="r-chips"></div>
@@ -174,7 +174,7 @@
     <div class="campo"><span>Vibración en los gestos</span><label class="interruptor"><input type="checkbox" id="aj-vib" checked><span></span></label></div>
     <div class="campo solo-nativo" hidden><span>Fundido entre canciones</span><select id="aj-fundido"><option value="0">Sin fundido</option><option value="2">2 segundos</option><option value="4">4 segundos</option><option value="6">6 segundos</option></select></div>
     <div class="campo solo-nativo" hidden><span>Ecualizador distinto por salida (altavoz, Bluetooth…)</span><label class="interruptor"><input type="checkbox" id="aj-eqsalida"><span></span></label></div>
-    <div class="campo"><span>Carátula al ritmo de la música</span><select id="aj-ritmo"><option value="circulo">Círculo que salta</option><option value="off">Apagado</option></select></div>
+    <div class="campo"><span>Carátula al ritmo de la música</span><select id="aj-ritmo"><option value="cd">CD que gira y late</option><option value="circulo">Círculo que salta</option><option value="off">Apagado</option></select></div>
     <div class="campo solo-nativo" hidden><span>Sincronía del efecto (si va adelantado, súbelo; si va atrasado, bájalo)</span><select id="aj-ritmolat"><option value="60">60 ms</option><option value="120">120 ms</option><option value="180">180 ms</option><option value="260">260 ms</option><option value="340">340 ms</option><option value="420">420 ms</option><option value="520">520 ms</option><option value="650">650 ms</option></select></div>
     <div class="campo"><span>Mostrar calidad (FLAC, kHz, bits)</span><label class="interruptor"><input type="checkbox" id="aj-chips" checked><span></span></label></div>
 

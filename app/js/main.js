@@ -456,7 +456,7 @@ function perfilesSalida() {
   const p = (E.aj.perfiles ||= {}); if (E.aj.eqSalida && MOTOR && reproductor.ruta) p[reproductor.ruta] = { b: reproductor.bandasDb.slice(), p: reproductor.preampDb };
   return p;
 }
-async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", ritmo: E.aj.ritmo || "circulo", ritmoLat: E.aj.ritmoLat || "260", eqSalida: !!E.aj.eqSalida, perfiles: perfilesSalida() } }, "config").catch(() => {}); }
+async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", ritmo: E.aj.ritmo || "cd", ritmoLat: E.aj.ritmoLat || "260", eqSalida: !!E.aj.eqSalida, perfiles: perfilesSalida() } }, "config").catch(() => {}); }
 let tSes = 0;
 async function guardarSesion(fuerza) {
   const ahora = Date.now(); if (!fuerza && ahora - tSes < 4000) return; tSes = ahora;
@@ -544,7 +544,7 @@ async function restaurarCopia(archivo) {
 
 // ── ajustes avanzados ──
 const TOGGLES = [["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-plano", "plano", false], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false]];
-const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-ritmo", "ritmo", "circulo"], ["aj-ritmolat", "ritmoLat", "260"]];
+const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-ritmo", "ritmo", "cd"], ["aj-ritmolat", "ritmoLat", "260"]];
 let tocadoEnfoque = false;
 function sincronizarAjustes() {
   for (const [id, clave, def] of TOGGLES) $("#" + id).checked = E.aj[clave] === undefined ? def : !!E.aj[clave];
@@ -556,7 +556,7 @@ function aplicarAvanzados() {
   r.classList.toggle("plano", !!a.plano); r.classList.toggle("sinchips", a.chips === false); window.__vibrar = a.vib !== false;
   aplicarColores(); $("#aj-fondo-img").hidden = a.fondo !== "imagen";
   r.style.setProperty("--lt", a.letraTam || "1");
-  if (typeof ritmoEncender === "function" && reproductor) { ritmoApagar(); if (pila.includes("hoja-rep")) ritmoEncender(); else document.querySelector("#hoja-rep .portada-grande")?.classList.toggle("circulo", a.ritmo !== "off"); }
+  if (typeof ritmoEncender === "function" && reproductor) { ritmoApagar(); if (pila.includes("hoja-rep")) ritmoEncender(); else { const e2 = document.querySelector("#hoja-rep .portada-grande"); if (e2) { e2.classList.toggle("circulo", a.ritmo !== "off"); e2.classList.toggle("cd", (a.ritmo || "cd") === "cd"); } } }
   if (MOTOR && reproductor) { reproductor.ponerFundido(+a.fundido || 0).catch(() => {}); }
   if (MOTOR && reproductor) { const o = { silencio: !!a.silencio, ruido: a.ruido !== false }; if (tocadoEnfoque || a.enfoque === false) o.enfoque = a.enfoque !== false; reproductor.ponerAvanzado(o).catch(() => {}); }
 }
@@ -688,17 +688,18 @@ function vizEncender() {
   paso();
 }
 // ── carátula al ritmo (círculo que "salta" con los graves; solo mientras el reproductor está abierto y sonando) ──
-let ritRaf = 0, ritMedia = 0, ritImp = 0, ritUlt = 0, ritAros = [], ritBarras = new Float32Array(56), ritLat = 0;
+let ritRaf = 0, ritMedia = 0, ritImp = 0, ritUlt = 0, ritAros = [], ritBarras = new Float32Array(56), ritMax = new Float32Array(8).fill(0.08), ritLat = 0;
 function nivelRitmo() {
   if (MOTOR) return reproductor.nivel((+E.aj.ritmoLat || 260) + (reproductor.ruta === "bluetooth" ? 170 : 0));
   if (!reproductor.espectro(buf)) return { b: 0, r: 0 };
+  const grupos = [[0, 1], [1, 2], [2, 4], [4, 8], [8, 16], [16, 32], [32, 64], [64, 128]], x = grupos.map(([a, z]) => { let t = 0; for (let i = a; i < z; i++) t += buf[i]; return Math.min(1, (t / (z - a) / 255) * (1 + 0.15 * a)); });
   const b = (buf[0] + buf[1] + buf[2]) / 765, r = buf.reduce((a, x, i) => (i < 40 ? a + x : a), 0) / (40 * 255);
-  return { b: Math.min(1, b * 1.1), r };
+  return { b: Math.min(1, b * 1.1), r, x };
 }
 function ritmoEncender() {
   const el = document.querySelector("#hoja-rep .portada-grande"); if (!el) return;
-  const on = (E.aj.ritmo || "circulo") !== "off" && !matchMedia("(prefers-reduced-motion: reduce)").matches;
-  el.classList.toggle("circulo", on);
+  const modo = E.aj.ritmo || "cd", on = modo !== "off" && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  el.classList.toggle("circulo", on); el.classList.toggle("cd", on && modo === "cd");
   if (MOTOR && reproductor.ponerRitmo) reproductor.ponerRitmo(on && pila.includes("hoja-rep")).catch(() => {});
   if (!on || ritRaf) return;
   const cv = $("#r-ondas"), g = cv.getContext("2d");
@@ -707,6 +708,7 @@ function ritmoEncender() {
     const dpr = Math.min(devicePixelRatio || 1, 1.5), W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
     if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
     g.clearRect(0, 0, W, H);
+    el.classList.toggle("gira", !!reproductor.sonando);
     if (!reproductor.sonando) { el.style.scale = ""; el.style.setProperty("--aro", 0); ritAros = []; return; }
     const n = nivelRitmo(); ritMedia += (n.b - ritMedia) * 0.06;
     if (n.b > ritMedia * 1.3 + 0.03 && ahora - ritUlt > 170) { ritImp = Math.min(1, 0.55 + n.b); ritUlt = ahora; ritLat++; ritAros.push({ t: ahora, h: (ritLat * 47 + ahora * 0.01) % 360 }); if (ritAros.length > 7) ritAros.shift(); }
@@ -715,11 +717,15 @@ function ritmoEncender() {
     // ondas de colores alrededor del círculo: anillos que salen en cada golpe + barras que cambian de color
     const r = el.getBoundingClientRect(), cx = (r.left + r.width / 2) * dpr, cy = (r.top + r.height / 2) * dpr, R = (r.width / 2 / (1 + 0.075 * ritImp + 0.025 * n.b)) * dpr;
     g.lineCap = "round";
-    const N = ritBarras.length, nivel = Math.max(n.r * 0.9, ritImp * 0.85, n.b);
+    // 8 bandas de frecuencia (graves abajo, agudos arriba, simétricas): cada una con su color y su propia altura
+    const N = ritBarras.length, X = n.x || [], nivel = Math.max(n.r * 0.9, ritImp * 0.85, n.b);
+    for (let k = 0; k < 8; k++) ritMax[k] = Math.max(ritMax[k] * 0.996, X[k] || 0, 0.06);
     for (let i = 0; i < N; i++) {
-      ritBarras[i] += ((Math.random() * 0.7 + 0.3) * nivel - ritBarras[i]) * (nivel > ritBarras[i] ? 0.55 : 0.12);
-      const a = (i / N) * Math.PI * 2 - Math.PI / 2, h = ritBarras[i] * R * 0.34 + 2 * dpr, c1 = Math.cos(a), s1 = Math.sin(a);
-      g.strokeStyle = `hsl(${(i * 360 / N + ahora * 0.03) % 360} 90% 62% / ${0.35 + 0.5 * nivel})`; g.lineWidth = 3.2 * dpr;
+      const u = Math.abs(i / N - 0.5) * 2, bp = Math.min(7, u * 7.001), k0 = Math.floor(bp), k1 = Math.min(7, k0 + 1), f = bp - k0;
+      const v0 = (X[k0] || 0) / ritMax[k0], v1 = (X[k1] || 0) / ritMax[k1], v = Math.min(1, (v0 * (1 - f) + v1 * f)) ** 1.25;
+      ritBarras[i] += (v - ritBarras[i]) * (v > ritBarras[i] ? 0.6 : 0.14);
+      const a = (i / N) * Math.PI * 2 - Math.PI / 2, h = ritBarras[i] * R * 0.42 + 2 * dpr, c1 = Math.cos(a), s1 = Math.sin(a);
+      g.strokeStyle = `hsl(${(bp / 7) * 310} 92% 60% / ${0.45 + 0.5 * ritBarras[i]})`; g.lineWidth = 3.4 * dpr;
       g.beginPath(); g.moveTo(cx + c1 * R * 1.07, cy + s1 * R * 1.07); g.lineTo(cx + c1 * (R * 1.07 + h), cy + s1 * (R * 1.07 + h)); g.stroke();
     }
     ritAros = ritAros.filter((o) => ahora - o.t < 1000);
