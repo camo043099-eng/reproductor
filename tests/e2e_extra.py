@@ -48,7 +48,7 @@ try:
           const reg = (n) => async (a) => { llamadas.push([n, a]); return {}; };
           const M = new Proxy({
             addListener: (n, f) => { oy[n] = f; return Promise.resolve({ remove() {} }); },
-            texto: async ({ url }) => ({ codigo: 200, cuerpo: url.includes('translate.googleapis') ? JSON.stringify([decodeURIComponent(new URL(url).searchParams.get('q')).split('\\n').map((l, i, a) => ['ES:' + l + (i < a.length - 1 ? '\\n' : ''), l])]) : url.includes('lrclib') ? JSON.stringify({ syncedLyrics: '[00:01.00] primera\\n[00:05.00] segunda', plainLyrics: 'x' }) : JSON.stringify({ results: [], data: [] }) }),
+            texto: async ({ url }) => /AutoEq/.test(url) ? ({ cuerpo: url.endsWith("INDEX.md") ? "- [KZ EDX Pro](./oratory1990/in-ear/KZ%20EDX%20Pro) by oratory1990" : "Preamp: -3 dB\\nFilter 1: ON PK Fc 200 Hz Gain -2 Q 1\\nFilter 2: ON PK Fc 8000 Hz Gain -4 Q 2" }) : ({ codigo: 200, cuerpo: url.includes('translate.googleapis') ? JSON.stringify([decodeURIComponent(new URL(url).searchParams.get('q')).split('\\n').map((l, i, a) => ['ES:' + l + (i < a.length - 1 ? '\\n' : ''), l])]) : url.includes('lrclib') ? JSON.stringify({ syncedLyrics: '[00:01.00] primera\\n[00:05.00] segunda', plainLyrics: 'x' }) : JSON.stringify({ results: [], data: [] }) }),
             permisos: async () => ({ audio: true }), escanear: async () => ({ canciones: lista }), portada: async () => ({}),
             estado: async () => ({ ids: [], indice: -1, pos: 0, sonando: false }),
           }, { get: (t, k) => (k in t ? t[k] : reg(k)) });
@@ -76,6 +76,8 @@ try:
         pn.fill("#eq-grave", "4"); pn.dispatch_event("#eq-grave", "input"); pn.wait_for_function("window.__llamadas.some(x=>x[0]=='eq' && x[1].grave==4)")
         pn.click("#eq-modo [data-m=grafico]"); pn.click("#eq-nb [data-n='31']"); pn.wait_for_function("window.__llamadas.some(x=>x[0]=='eq' && x[1].filtros && x[1].filtros.length==31)")
         assert pn.locator("#eq-bandas .banda").count() == 31; pn.click("#eq-nb [data-n='10']"); assert pn.locator("#eq-bandas .banda").count() == 10; print("eq avanzado OK")
+        pn.click("#eq-modo [data-m=param]"); pn.click("#eq-buscar"); pn.fill("#eq-bus", "kz edx"); pn.wait_for_selector("#eq-bus-res button"); pn.click("#eq-bus-res button")
+        pn.wait_for_function("window.__llamadas.some(x=>x[0]=='eq' && x[1].filtros && x[1].filtros.length==2 && x[1].filtros[1][0]==8000 && x[1].pre==-3)"); print("buscador audifonos OK")
         pn.click("#hoja-eq [data-cerrar]"); pn.wait_for_selector("#hoja-eq", state="hidden")
         pn.click("#r-letra"); pn.wait_for_selector("#letra-cuerpo p[data-i]"); assert pn.locator("#letra-cuerpo p").count() == 2, pn.inner_html("#letra-cuerpo")
         pn.evaluate("window.__oy.tiempo({pos:5500,dur:203000,indice:2})"); pn.wait_for_selector("#letra-cuerpo p.actual"); assert pn.inner_text("#letra-cuerpo p.actual") == "segunda"

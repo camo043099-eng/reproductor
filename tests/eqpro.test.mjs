@@ -1,5 +1,5 @@
 import test from "node:test"; import assert from "node:assert/strict";
-import { leerAutoEQ, aTextoAutoEQ, respuesta, filtrosGrafico, ISO31, PICO } from "../app/js/eqpro.js";
+import { leerIndiceAutoEQ, buscarEnIndice, urlPerfilAutoEQ, leerAutoEQ, aTextoAutoEQ, respuesta, filtrosGrafico, ISO31, PICO } from "../app/js/eqpro.js";
 test("lee un perfil AutoEQ", () => {
   const r = leerAutoEQ("Preamp: -6.2 dB\nFilter 1: ON PK Fc 105 Hz Gain 3.4 dB Q 0.70\nFilter 2: ON LSC Fc 60 Hz Gain 2 dB Q 0.7\nFilter 3: OFF PK Fc 1000 Hz Gain 1 dB Q 1\nFilter 4: ON HSC Fc 8000 Hz Gain -4 dB Q 0.7\nFilter 5: ON LP Fc 18000 Hz");
   assert.equal(r.pre, -6.2); assert.equal(r.filtros.length, 3); assert.equal(r.ignorados, 1);
@@ -18,3 +18,11 @@ test("la curva sube donde el filtro sube", () => {
   assert.ok(Math.abs(r[1] - 6) < 0.05 && Math.abs(r[0]) < 0.5 && Math.abs(r[2]) < 0.5);
 });
 test("gráfico de 31 bandas", () => { assert.equal(ISO31.length, 31); assert.equal(filtrosGrafico(new Array(31).fill(0), 31).length, 31); });
+test("busca audífonos en el índice de AutoEQ", () => {
+  const md = "# Results\n- [KZ EDX Pro](./Crinacle/in-ear/KZ%20EDX%20Pro) by Crinacle\n- [KZ EDX Pro](./oratory1990/in-ear/KZ%20EDX%20Pro) by oratory1990\n- [KZ EDX](./Rtings/in-ear/KZ%20EDX) by Rtings\n- [Sony WH-1000XM4](./oratory1990/over-ear/Sony%20WH-1000XM4) by oratory1990\n";
+  const ix = leerIndiceAutoEQ(md); assert.equal(ix.length, 4);
+  const r = buscarEnIndice(ix, "kz edx pro"); assert.equal(r.length, 2); assert.equal(r[0].s, "oratory1990");
+  assert.ok(buscarEnIndice(ix, "KZ-EDX")[0].n.startsWith("KZ EDX"));
+  assert.equal(buscarEnIndice(ix, "sony xm4").length, 1); assert.equal(buscarEnIndice(ix, "zzz").length, 0);
+  assert.equal(urlPerfilAutoEQ(r[0]), "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/oratory1990/in-ear/KZ%20EDX%20Pro/KZ%20EDX%20Pro%20ParametricEQ.txt");
+});

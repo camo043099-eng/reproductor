@@ -125,7 +125,12 @@
     <div class="campo"><label for="eq-agudo">Agudos <b id="eq-agudo-v">0 dB</b></label><input type="range" id="eq-agudo" min="-12" max="12" step="0.5" value="0"></div>
     <div class="campo"><label for="eq-bal">Balance <b id="eq-bal-v">centro</b></label><input type="range" id="eq-bal" min="-100" max="100" step="5" value="0"></div>
   </div>
-  <div class="acciones-detalle solo-nativo" id="eq-io" hidden><button class="boton" id="eq-importar" type="button">Importar perfil (AutoEQ)</button><button class="boton" id="eq-exportar" type="button">Exportar / compartir</button></div>
+  <div class="acciones-detalle solo-nativo" id="eq-io" hidden><button class="boton primario" id="eq-buscar" type="button">Buscar mis audífonos</button><button class="boton" id="eq-importar" type="button">Importar perfil (AutoEQ)</button><button class="boton" id="eq-exportar" type="button">Exportar / compartir</button></div>
+  <div id="eq-bus-caja" hidden>
+    <p class="suave pequeno">Escribe el modelo de tus audífonos (ej.: KZ EDX Pro) y toca el que sea. Onda baja la receta y la aplica sola. Necesita internet.</p>
+    <input type="search" id="eq-bus" placeholder="Modelo de tus audífonos" autocomplete="off" style="width:100%;padding:12px;border-radius:16px;color:var(--tx);background:rgba(255,255,255,.1);font-size:1rem">
+    <div id="eq-bus-res" class="suave pequeno" style="margin-top:8px"></div>
+  </div>
   <div id="eq-io-caja" hidden>
     <p class="suave pequeno">Pega aquí un perfil de AutoEQ o Equalizer APO (líneas “Filter 1: ON PK Fc 105 Hz Gain 3.4 dB Q 0.70”) o elige el archivo .txt.</p>
     <textarea id="eq-texto" rows="7" style="width:100%;padding:12px;border-radius:16px;color:var(--tx);background:rgba(255,255,255,.1);font-size:.9rem"></textarea>

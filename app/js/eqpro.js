@@ -57,3 +57,39 @@ export function leerAutoEQ(texto) {
 export function aTextoAutoEQ(filtros, pre = 0) {
   return `Preamp: ${(+pre).toFixed(1)} dB\n` + filtros.map((x, i) => `Filter ${i + 1}: ON ${x.t === GRAVE ? "LSC" : x.t === AGUDO ? "HSC" : "PK"} Fc ${Math.round(x.f * 10) / 10} Hz Gain ${(+x.g).toFixed(1)} dB Q ${(+x.q).toFixed(2)}`).join("\n") + "\n";
 }
+
+// ---- Buscador de perfiles AutoEQ (base pública de audífonos medidos) ----
+export const AUTOEQ_BASE = "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/";
+const nm = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const deco = (t) => { try { return decodeURIComponent(t); } catch (_) { return t; } };
+const FUENTES = { oratory1990: 40, crinacle: 30, "super review": 22, rtings: 14, innerfidelity: 8, headphonecom: 6 };
+
+/** convierte INDEX.md de AutoEQ en una lista compacta [{n, r, s}] (nombre, ruta, fuente) */
+export function leerIndiceAutoEQ(md) {
+  const lista = [], visto = new Set();
+  for (const linea of String(md || "").split(/\r?\n/)) {
+    const m = /\[([^\]]+)\]\(([^)]+)\)/.exec(linea); if (!m) continue;
+    const r = deco(m[2]).replace(/^\.?\//, "").replace(/\/+$/, ""); const partes = r.split("/");
+    if (partes.length < 2 || visto.has(r)) continue; visto.add(r);
+    lista.push({ n: m[1].trim(), r, s: partes[0] });
+  }
+  return lista;
+}
+
+/** mejores coincidencias para lo que escribió la persona (todas las palabras deben aparecer) */
+export function buscarEnIndice(indice, consulta, max = 8) {
+  const q = nm(consulta).split(" ").filter(Boolean); if (!q.length) return [];
+  const salida = [];
+  for (const e of indice) {
+    const n = e._n || (e._n = nm(e.n)); if (!q.every((w) => n.includes(w))) continue;
+    const exacto = n === q.join(" ") ? 60 : n.startsWith(q.join(" ")) ? 25 : 0;
+    salida.push({ e, p: exacto + (FUENTES[nm(e.s)] || 0) - Math.abs(n.length - q.join(" ").length) * 0.5 });
+  }
+  return salida.sort((a, b) => b.p - a.p).slice(0, max).map((x) => x.e);
+}
+
+/** dirección del archivo "<nombre> ParametricEQ.txt" de una entrada */
+export function urlPerfilAutoEQ(e) {
+  const partes = e.r.split("/"), ultimo = partes[partes.length - 1];
+  return AUTOEQ_BASE + partes.map(encodeURIComponent).join("/") + "/" + encodeURIComponent(ultimo + " ParametricEQ.txt");
+}
