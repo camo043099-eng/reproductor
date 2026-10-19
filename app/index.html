@@ -13,6 +13,12 @@
 </head>
 <body>
 <div class="ambiente" id="ambiente" aria-hidden="true"></div>
+<div class="intro" id="intro" aria-hidden="true" hidden>
+  <div class="intro-logo"><svg viewBox="0 0 512 512"><defs><linearGradient id="ig" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ffa6d6"/></linearGradient></defs><circle class="intro-aro" cx="256" cy="256" r="150" fill="none" stroke="#ffa6d6" stroke-width="6"/><g fill="url(#ig)"><rect class="ib1" x="131" y="208" width="34" height="96" rx="17"/><rect class="ib2" x="185" y="168" width="34" height="176" rx="17"/><rect class="ib3" x="239" y="123" width="34" height="266" rx="17"/><rect class="ib4" x="293" y="158" width="34" height="196" rx="17"/><rect class="ib5" x="347" y="198" width="34" height="116" rx="17"/></g></svg></div>
+  <h1 class="intro-nombre"><span>O</span><span>n</span><span>d</span><span>a</span></h1>
+  <p class="intro-lema">Tu música, tu sonido</p>
+</div>
+
 <div class="app" id="app">
   <header class="cabeza">
     <h1 id="titulo-vista">Onda</h1>
@@ -157,8 +163,11 @@
     <div class="campo"><span>Reducir transparencias</span><label class="interruptor"><input type="checkbox" id="aj-plano"><span></span></label></div>
     <p class="suave pequeno">Cambia el efecto de vidrio por colores sólidos. Ayuda si la app se siente pesada.</p>
     <div class="campo"><span>Vibración en los gestos</span><label class="interruptor"><input type="checkbox" id="aj-vib" checked><span></span></label></div>
+    <div class="campo solo-nativo" hidden><span>Fundido entre canciones</span><select id="aj-fundido"><option value="0">Sin fundido</option><option value="2">2 segundos</option><option value="4">4 segundos</option><option value="6">6 segundos</option></select></div>
+    <div class="campo solo-nativo" hidden><span>Ecualizador distinto por salida (altavoz, Bluetooth…)</span><label class="interruptor"><input type="checkbox" id="aj-eqsalida"><span></span></label></div>
     <div class="campo"><span>Mostrar calidad (FLAC, kHz, bits)</span><label class="interruptor"><input type="checkbox" id="aj-chips" checked><span></span></label></div>
 
+    <button class="boton" id="aj-intro" type="button">Ver la animación de bienvenida</button>
     <h3 class="sub">Tus datos</h3>
     <button class="boton" id="aj-copia" type="button">Guardar copia de seguridad</button>
     <button class="boton" id="aj-restaurar" type="button">Restaurar una copia</button>

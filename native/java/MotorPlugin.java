@@ -72,6 +72,8 @@ public class MotorPlugin extends Plugin {
     private int sesionAudio = 0;
     private int envFuerza = 0, gravesFuerza = 0;
     private int fallosAudio = 0;
+    private int fundidoMs = 0; private boolean fadeSueno = false; private long ultimaEmision = 0;
+    private AudioManager.AudioDeviceCallback cbRuta = null;
     private boolean sinEfectos = false;
 
     // ───────── utilidades ─────────
@@ -114,11 +116,49 @@ public class MotorPlugin extends Plugin {
         @Override public void run() {
             ExoPlayer p = Motor.jugador;
             if (p != null && p.isPlaying()) {
-                JSObject o = new JSObject(); o.put("pos", p.getCurrentPosition()); o.put("dur", p.getDuration() == C.TIME_UNSET ? -1 : p.getDuration()); o.put("indice", p.getCurrentMediaItemIndex());
-                emitir("tiempo", o); h.postDelayed(this, 250);
+                long ahora = android.os.SystemClock.uptimeMillis(), pos = p.getCurrentPosition(), dur = p.getDuration();
+                boolean enFundido = false;
+                if (fundidoMs > 0 && !fadeSueno) {                       // fundido: el final de una canción baja suave y la siguiente sube suave
+                    float v = 1f;
+                    if (dur != C.TIME_UNSET && dur > fundidoMs * 3L) { long falta = dur - pos; if (falta < fundidoMs) v = Math.min(v, curva(falta / (float) fundidoMs)); }
+                    if (pos < fundidoMs) v = Math.min(v, curva(pos / (float) fundidoMs));
+                    p.setVolume(v); enFundido = v < 1f;
+                }
+                if (ahora - ultimaEmision >= 240) {
+                    ultimaEmision = ahora;
+                    JSObject o = new JSObject(); o.put("pos", pos); o.put("dur", dur == C.TIME_UNSET ? -1 : dur); o.put("indice", p.getCurrentMediaItemIndex()); emitir("tiempo", o);
+                }
+                h.postDelayed(this, enFundido ? 60 : 250);
             }
         }
     };
+    private static float curva(float x) { x = Math.max(0f, Math.min(1f, x)); return x * x * (3f - 2f * x); }   // suavizado (smoothstep)
+    @PluginMethod public void fundido(PluginCall call) {
+        ui(call, () -> {
+            fundidoMs = Math.max(0, Math.min(12000, (int) Math.round(call.getData().optDouble("seg", 0) * 1000)));
+            if (fundidoMs == 0 && !fadeSueno) Motor.jugador.setVolume(1f);
+            call.resolve();
+        });
+    }
+    // ruta de salida actual (altavoz / bluetooth / cable / usb), para recordar un ecualizador por salida
+    private void anunciarRuta() {
+        boolean bt = false, cable = false, usb = false;
+        for (AudioDeviceInfo d : salidasDisponibles()) { int x = d.getType(); if (x == 7 || x == 8 || x == 26 || x == 27 || x == 30) bt = true; else if (x == 3 || x == 4) cable = true; else if (x == 11 || x == 22) usb = true; }
+        JSObject o = new JSObject(); o.put("tipo", bt ? "bluetooth" : usb ? "usb" : cable ? "cable" : "altavoz"); emitir("ruta", o);
+    }
+    @PluginMethod public void rutaEscuchar(PluginCall call) {
+        ui(call, () -> {
+            if (cbRuta == null) {
+                AudioManager am = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+                cbRuta = new AudioManager.AudioDeviceCallback() {
+                    @Override public void onAudioDevicesAdded(AudioDeviceInfo[] a) { anunciarRuta(); }
+                    @Override public void onAudioDevicesRemoved(AudioDeviceInfo[] a) { anunciarRuta(); }
+                };
+                am.registerAudioDeviceCallback(cbRuta, h);
+            }
+            anunciarRuta(); call.resolve();
+        });
+    }
     private JSObject estadoActual() {
         ExoPlayer p = Motor.jugador; JSObject o = new JSObject();
         o.put("sonando", p != null && p.isPlaying()); o.put("indice", p == null ? -1 : p.getCurrentMediaItemIndex());
@@ -169,8 +209,10 @@ public class MotorPlugin extends Plugin {
             double pista = Double.NaN, album = Double.NaN;
             for (int i = 0; i < m.length(); i++) {
                 Metadata.Entry e = m.get(i);
+                if (e instanceof androidx.media3.extractor.metadata.id3.BinaryFrame && "USLT".equals(((androidx.media3.extractor.metadata.id3.BinaryFrame) e).id)) { String tx = leerUslt(((androidx.media3.extractor.metadata.id3.BinaryFrame) e).data); if (tx != null) { JSObject lo = new JSObject(); lo.put("id", it.mediaId); lo.put("texto", tx); emitir("letra", lo); } }
                 if (e instanceof VorbisComment) {
                     VorbisComment v = (VorbisComment) e; String k = v.key == null ? "" : v.key.toUpperCase(Locale.ROOT);
+                    if ((k.equals("LYRICS") || k.equals("UNSYNCEDLYRICS") || k.equals("UNSYNCED LYRICS") || k.equals("SYNCEDLYRICS")) && v.value != null && v.value.trim().length() > 20) { JSObject lo = new JSObject(); lo.put("id", it.mediaId); lo.put("texto", v.value); emitir("letra", lo); }
                     if (k.equals("REPLAYGAIN_TRACK_GAIN")) pista = leerDb(v.value); else if (k.equals("REPLAYGAIN_ALBUM_GAIN")) album = leerDb(v.value);
                 } else if (e instanceof TextInformationFrame) {
                     TextInformationFrame t = (TextInformationFrame) e; String d = t.description == null ? "" : t.description.toUpperCase(Locale.ROOT);
@@ -196,7 +238,7 @@ public class MotorPlugin extends Plugin {
                 fallosAudio++; ExoPlayer q = Motor.jugador;
                 if (fallosAudio == 1) { EqProcesador.salida16 = true; getContext().getSharedPreferences("onda_motor", Context.MODE_PRIVATE).edit().putBoolean("salida16", true).apply(); }
                 else { sinEfectos = true; try { if (virt != null) virt.release(); } catch (Exception x) { } try { if (bass != null) bass.release(); } catch (Exception x) { } virt = null; bass = null; }
-                JSObject o = new JSObject(); o.put("mensaje", fallosAudio == 1 ? "Tu teléfono no aceptó el audio de 32 bits; cambié a 16 bits y sigo." : "Desactivé los efectos de sonido del sistema para poder reproducir."); emitir("error", o);
+                if (fallosAudio > 1) { JSObject o = new JSObject(); o.put("mensaje", "Desactivé los efectos de sonido del sistema para poder reproducir."); emitir("error", o); }
                 long pos = q.getCurrentPosition(); int idx = q.getCurrentMediaItemIndex(); q.prepare(); q.seekTo(idx, pos); q.play(); return;
             }
             JSObject o = new JSObject(); o.put("mensaje", "No pude reproducir esta canción (" + e.getErrorCodeName() + ")."); emitir("error", o);
@@ -205,6 +247,16 @@ public class MotorPlugin extends Plugin {
     }
 
     // ───────── datos técnicos de la canción (frecuencia, bits) ─────────
+    /** letra sin tiempos guardada en un archivo MP3 (cuadro USLT de ID3) */
+    private static String leerUslt(byte[] d) {
+        try {
+            if (d == null || d.length < 6) return null; int enc = d[0], i = 4; boolean ancho = enc == 1 || enc == 2;
+            while (i < d.length) { if (ancho ? (i + 1 < d.length && d[i] == 0 && d[i + 1] == 0) : d[i] == 0) { i += ancho ? 2 : 1; break; } i += ancho ? 2 : 1; }
+            if (i >= d.length) return null;
+            String cs = enc == 0 ? "ISO-8859-1" : enc == 1 ? "UTF-16" : enc == 2 ? "UTF-16BE" : "UTF-8";
+            String t = new String(d, i, d.length - i, cs).trim(); return t.length() > 20 ? t : null;
+        } catch (Exception e) { return null; }
+    }
     private void detallesAsync(MediaItem it) {
         final String id = it.mediaId; final Uri uri = it.localConfiguration == null ? null : it.localConfiguration.uri; if (uri == null) return;
         new Thread(() -> {
@@ -488,7 +540,7 @@ public class MotorPlugin extends Plugin {
     // ───────── temporizador de sueño ─────────
     private void cancelarSueno() {
         if (apagar != null) { h.removeCallbacks(apagar); apagar = null; }
-        ExoPlayer p = Motor.jugador; if (p != null) { p.setPauseAtEndOfMediaItems(false); p.setVolume(1f); }
+        fadeSueno = false; ExoPlayer p = Motor.jugador; if (p != null) { p.setPauseAtEndOfMediaItems(false); p.setVolume(1f); }
     }
     @PluginMethod public void dormir(PluginCall call) {
         ui(call, () -> {
@@ -498,9 +550,9 @@ public class MotorPlugin extends Plugin {
             apagar = new Runnable() {
                 int paso = 0;
                 @Override public void run() {
-                    ExoPlayer q = Motor.jugador; if (q == null) return; paso++;
+                    ExoPlayer q = Motor.jugador; if (q == null) return; paso++; fadeSueno = true;
                     if (paso < 30) { q.setVolume(1f - paso / 30f); h.postDelayed(this, 200); }
-                    else { q.pause(); q.setVolume(1f); apagar = null; emitir("dormido", null); }
+                    else { q.pause(); q.setVolume(1f); fadeSueno = false; apagar = null; emitir("dormido", null); }
                 }
             };
             h.postDelayed(apagar, (long) (min * 60000) - 6000 > 0 ? (long) (min * 60000) - 6000 : 0);

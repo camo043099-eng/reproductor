@@ -46,3 +46,20 @@ if "media3-exoplayer" not in t:
     t = t.replace("dependencies {\n", "dependencies {\n" + libs, 1)
 assert "media3-exoplayer" in t
 open(g, "w").write(t)
+
+# 4) Icono de Onda: PNG de todas las densidades + icono adaptativo (con versión monocromática para Android 13+)
+import shutil, os
+res = base + "res"
+shutil.copytree("native/icono/res", res, dirs_exist_ok=True)
+adaptativo = """<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@mipmap/ic_onda_fondo"/>
+    <foreground android:drawable="@mipmap/ic_onda_frente"/>
+    <monochrome android:drawable="@mipmap/ic_onda_mono"/>
+</adaptive-icon>
+"""
+os.makedirs(res + "/mipmap-anydpi-v26", exist_ok=True)
+for n in ("ic_launcher.xml", "ic_launcher_round.xml"):
+    open(res + "/mipmap-anydpi-v26/" + n, "w").write(adaptativo)
+# el fondo de la ventana de arranque (Android 12+) en el mismo color del icono
+print("icono de Onda instalado")

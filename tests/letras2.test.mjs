@@ -20,3 +20,9 @@ test("variantes separa título mezclado y quita número de pista", () => {
   const v = variantes({ titulo: "03 - Ode to the Nameless Martyr 致以无名的抗争者 (OST)", artista: "鳴潮, jixwang" });
   assert.ok(v.titulos.includes("Ode to the Nameless Martyr")); assert.ok(v.titulos.includes("致以无名的抗争者")); assert.equal(v.arts[0], "鳴潮");
 });
+import { buscarPortadaUrl, albumGenerico } from "../app/js/internet.js";
+test("portada: un álbum genérico y sin artista no se empareja por nombre parcial", async () => {
+  assert.ok(albumGenerico("Music") && albumGenerico("Download") && !albumGenerico("Unleashed"));
+  const texto = async (u) => JSON.stringify(u.includes("entity=album") ? { results: [{ artistName: "Baby Lullaby Academy", collectionName: "Baby Sleep Music", artworkUrl100: "https://x/100x100bb.jpg" }] } : { results: [], data: [] });
+  assert.equal(await buscarPortadaUrl(texto, { titulo: "Tenki no ko", artista: "", album: "Music", duracion: 408 }), null);
+});

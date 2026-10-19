@@ -2,8 +2,9 @@ import { Reproductor, BANDAS, PRESETS } from "./player.js";
 import { leerEtiquetas } from "./tags.js";
 import * as db from "./db.js";
 import { ReproductorNativo } from "./nativo.js";
-import { buscarPortadaUrl, buscarLetraCompleta, traducir, parsearLRC, lineaActual } from "./internet.js";
+import { buscarPortadaUrl, buscarLetraCompleta, traducir, parsearLRC, lineaActual, albumGenerico } from "./internet.js";
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
+import { crearMixes, bloqueDe } from "./recomendador.js";
 
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -13,13 +14,13 @@ const I = {
   ajustes: svg('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>'),
   play: svg('<path d="M8 5v14l11-7z"/>'), pausa: svg('<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>'),
   sig: svg('<path d="M6 5v14l9-7zM17 5h2v14h-2z"/>'), ant: svg('<path d="M18 5v14l-9-7zM5 5h2v14H5z"/>'),
-  abajo: svg('<path d="M6 9l6 6 6-6"/>'), cola: svg('<path d="M4 6h16M4 12h16M4 18h9"/>'),
+  abajo: svg('<path d="M6 9l6 6 6-6"/>'), cola: svg('<path d="M4 6h11M4 12h7M4 18h7"/><path d="M15 13.5l6 3.5-6 3.5z" fill="currentColor"/>'),
   azar: svg('<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>'),
   rep: svg('<path d="M17 2l4 4-4 4M3 11V9a3 3 0 013-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 01-3 3H3"/>'),
   fav: svg('<path d="M12 20s-7-4.5-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.500-7 10-7 10z"/>'),
   eq: svg('<path d="M5 4v16M12 4v16M19 4v16M3 14h4M10 8h4M17 15h4"/>'),
   luna: svg('<path d="M20 14.500A8 8 0 019.500 4 8 8 0 1020 14.500z"/>'), lista: svg('<path d="M4 6h12M4 12h12M4 18h7M18 15v6M15 18h6"/>'),
-  letra: svg('<path d="M4 6h16M4 11h11M4 16h16M4 21h8"/>'), volver: svg('<path d="M15 5l-7 7 7 7"/>'), mas3: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.800"/><circle cx="12" cy="12" r="1.800"/><circle cx="12" cy="19" r="1.800"/></svg>',
+  letra: svg('<rect x="3" y="5" width="18" height="14" rx="3.5"/><path d="M7 10.5h4M13 10.5h4M7 14.5h7"/>'), volver: svg('<path d="M15 5l-7 7 7 7"/>'), mas3: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.800"/><circle cx="12" cy="12" r="1.800"/><circle cx="12" cy="19" r="1.800"/></svg>',
 };
 const ponerIconos = () => {
   const m = { "#b-agregar": I.mas, "#b-ajustes": I.ajustes, "#mini-sig": I.sig, "#r-cola": I.cola, "#r-azar": I.azar, "#r-ant": I.ant, "#r-sig": I.sig, "#r-rep": I.rep, "#r-fav": I.fav, "#r-eq": I.eq, "#r-sueno": I.luna, "#r-lista": I.lista, "#r-letra": I.letra };
@@ -73,7 +74,14 @@ const imgHtml = (s, cls = "") => `<img class="${cls}" src="${SIN}" data-alb="${e
 
 // ── aviso ──
 let tAviso;
-function avisar(t, ms = 2800) { const a = $("#aviso"); a.textContent = t; a.hidden = false; clearTimeout(tAviso); if (ms) tAviso = setTimeout(() => { a.hidden = true; }, ms); }
+const AV_OK = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>', AV_ERR = '<svg viewBox="0 0 24 24"><path d="M12 7v6M12 17h.01"/></svg>', AV_INFO = '<svg viewBox="0 0 24 24"><path d="M12 11v6M12 7.5h.01"/></svg>';
+function avisar(t, ms = 2800) {
+  const a = $("#aviso"), err = /^(No pude|No encontr|Error|Falta|Tu tel)/i.test(t), ok = /^(Listo|Guardad|Agregad|Lista “|Copia|Portada|Carátulas nuevas|Historial borrado|Hecho)/i.test(t);
+  clearTimeout(tAviso); clearTimeout(a._t); a.classList.remove("sale"); a.classList.toggle("error", err);
+  a.innerHTML = `<span class="av-ico">${err ? AV_ERR : ok ? AV_OK : AV_INFO}</span><span></span>`; a.lastElementChild.textContent = t; a.hidden = false;
+  a.style.animation = "none"; void a.offsetWidth; a.style.animation = "";
+  if (ms) tAviso = setTimeout(() => { a.classList.add("sale"); a._t = setTimeout(() => { a.hidden = true; a.classList.remove("sale"); }, 280); }, ms);
+}
 
 // ── biblioteca ──
 const RUIDO = /\/(whatsapp[^/]*|recordings?|voice recorder|sound recorder|call recordings?|notifications?|ringtones?|alarms?)\//i;
@@ -85,7 +93,9 @@ async function cargarTodo() {
   E.canciones = filtradas(await db.todo("canciones")); E.listas = await db.todo("listas");
   porId.clear(); E.version++; for (const s of E.canciones) porId.set(s.id, s);
 }
-function claveAlbum(t) { return normal((t.albumArtista || t.artista || "") + "|" + (t.album || "")); }
+// los álbumes con nombre genérico ("Music", "Download"…) no son un álbum real: cada canción lleva su propia carátula
+function claveAlbum(t) { return albumGenerico(t.album) ? normal((t.artista || "") + "|~|" + (t.titulo || t.nombre || "")) : normal((t.albumArtista || t.artista || "") + "|" + (t.album || "")); }
+const albumesReales = (g) => g.filter(([, v]) => !albumGenerico(v[0].album));
 async function miniatura(blob) {
   try {
     const bmp = await createImageBitmap(blob), k = Math.min(1, 512 / Math.max(bmp.width, bmp.height));
@@ -188,17 +198,19 @@ let listasInicio = { fav: [], rec: [], ult: [], mas: [] };
 function dibujarInicio() {
   const c = $("#contenido"), rec = [...E.canciones].sort((a, b) => b.fecha - a.fecha), fav = E.canciones.filter((s) => s.fav);
   const ult = ultimasEscuchadas(), mas = masEscuchadas(), nuevas = sinEscuchar();
-  const albs = [...agrupar((s) => s.alb)].map(([k, v]) => ({ k, s: v[0], n: v.length, f: Math.max(...v.map((x) => x.fecha)) })).sort((a, b) => b.f - a.f);
+  const albs = albumesReales([...agrupar((s) => s.alb)]).map(([k, v]) => ({ k, s: v[0], n: v.length, f: Math.max(...v.map((x) => x.fecha)) })).sort((a, b) => b.f - a.f);
   const alb = (s) => albs.find((a) => a.k === s.alb);
   const albsUlt = []; for (const s of ult) { const a = alb(s); if (a && !albsUlt.includes(a)) albsUlt.push(a); if (albsUlt.length >= 12) break; }
   const arts = [...agrupar((s) => normal(s.albumArtista || s.artista))].map(([k, v]) => ({ k, s: v[0], n: v.length })).sort((a, b) => b.n - a.n).slice(0, 12);
-  const gen = conteoGeneros();
+  const gen = conteoGeneros(), mh = MIXES && MIXES.dia === diaDe() ? MIXES.mixes : [];
   const generos = [...gen].filter(([, n]) => n >= 3).sort((a, b) => b[1] - a[1]).slice(0, 8);
   listasInicio = { fav: fav.slice(0, 20), rec: rec.slice(0, 20), ult: ult.slice(0, 20), mas: mas.slice(0, 20) };
   const tono = (t) => { let h = 0; for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; };
   const tile = (d, k, ico, t) => `<button class="tile" type="button" data-det="${d}" data-k="${esc(k)}">${ico}<b>${esc(t)}</b></button>`;
   const ic = (svg, col) => `<span class="sinport fav" style="color:${col}">${svg}</span>`;
-  const tiles = [tile("lista", "__fav", ic(I.fav.replace("<svg", '<svg fill="currentColor"'), "var(--ac2)"), "Favoritas")];
+  const tiles = [];
+  if (mh.length) tiles.push(tile("lista", "__mix:" + mh[0].id, ic(I.fav.replace("<svg", '<svg fill="currentColor"'), "#7c5cff"), mh[0].nombre));
+  tiles.push(tile("lista", "__fav", ic(I.fav.replace("<svg", '<svg fill="currentColor"'), "var(--ac2)"), "Favoritas"));
   if (mas.length) tiles.push(tile("lista", "__mas", ic(I.fav.replace("<svg", '<svg fill="currentColor"'), "#ffb44d"), "Más escuchadas"));
   if (ult.length) tiles.push(tile("lista", "__ult", ic(I.lista.replace("<svg", '<svg fill="none" stroke="currentColor" stroke-width="1.6"'), "#4da3ff"), "Escuchadas hace poco"));
   for (const a of (albsUlt.length ? albsUlt : albs)) { if (tiles.length >= 8) break; tiles.push(`<button class="tile" type="button" data-det="album" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.album || "Sin álbum")}</b></button>`); }
@@ -206,6 +218,7 @@ function dibujarInicio() {
   const cancion = (s, i, lista) => `<button class="tarjeta" type="button" data-lista="${lista}" data-i="${i}">${imgHtml(s)}<b>${esc(s.titulo || s.nombre)}</b><span>${esc(s.artista || "")}</span></button>`;
   const albumTarjeta = (a, grande) => `<button class="tarjeta${grande ? " grande" : ""}" type="button" data-det="album" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.album || "Sin álbum")}</b><span>${esc(a.s.albumArtista || a.s.artista || "")}</span></button>`;
   const mix = (k, nombre, s, etiqueta) => `<button class="mix" type="button" data-det="lista" data-k="${esc(k)}" style="--h:${tono(nombre)}">${imgHtml(s)}<i>${etiqueta}</i><b>${esc(nombre)}</b></button>`;
+  const paraTi = mh.map((m) => mix("__mix:" + m.id, m.nombre, porId.get(m.ids[0]), m.etiqueta)).join("");
   const mixes = generos.map(([g]) => mix("__gen:" + g, "Mix " + g, E.canciones.find((s) => generosDe(s).includes(g)), "MIX")).concat(nuevas.length > 10 ? [mix("__olv", "Para redescubrir", nuevas[Math.floor(nuevas.length / 2)], "SIN ESCUCHAR")] : []).join("");
   const fichas = [`<button class="chip mezcla" data-mezclar type="button">Mezclar todo</button>`, `<button class="chip" data-det="lista" data-k="__fav" type="button">Favoritas</button>`, `<button class="chip" data-estadisticas type="button">Tu actividad</button>`, `<button class="chip" data-portadas type="button">Descargar carátulas</button>`,
     ...generos.slice(0, 5).map(([g]) => `<button class="chip" data-det="lista" data-k="${esc("__gen:" + g)}" type="button">${esc(g)}</button>`),
@@ -213,6 +226,7 @@ function dibujarInicio() {
   c.innerHTML = `<div class="fichas">${fichas.join("")}</div>
   <div class="tiles">${tiles.join("")}</div>
   ${estante("Vuelve a tu música", albsUlt.slice(0, 10).map((a) => albumTarjeta(a, true)).join(""))}
+  ${mh.length ? `<section class="estante"><h3>Hecho para ti</h3>${MIXES.aprendiendo ? `<p class="nota-mix">Escucha más música y aprenderé tus gustos.</p>` : ""}<div class="carril">${paraTi}</div></section>` : ""}
   ${estante("Tus mixes", mixes)}
   ${estante("Escuchadas hace poco", listasInicio.ult.map((s, i) => cancion(s, i, "ult")).join(""))}
   ${estante("Más escuchadas", listasInicio.mas.map((s, i) => cancion(s, i, "mas")).join(""))}
@@ -221,6 +235,7 @@ function dibujarInicio() {
   ${estante("Canciones nuevas", listasInicio.rec.map((s, i) => cancion(s, i, "rec")).join(""))}
   ${estante("Artistas", arts.map((a) => `<button class="tarjeta redonda" type="button" data-det="artista" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.albumArtista || a.s.artista || "Desconocido")}</b><span>${a.n} canciones</span></button>`).join(""))}`;
   $("#resumen").textContent = ""; imagenes(c);
+  if (!mh.length && E.canciones.length) mixesDeHoy().then((m) => { if (m.mixes.length && E.vista === "inicio" && !E.detalle) dibujarInicio(); });
 }
 function dibujarBuscar() {
   const c = $("#contenido"), q = normal(E.q.trim());
@@ -231,7 +246,7 @@ function dibujarBuscar() {
     return;
   }
   listaActual = ordenar(E.canciones.filter((s) => coincide(s, q)));
-  const albs = [...agrupar((s) => s.alb)].filter(([, v]) => v.some((s) => coincide(s, q))).slice(0, 10);
+  const albs = albumesReales([...agrupar((s) => s.alb)]).filter(([, v]) => v.some((s) => coincide(s, q))).slice(0, 10);
   const cabeza = (albs.length ? `<section class="estante"><h3>Álbumes</h3><div class="carril">${albs.map(([k, v]) => `<button class="tarjeta" type="button" data-det="album" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].album || "Sin álbum")}</b><span>${esc(v[0].albumArtista || v[0].artista || "")}</span></button>`).join("")}</div></section>` : "") +
     (listaActual.length ? `<h3 class="sub">Canciones</h3>` : `<div class="vacio">Nada coincide con “${esc(E.q)}”.</div>`);
   pintar(c, listaActual, (s, i) => filaCancion(s, i), (h) => cabeza + `<ul class="lista" data-tandas>${h}</ul>`);
@@ -269,7 +284,7 @@ function dibujarBiblioteca() {
     if (!listaActual.length) c.innerHTML = `<div class="vacio">Nada coincide con “${esc(E.q)}”.</div>`;
     const base = { titulo: (s) => s.titulo || s.nombre, artista: (s) => s.artista, album: (s) => s.album }[E.orden]; if (base) montarIndice(listaActual, base);
   } else if (E.tab === "albumes") {
-    const g = [...agrupar((s) => s.alb)].filter(([, v]) => v.some((s) => coincide(s, q))).sort((a, b) => colador.compare(a[1][0].album, b[1][0].album));
+    const g = albumesReales([...agrupar((s) => s.alb)]).filter(([, v]) => v.some((s) => coincide(s, q))).sort((a, b) => colador.compare(a[1][0].album, b[1][0].album));
     pintar(c, g, ([k, v]) => `<button class="tarjeta" type="button" data-det="album" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].album || "Sin álbum")}</b><span>${esc(v[0].albumArtista || v[0].artista || "")} · ${v.length}</span></button>`, (h) => `<div class="acciones-detalle"><button class="boton" type="button" data-portadas>Descargar carátulas que faltan</button></div><div class="rejilla" data-tandas>${h}</div>`); montarIndice(g, ([, v]) => v[0].album);
   } else if (E.tab === "artistas") {
     const g = [...agrupar((s) => normal(s.albumArtista || s.artista))].filter(([, v]) => v.some((s) => coincide(s, q))).sort((a, b) => colador.compare(a[1][0].albumArtista || a[1][0].artista, b[1][0].albumArtista || b[1][0].artista));
@@ -291,6 +306,7 @@ function cancionesDe(d) {
   if (d.tipo === "carpeta") return E.canciones.filter((s) => (s.carpeta || "") === d.k).sort((a, b) => (a.disco - b.disco) || (a.pista - b.pista) || colador.compare(a.titulo || a.nombre, b.titulo || b.nombre));
   if (d.tipo === "album") return ordenar(E.canciones.filter((s) => s.alb === d.k)).sort((a, b) => (a.disco - b.disco) || (a.pista - b.pista) || colador.compare(a.titulo, b.titulo));
   if (d.tipo === "artista") return E.canciones.filter((s) => normal(s.albumArtista || s.artista) === d.k).sort((a, b) => colador.compare(a.album, b.album) || (a.disco - b.disco) || (a.pista - b.pista));
+  if (d.k.startsWith("__mix:")) { const m = mixPorId(d.k.slice(6)); return m ? m.ids.map((id) => porId.get(id)).filter(Boolean) : []; }
   if (d.k === "__fav") return E.canciones.filter((s) => s.fav);
   if (d.k === "__mas") return masEscuchadas();
   if (d.k === "__ult") return ultimasEscuchadas();
@@ -301,10 +317,10 @@ function cancionesDe(d) {
 function dibujarDetalle(c, d) {
   listaActual = cancionesDe(d);
   const l = d.tipo === "lista" && !d.k.startsWith("__") ? E.listas.find((x) => x.id === d.k) : null;
-  const titulo = d.tipo === "carpeta" ? nombreCarpeta(d.k) : d.tipo === "album" ? (listaActual[0]?.album || "Álbum") : d.tipo === "artista" ? (listaActual[0]?.albumArtista || listaActual[0]?.artista || "Artista") : l ? l.nombre : ({ __fav: "Favoritas", __mas: "Más escuchadas", __ult: "Escuchadas hace poco", __olv: "Para redescubrir" }[d.k] || (d.k.startsWith("__gen:") ? "Mix " + d.k.slice(6) : "Favoritas"));
+  const titulo = d.k.startsWith("__mix:") ? (mixPorId(d.k.slice(6))?.nombre || "Tu mix") : d.tipo === "carpeta" ? nombreCarpeta(d.k) : d.tipo === "album" ? (listaActual[0]?.album || "Álbum") : d.tipo === "artista" ? (listaActual[0]?.albumArtista || listaActual[0]?.artista || "Artista") : l ? l.nombre : ({ __fav: "Favoritas", __mas: "Más escuchadas", __ult: "Escuchadas hace poco", __olv: "Para redescubrir" }[d.k] || (d.k.startsWith("__gen:") ? "Mix " + d.k.slice(6) : "Favoritas"));
   $("#resumen").textContent = "";
   c.innerHTML = `<div class="cabecera-detalle"><button class="ib" type="button" data-volver aria-label="Volver">${I.volver}</button><h2>${esc(titulo)}</h2>${l ? `<button class="ib" type="button" data-borrar-lista aria-label="Borrar lista">${I.mas3}</button>` : ""}</div>
-  <div class="acciones-detalle"><button class="boton primario" type="button" data-tocar-todo>Reproducir</button><button class="boton" type="button" data-tocar-azar>Aleatorio</button>${d.tipo === "album" ? `<button class="boton" type="button" data-portada-album>Buscar carátula</button>` : ""}</div>
+  <div class="acciones-detalle"><button class="boton primario" type="button" data-tocar-todo>Reproducir</button><button class="boton" type="button" data-tocar-azar>Aleatorio</button>${d.k.startsWith("__mix:") ? `<button class="boton" type="button" data-renovar-mixes>Renovar mixes</button>` : ""}${d.tipo === "album" ? `<button class="boton" type="button" data-portada-album>Buscar carátula</button>` : ""}</div>
   <div id="det-lista"></div>`;
   const cont = $("#det-lista");
   if (listaActual.length) pintar(cont, listaActual, (s, i) => filaCancion(s, i, d.tipo === "album" ? "" : ` · ${esc(s.album || "")}`), (h) => `<ul class="lista" data-tandas>${h}</ul>`); else cont.innerHTML = `<div class="vacio">Aquí no hay canciones todavía.</div>`;
@@ -415,7 +431,11 @@ function actualizarTiempo() {
 }
 
 // ── sesión y ajustes guardados ──
-async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false } }, "config").catch(() => {}); }
+function perfilesSalida() {
+  const p = (E.aj.perfiles ||= {}); if (E.aj.eqSalida && MOTOR && reproductor.ruta) p[reproductor.ruta] = { b: reproductor.bandasDb.slice(), p: reproductor.preampDb };
+  return p;
+}
+async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", eqSalida: !!E.aj.eqSalida, perfiles: perfilesSalida() } }, "config").catch(() => {}); }
 let tSes = 0;
 async function guardarSesion(fuerza) {
   const ahora = Date.now(); if (!fuerza && ahora - tSes < 4000) return; tSes = ahora;
@@ -429,17 +449,33 @@ const claveC = (s) => normal((s.artista || "") + "|" + (s.titulo || s.nombre || 
 let _pc = { v: -1, m: new Map() };
 function porClave() { if (_pc.v !== E.version) { _pc = { v: E.version, m: new Map(E.canciones.map((s) => [claveC(s), s])) }; } return _pc.m; }
 const diaDe = (off = 0) => { const d = new Date(Date.now() - off * 864e5); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
-let ultimoT = -1, deEsta = 0, contada = false, tGuardaH = 0;
+let ultimoT = -1, deEsta = 0, contada = false, tGuardaH = 0, cancionConteo = null;
 function contarTiempo() {
   const s = reproductor.actual; if (!s) return; const t = reproductor.tiempo, d = t - ultimoT; ultimoT = t;
   if (!reproductor.sonando || !(d > 0 && d < 2.5)) return;
-  const k = claveC(s), e = (HIST.m[k] ||= { n: 0, u: 0, ms: 0 }), ms = d * 1000, dia = diaDe();
+  cancionConteo = s; const k = claveC(s), e = (HIST.m[k] ||= { n: 0, u: 0, ms: 0 }), ms = d * 1000, dia = diaDe();
   e.ms += ms; HIST.tot += ms; HIST.d[dia] = (HIST.d[dia] || 0) + ms; deEsta += ms;
-  if (!contada && deEsta >= Math.min(30000, (reproductor.duracion || 60) * 500)) { contada = true; e.n++; e.u = Date.now(); }
+  if (!contada && deEsta >= Math.min(30000, (reproductor.duracion || 60) * 500)) { contada = true; e.n++; e.u = Date.now(); (e.hr ||= [0, 0, 0, 0])[bloqueDe()]++; }
   if (Date.now() - tGuardaH > 20000) guardarHist();
 }
 function guardarHist() { tGuardaH = Date.now(); db.poner("ajustes", HIST, "hist").catch(() => {}); }
-function reiniciarConteo() { ultimoT = -1; deEsta = 0; contada = false; }
+function reiniciarConteo() {
+  // si cambió de canción tras oír solo un poco, cuenta como salto (el algoritmo aprende a no ponerla tanto)
+  if (cancionConteo && !contada && deEsta > 2500 && deEsta < 20000) { const e = HIST.m[claveC(cancionConteo)]; if (e) e.sk = (e.sk || 0) + 1; }
+  cancionConteo = null; ultimoT = -1; deEsta = 0; contada = false;
+}
+// ── mixes del día (algoritmo local) ──
+let MIXES = null;
+async function mixesDeHoy(forzar = false) {
+  const dia = diaDe(), n = E.canciones.length;
+  if (!forzar && MIXES && MIXES.dia === dia && MIXES.n === n) return MIXES;
+  if (!forzar) { const g = await db.traer("ajustes", "mixes").catch(() => null); if (g && g.dia === dia && g.n === n && g.version === 2) return (MIXES = g); }
+  const extra = forzar ? (((MIXES && MIXES.extra) || 0) + 1) : 0;
+  const r = crearMixes({ canciones: E.canciones, hist: HIST, dia, claveC, generosDe, extra });
+  MIXES = { dia, n, extra, version: 2, aprendiendo: r.aprendiendo, mixes: r.mixes }; db.poner("ajustes", MIXES, "mixes").catch(() => {});
+  return MIXES;
+}
+function mixPorId(id) { return MIXES && MIXES.mixes.find((m) => m.id === id); }
 const masEscuchadas = () => { const m = porClave(); return Object.entries(HIST.m).filter(([k, e]) => e.n > 0 && m.has(k)).sort((a, b) => b[1].n - a[1].n || b[1].ms - a[1].ms).map(([k]) => m.get(k)); };
 const ultimasEscuchadas = () => { const m = porClave(); return Object.entries(HIST.m).filter(([k, e]) => e.u > 0 && m.has(k)).sort((a, b) => b[1].u - a[1].u).map(([k]) => m.get(k)); };
 const sinEscuchar = () => E.canciones.filter((s) => !(HIST.m[claveC(s)]?.n > 0));
@@ -486,8 +522,8 @@ async function restaurarCopia(archivo) {
 }
 
 // ── ajustes avanzados ──
-const TOGGLES = [["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-plano", "plano", false], ["aj-vib", "vib", true], ["aj-chips", "chips", true]];
-const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"]];
+const TOGGLES = [["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-plano", "plano", false], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false]];
+const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"]];
 let tocadoEnfoque = false;
 function sincronizarAjustes() {
   for (const [id, clave, def] of TOGGLES) $("#" + id).checked = E.aj[clave] === undefined ? def : !!E.aj[clave];
@@ -499,9 +535,20 @@ function aplicarAvanzados() {
   r.classList.toggle("plano", !!a.plano); r.classList.toggle("sinchips", a.chips === false); window.__vibrar = a.vib !== false;
   aplicarColores(); $("#aj-fondo-img").hidden = a.fondo !== "imagen";
   r.style.setProperty("--lt", a.letraTam || "1");
+  if (MOTOR && reproductor) { reproductor.ponerFundido(+a.fundido || 0).catch(() => {}); }
   if (MOTOR && reproductor) { const o = { silencio: !!a.silencio, ruido: a.ruido !== false }; if (tocadoEnfoque || a.enfoque === false) o.enfoque = a.enfoque !== false; reproductor.ponerAvanzado(o).catch(() => {}); }
 }
 
+// ── toques: onda de vidrio, animación del icono y vibración corta ──
+document.addEventListener("pointerdown", (e) => {
+  const b = e.target.closest(".ib, .boton, .chip, .tile, .genero, .mix"); if (!b) return;
+  const r = b.getBoundingClientRect(); b.style.setProperty("--rx", e.clientX - r.left + "px"); b.style.setProperty("--ry", e.clientY - r.top + "px");
+  b.classList.remove("onda", "toque"); void b.offsetWidth; b.classList.add("onda", "toque"); clearTimeout(b._tq); b._tq = setTimeout(() => b.classList.remove("onda", "toque"), 700);
+}, { passive: true });
+function chorroCorazones(el) {
+  const r = el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  for (let i = 0; i < 7; i++) { const h = document.createElement("span"); h.className = "corazon"; h.textContent = "♥"; const a = (Math.PI * 2 * i) / 7 + Math.random() * 0.5, d = 38 + Math.random() * 26; h.style.left = cx - 9 + "px"; h.style.top = cy - 9 + "px"; h.style.setProperty("--dx", Math.cos(a) * d + "px"); h.style.setProperty("--dy", Math.sin(a) * d - 18 + "px"); document.body.appendChild(h); setTimeout(() => h.remove(), 850); }
+}
 // ── hojas ──
 const pila = []; let ignorarPop = 0;
 function abrir(id) {
@@ -651,6 +698,12 @@ function enlazar() {
   R.addEventListener("detalles", () => actualizarMini());
   R.addEventListener("tiempo", () => actualizarLetra());
   R.addEventListener("cambio", () => { if (pila.includes("hoja-letra") && R.actual) cargarLetra(R.actual); });
+  R.addEventListener("letra", (e) => { if (pila.includes("hoja-letra") && R.actual && R.actual.id === e.detail && letraAct && !letraAct.sinc) cargarLetra(R.actual); });
+  R.addEventListener("ruta", (e) => {                                      // ecualizador distinto para cada salida (altavoz, Bluetooth, cable…)
+    const nombres = { altavoz: "altavoz del teléfono", bluetooth: "Bluetooth", usb: "USB", cable: "audífonos con cable" };
+    if (!E.aj.eqSalida) return; const pf = (E.aj.perfiles || {})[e.detail];
+    if (pf && pf.b && pf.b.length === BANDAS.length) { R.bandasDb = pf.b.slice(); R.preampDb = pf.p || 0; R._eq(); if (pila.includes("hoja-eq")) mostrarEq(); avisar("Ecualizador de " + (nombres[e.detail] || e.detail)); }
+  });
   R.addEventListener("error", (e) => avisar(e.detail.mensaje));
   R.addEventListener("dormido", () => avisar("Temporizador: música apagada. Buenas noches."));
   R.addEventListener("sueno", () => { if (pila.includes("hoja-sueno")) dibujarSueno(); });
@@ -668,6 +721,7 @@ function enlazar() {
     if (e.target.closest("[data-agregar]")) return MOTOR ? iniciarNativo(true) : $("#b-agregar").click();
     const ir = e.target.closest("[data-ir]"); if (ir) { E.vista = "biblioteca"; E.tab = ir.dataset.ir; E.detalle = null; dibujar(); animarCambio(); return; }
     if (e.target.closest("[data-estadisticas]")) return abrirStats();
+    if (e.target.closest("[data-renovar-mixes]")) { mixesDeHoy(true).then(() => { avisar("Mixes renovados"); dibujar(); }); return; }
     if (e.target.closest("[data-portadas]")) return descargarFaltantes(true);
     if (e.target.closest("[data-portada-album]")) { const s0 = listaActual[0]; if (s0) portadaWeb(s0); return; }
     if (e.target.closest("[data-mezclar]")) return tocar(ordenar(E.canciones), 0, true);
@@ -691,7 +745,7 @@ function enlazar() {
   $("#mini-sig").addEventListener("click", () => R.siguiente()); $("#r-sig").addEventListener("click", () => R.siguiente()); $("#r-ant").addEventListener("click", () => R.anterior());
   $("#r-azar").addEventListener("click", () => { R.ponerAleatorio(!R.aleatorio); $("#r-azar").setAttribute("aria-pressed", String(R.aleatorio)); });
   $("#r-rep").addEventListener("click", () => { const m = { no: "todo", todo: "uno", uno: "no" }[R.repetir]; R.ponerRepetir(m); $("#r-rep").dataset.modo = m; $("#r-rep").style.opacity = m === "no" ? "" : "1"; avisar({ no: "Sin repetir", todo: "Repetir toda la cola", uno: "Repetir esta canción" }[m], 1500); });
-  $("#r-fav").addEventListener("click", () => { if (R.actual) alternarFav(R.actual); });
+  $("#r-fav").addEventListener("click", async () => { if (!R.actual) return; const antes = !!R.actual.fav; await alternarFav(R.actual); if (!antes) { vibra(10); chorroCorazones($("#r-fav")); } });
   $("#r-letra").addEventListener("click", abrirLetra);
   $("#letra-trad").addEventListener("click", alternarTraduccion);
   $("#letra-cuerpo").addEventListener("click", (e) => {
@@ -711,6 +765,7 @@ function enlazar() {
   $("#aj-fondo").addEventListener("change", (e) => { if (e.target.value === "imagen" && !fondoUsuario) $("#f-fondo").click(); });
   $("#aj-fondo-img").addEventListener("click", () => $("#f-fondo").click());
   $("#f-fondo").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) elegirFondo(f); });
+  $("#aj-intro").addEventListener("click", () => { cerrar("hoja-aj"); setTimeout(() => mostrarIntro(true), 350); });
   $("#aj-reescanear").addEventListener("click", () => { cerrar("hoja-aj"); $("#b-agregar").click(); });
   $("#aj-auto").addEventListener("change", (e) => { E.aj.auto = e.target.checked; guardarAjustes(); });
   $("#r-lista").addEventListener("click", () => { if (R.actual) agregarALista(R.actual); });
@@ -818,7 +873,14 @@ function gestos() {
 }
 
 // ── arranque ──
+function mostrarIntro(forzar) {
+  try { if (!forzar) { if (localStorage.getItem("onda-intro")) return; localStorage.setItem("onda-intro", "1"); } } catch (_) { if (!forzar) return; }
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  const el = $("#intro"); el.hidden = false; el.classList.remove("va", "sale"); void el.offsetWidth; el.classList.add("va");
+  setTimeout(() => el.classList.add("sale"), 2400); setTimeout(() => { el.hidden = true; el.classList.remove("va", "sale"); }, 3100);
+}
 async function iniciar() {
+  mostrarIntro(false);
   history.replaceState({ raiz: 1 }, ""); history.pushState({ s: 1 }, "");   // así el gesto de atrás no cierra la app de golpe
   reproductor = MOTOR ? new ReproductorNativo(MOTOR) : new Reproductor({ obtenerBlob: (id) => db.traer("archivos", id), obtenerPortada: async (s) => (s.alb ? db.traer("portadas", s.alb) : null) });
   window.__onda = { reproductor, E, db, hist: () => HIST, claveC };                                    // para pruebas
@@ -833,7 +895,7 @@ async function iniciar() {
   sincronizarAjustes(); cargarFondoUsuario();
   HIST = (await db.traer("ajustes", "hist").catch(() => null)) || { m: {}, d: {}, tot: 0 };
   if (cfg?.av && (cfg.av.sistema === false || +cfg.av.minSeg)) await cargarTodo();
-  if (MOTOR) { if (cfg?.esp) { reproductor.ancho = cfg.esp.a || 0; reproductor.env = cfg.esp.e || 0; reproductor.graves = cfg.esp.g || 0; } document.querySelectorAll("#aj-viz, #aj-gap, #aj-persistir, #aj-borrar").forEach((e) => { (e.closest(".campo") || e).hidden = true; }); $("#aj-info").textContent = "Motor de audio nativo (ExoPlayer): cambio de canción sin pausa, ecualizador de 10 bandas de 32 bits y lectura directa de tus archivos."; $("#b-agregar").setAttribute("aria-label", "Actualizar biblioteca"); reproductor.aplicarTodo(); document.querySelectorAll(".solo-nativo").forEach((e) => { e.hidden = false; }); $("#aj-salida").hidden = false; $("#aj-salida-info").hidden = false; etiquetaSalida(); reproductor.ponerSalida(E.aj.salida).catch(() => {}); }
+  if (MOTOR) { if (cfg?.esp) { reproductor.ancho = cfg.esp.a || 0; reproductor.env = cfg.esp.e || 0; reproductor.graves = cfg.esp.g || 0; } document.querySelectorAll("#aj-viz, #aj-gap, #aj-persistir, #aj-borrar").forEach((e) => { (e.closest(".campo") || e).hidden = true; }); $("#aj-info").textContent = "Motor de audio nativo (ExoPlayer): cambio de canción sin pausa, ecualizador de 10 bandas de 32 bits y lectura directa de tus archivos."; $("#b-agregar").setAttribute("aria-label", "Actualizar biblioteca"); reproductor.aplicarTodo(); reproductor.escucharRuta().catch(() => {}); document.querySelectorAll(".solo-nativo").forEach((e) => { e.hidden = false; }); $("#aj-salida").hidden = false; $("#aj-salida-info").hidden = false; etiquetaSalida(); reproductor.ponerSalida(E.aj.salida).catch(() => {}); }
   dibujar(); mostrarEspacio();
   if (MOTOR) {
     await iniciarNativo(false);
@@ -939,7 +1001,9 @@ async function cargarLetra(s) {
   letraAct = { id: s.id, lineas: [], idx: -2, textos: [], trad: null };
   cuerpo.className = "letra-cuerpo"; cuerpo.innerHTML = `<div class="vacio">Buscando la letra…</div>`;
   let L = await db.traer("ajustes", "letra2:" + s.id).catch(() => null), error = false;
-  if (!L) { try { L = await buscarLetraCompleta(texto, s); } catch (_) { error = true; } if (L) await db.poner("ajustes", L, "letra2:" + s.id).catch(() => {}); }
+  const emb = MOTOR && reproductor.letras ? reproductor.letras[s.id] : null, embSinc = emb && parsearLRC(emb).length > 0;   // letra que trae el propio archivo
+  if (embSinc && !(L && L.sincronizada && L.manual)) L = { sincronizada: emb, plana: "", incrustada: true };
+  if (!L) { try { L = await buscarLetraCompleta(texto, s); } catch (_) { error = true; } if (L && emb && !L.sincronizada) L = { sincronizada: "", plana: emb, incrustada: true }; if (L) await db.poner("ajustes", L, "letra2:" + s.id).catch(() => {}); }
   if (letraAct.id !== s.id) return;                                       // mientras tanto cambió la canción
   if (!L) { cuerpo.innerHTML = `<div class="vacio">${error ? "No pude buscar la letra. ¿Tienes internet?" : "No encontré la letra de esta canción."}<br><button class="boton" id="letra-reintento" type="button" style="margin-top:14px">Intentar otra vez</button> <button class="boton" id="letra-pegar" type="button" style="margin-top:14px">Pegar letra</button></div>`; return; }
   const lineas = parsearLRC(L.sincronizada);
@@ -965,7 +1029,7 @@ function pegarLetra() {
   cuerpo.className = "letra-cuerpo"; cuerpo.innerHTML = `<div class="vacio"><p>Pega aquí la letra (con o sin tiempos tipo [01:23.45]).</p><textarea id="letra-texto" rows="12" style="width:100%;padding:12px;border-radius:16px;color:var(--tx);background:rgba(255,255,255,.1);font-size:1rem"></textarea><br><button class="boton" id="letra-guardar" type="button" style="margin-top:12px">Guardar letra</button></div>`;
   $("#letra-guardar").onclick = async () => {
     const t = $("#letra-texto").value.trim(); if (!t) return;
-    const L = parsearLRC(t).length ? { sincronizada: t, plana: "" } : { sincronizada: "", plana: t };
+    const L = parsearLRC(t).length ? { sincronizada: t, plana: "", manual: true } : { sincronizada: "", plana: t, manual: true };
     await db.poner("ajustes", L, "letra2:" + s.id).catch(() => {}); await db.borrar("ajustes", "trad:" + s.id).catch(() => {}); cargarLetra(s);
   };
 }

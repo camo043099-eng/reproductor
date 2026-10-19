@@ -6,24 +6,35 @@ const coincide = (a, b) => { a = norm(a); b = norm(b); return !!a && !!b && (a =
 const json = async (texto, url) => JSON.parse(await texto(url));
 
 /** URL de la portada más probable según artista, álbum y título (o null) */
+const GENERICOS = new Set(["music", "musica", "download", "downloads", "descargas", "audio", "audios", "songs", "unknown album", "album", "sin album", "0", "sdcard", "telegram", "whatsapp audio", "ringtones", "alarms", "notifications", "recordings", "podcasts", "mp3", "flac", "new folder"]);
+export const albumGenerico = (a) => !a || GENERICOS.has(norm(a)) || /^unknown|desconocid/.test(norm(a));
+const exacto = (a, b) => !!norm(a) && norm(a) === norm(b);
 export async function buscarPortadaUrl(texto, s) {
-  const artista = s.albumArtista || s.artista || "", album = s.album || "", titulo = s.titulo || "";
+  const artista = s.albumArtista || s.artista || "", titulo = s.titulo || s.nombre || "", album = albumGenerico(s.album) ? "" : (s.album || ""), dur = s.duracion || 0;
+  const sinArtista = !artista || /^unknown|desconocid/.test(norm(artista));
   const grande = (u) => String(u || "").replace(/\/\d+x\d+(bb)?\.(jpg|png)/, "/1000x1000bb.jpg");
   const intentos = [
     async () => {                                                                         // iTunes: por álbum
-      if (!album) return null;
+      if (!album || sinArtista) return null;
       const j = await json(texto, `https://itunes.apple.com/search?media=music&entity=album&limit=8&term=${encodeURIComponent(artista + " " + album)}`);
       const puntos = (r) => (coincide(r.artistName, artista) ? 2 : 0) + (coincide(r.collectionName, album) ? 2 : 0);
-      const m = (j.results || []).map((r) => [puntos(r), r]).filter(([p]) => p >= 4 || (p >= 2 && !artista)).sort((a, b) => b[0] - a[0])[0];
+      const m = (j.results || []).map((r) => [puntos(r), r]).filter(([p]) => p >= 4).sort((a, b) => b[0] - a[0])[0];
       return m ? grande(m[1].artworkUrl100) : null;
+    },
+    async () => {                                                                         // Deezer: por canción (verifica título, artista y duración)
+      if (sinArtista || !titulo) return null;
+      const j = await json(texto, `https://api.deezer.com/search/track?q=${encodeURIComponent(`artist:"${artista}" track:"${titulo}"`)}`);
+      const m = (j.data || []).find((r) => coincide(r.artist?.name, artista) && coincide(r.title, titulo) && (!dur || !r.duration || Math.abs(r.duration - dur) < 6));
+      return m ? m.album?.cover_xl || m.album?.cover_big || null : null;
     },
     async () => {                                                                         // iTunes: por canción
       if (!titulo) return null;
       const j = await json(texto, `https://itunes.apple.com/search?media=music&entity=song&limit=10&term=${encodeURIComponent(artista + " " + titulo)}`);
-      const m = (j.results || []).find((r) => coincide(r.trackName, titulo) && (!artista || coincide(r.artistName, artista)));
+      const m = (j.results || []).find((r) => (sinArtista ? exacto(r.trackName, titulo) : coincide(r.trackName, titulo) && coincide(r.artistName, artista)) && (!dur || !r.trackTimeMillis || Math.abs(r.trackTimeMillis / 1000 - dur) < 6));
       return m ? grande(m.artworkUrl100) : null;
     },
     async () => {                                                                         // Deezer
+      if (sinArtista || !album) return null;
       const q = album ? `${artista} ${album}` : `${artista} ${titulo}`;
       const j = await json(texto, `https://api.deezer.com/search/album?q=${encodeURIComponent(q.trim())}`);
       const m = (j.data || []).find((r) => coincide(r.artist?.name, artista) && (!album || coincide(r.title, album)));

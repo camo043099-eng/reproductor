@@ -11,6 +11,7 @@ export class ReproductorNativo extends EventTarget {
     super(); this.N = N; this.nativo = true;
     this.lista = []; this.original = []; this.pos = -1;
     this.aleatorio = false; this.repetir = "no"; this.rgModo = "pista"; this.preampDb = 0; this.eqOn = true; this.bandasDb = PRESETS.Plano.slice(); this.velocidad = 1; this.volumen = 1; this.ancho = 0; this.env = 0; this.graves = 0;
+    this.letras = {}; this.ruta = "altavoz";
     this._pos = 0; this._dur = 0; this._sonando = false; this._dormirEn = 0; this._tSueno = null;
     const on = (n, f) => N.addListener(n, f);
     on("tiempo", (e) => { this._pos = e.pos / 1000; if (e.dur > 0) this._dur = e.dur / 1000; this._emitir("tiempo"); });
@@ -18,6 +19,8 @@ export class ReproductorNativo extends EventTarget {
     on("cambio", (e) => { if (e.indice >= 0 && e.indice < this.lista.length) { this.pos = e.indice; this._pos = 0; this._dur = this.actual?.duracion || 0; this._emitir("cambio", this.actual); } });
     on("detalles", (e) => { const s = this.lista.find((x) => x.id === e.id); if (!s) return; if (e.sampleRate) s.sampleRate = e.sampleRate; if (e.bits) s.bits = e.bits; if (e.canales) s.canales = e.canales; if (e.bitrate) s.bitrate = e.bitrate; this._emitir("detalles", s); });
     on("error", (e) => this._emitir("error", { mensaje: e.mensaje }));
+    on("ruta", (e) => { this.ruta = e.tipo; this._emitir("ruta", e.tipo); });
+    on("letra", (e) => { this.letras[e.id] = e.texto; this._emitir("letra", e.id); });
     on("dormido", () => { this._dormirEn = 0; this._sonando = false; this._emitir("dormido"); this._emitir("estado"); });
   }
   _emitir(tipo, detalle) { this.dispatchEvent(new CustomEvent(tipo, { detail: detalle })); }
@@ -98,6 +101,8 @@ export class ReproductorNativo extends EventTarget {
       this._emitir("estado"); this._emitir("tiempo");
     } catch (_) { /* sin respuesta */ }
   }
+  ponerFundido(seg) { return this.N.fundido({ seg }); }
+  escucharRuta() { return this.N.rutaEscuchar(); }
   ponerAvanzado(o) { return this.N.avanzado(o); }
   aplicarTodo() { this.ponerEspacial(); this._eq(); this.N.rg({ modo: this.rgModo }); this.N.velocidad({ v: this.velocidad }); this.N.repetir({ modo: this.repetir }); }
 

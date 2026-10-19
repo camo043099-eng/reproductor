@@ -83,6 +83,8 @@ try:
         assert "Más escuchadas" in pn.inner_text(".tiles"), pn.inner_text(".tiles"); assert pn.locator(".mix").count() >= 0
         pn.click("[data-estadisticas]"); pn.wait_for_selector("#hoja-stats.ver .num"); assert pn.locator("#stats-cuerpo .num").count() == 4; pn.click("#hoja-stats [data-cerrar]"); pn.wait_for_selector("#hoja-stats", state="hidden")
         print("inicio + actividad OK")
+        pn.wait_for_selector("text=Hecho para ti"); pn.click(".mix[data-k^='__mix:'] >> nth=0"); pn.wait_for_selector("#det-lista .fila, #det-lista li"); assert pn.locator("[data-renovar-mixes]").count() == 1
+        pn.click("[data-renovar-mixes]"); pn.wait_for_selector("#det-lista li, #det-lista .fila"); pn.click("[data-volver]"); print("mixes del dia OK")
         pn.click("#nav [data-v=buscar]"); pn.wait_for_selector(".genero"); assert pn.locator(".genero img").count() >= 1, "sin caratulas en generos"; print("generos con caratula OK")
         pn.click("#nav [data-v=inicio]"); pn.wait_for_selector(".tiles"); assert pn.locator("[data-portadas]").count() >= 1, "falta boton de caratulas"; print("boton caratulas OK")
         pn.evaluate("(() => { const s = document.querySelector('#aj-fondo'); s.value = 'portada'; s.dispatchEvent(new Event('change', {bubbles: true})); })()")
