@@ -23,8 +23,8 @@ public class PruebaEq {
         e.ponerGananciaDb(12); float[] f = seno(1000, 0.9, hz, 44100); e.procesar(f, f.length);
         float mx = 0; for (float v : f) mx = Math.max(mx, Math.abs(v)); ok(mx <= 1.0f, "el limitador nunca pasa de 1 (" + mx + ")");
         e.ponerBandas(new double[10], false); e.ponerGananciaDb(0); e.reiniciar();
-        float[] est = new float[200]; for (int i = 0; i < 100; i++) { est[2 * i] = 0.3f; est[2 * i + 1] = 0.1f; } e.ponerAncho(1); e.procesar(est, est.length);
-        ok(Math.abs((est[0] - est[1]) - 0.4) < 1e-5 && Math.abs((est[0] + est[1]) / 2 - 0.2) < 1e-5, "amplitud estéreo: el lado se duplica y el centro no cambia");
+        float[] est = new float[4000]; for (int i = 0; i < 2000; i++) { est[2 * i] = 0.3f; est[2 * i + 1] = 0.1f; } e.configurar(44100, 2); e.ponerAncho(1); e.procesar(est, est.length);
+        ok(Math.abs((est[3998] - est[3999]) - 0.4) < 1e-5 && Math.abs((est[3998] + est[3999]) / 2 - 0.2) < 1e-5, "amplitud estéreo: el lado se duplica y el centro no cambia");
         float[] mono = new float[200]; for (int i = 0; i < 200; i++) mono[i] = 0.25f; e.procesar(mono, mono.length);
         boolean igual = true; for (float v : mono) if (Math.abs(v - 0.25f) > 1e-6) igual = false; ok(igual, "una señal mono no cambia con la amplitud estéreo");
         e.ponerAncho(0); e.ponerGananciaDb(0); double[] g = new double[10]; java.util.Arrays.fill(g, 12); e.ponerBandas(g, true); e.reiniciar();

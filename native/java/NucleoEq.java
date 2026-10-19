@@ -13,16 +13,18 @@ public final class NucleoEq {
     private int canales = 2, hz = 44100;
     private double[][] coef = new double[N][5];                 // b0 b1 b2 a1 a2 (ya divididos por a0)
     private double[][][] estado = new double[2][N][4];          // [canal][banda]{x1,x2,y1,y2}
-    private double lineal = 1;
+    private double lineal = 1, gAct = 1;                      // ganancia deseada y ganancia que suena ahora (cambia suave, sin chasquidos)
+    private boolean saltarGan = false;
+    private int rampa = 0, rampaTot = 1;                                       // muestras (por canal) que faltan de entrada suave tras empezar/saltar
     private double ancho = 0;                                   // 0 = normal, 1 = el doble de separación estéreo
     private boolean pasaTodo = true;
 
     public synchronized void configurar(int hz, int canales) {
         this.hz = hz; this.canales = Math.max(1, canales);
         this.estado = new double[this.canales][N][4];
-        sucio = true;
+        sucio = true; rampa = rampaTot = Math.max(1, hz / 80); saltarGan = true;
     }
-    public synchronized void reiniciar() { for (double[][] c : estado) for (double[] b : c) java.util.Arrays.fill(b, 0); sucio = true; }
+    public synchronized void reiniciar() { for (double[][] c : estado) for (double[] b : c) java.util.Arrays.fill(b, 0); sucio = true; rampa = rampaTot = Math.max(1, hz / 80); saltarGan = true; }
     public synchronized void ponerBandas(double[] db, boolean activo) {
         for (int i = 0; i < N; i++) gdb[i] = i < db.length ? Math.max(-12, Math.min(12, db[i])) : 0;
         eqOn = activo; sucio = true;
@@ -74,10 +76,14 @@ public final class NucleoEq {
     /** Procesa muestras entrelazadas (valores entre -1 y 1) en el mismo arreglo. */
     public void procesar(float[] x, int cuantas) {
         if (sucio) recalcular();
-        if (pasaTodo) return;
-        final int C = canales; final double g = lineal;
+        if (saltarGan) { gAct = lineal; saltarGan = false; }
+        final double kG = 1 - Math.exp(-1.0 / (0.02 * Math.max(8000, hz)));
+        final int C = canales;
+        if (pasaTodo && gAct == lineal) { rampa = 0; return; }   // plano y sin ganancia: pasa idéntico, bit a bit
+        final double g = lineal;
         for (int k = 0; k < cuantas; k++) {
-            int c = k % C; double v = x[k] * g;
+            int c = k % C; if (c == 0) { gAct += (g - gAct) * kG; if (Math.abs(g - gAct) < 1e-7) gAct = g; }
+            double v = x[k] * gAct;
             double[][] est = estado[c];
             for (int b = 0; b < N; b++) {
                 double[] co = coef[b];
@@ -86,6 +92,7 @@ public final class NucleoEq {
                 double y = co[0] * v + co[1] * s[0] + co[2] * s[1] - co[3] * s[2] - co[4] * s[3];
                 s[1] = s[0]; s[0] = v; s[3] = s[2]; s[2] = y; v = y;
             }
+            if (rampa > 0) { v *= 1.0 - (double) rampa / rampaTot; if (c == C - 1) rampa--; }   // entrada suave de ~12 ms: sin chasquido al empezar o saltar
             x[k] = (float) v;
         }
         if (ancho > 0.001 && C == 2) {                                   // más o menos "lado" respecto al "centro"
