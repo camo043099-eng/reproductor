@@ -21,7 +21,7 @@
       <button class="ib" id="b-ajustes" type="button" aria-label="Ajustes"></button>
     </div>
   </header>
-  <div class="buscador" id="buscador" hidden><input id="q" type="search" placeholder="¿Qué quieres escuchar?" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+  <div class="buscador" id="buscador" hidden><input id="q" type="search" placeholder="Buscar canciones, artistas, álbumes…" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
   <nav class="pestanas" id="pestanas" role="tablist" aria-label="Biblioteca">
     <button role="tab" data-t="canciones" aria-selected="true">Canciones</button>
     <button role="tab" data-t="albumes" aria-selected="false">Álbumes</button>
@@ -34,6 +34,7 @@
     <label class="suave">Orden <select id="orden"><option value="titulo">Título</option><option value="artista">Artista</option><option value="album">Álbum</option><option value="reciente">Recientes</option></select></label>
   </div>
   <main class="contenido" id="contenido" tabindex="-1"></main>
+  <nav class="indice" id="indice" hidden aria-label="Ir a la letra"></nav><div class="burbuja" id="burbuja" hidden></div>
   <div class="aviso" id="aviso" role="status" aria-live="polite" hidden></div>
 </div>
 
@@ -78,7 +79,7 @@
 
 <!-- letra -->
 <section class="hoja letra" id="hoja-letra" hidden role="dialog" aria-label="Letra">
-  <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span id="letra-titulo">Letra</span><span></span></div>
+  <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span id="letra-titulo">Letra</span><button class="ib" id="letra-trad" type="button" aria-label="Traducir letra" style="width:auto;padding:0 12px;font-size:.85rem;font-weight:700">Traducir</button></div>
   <div class="letra-cuerpo" id="letra-cuerpo"></div>
 </section>
 

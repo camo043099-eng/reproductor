@@ -48,6 +48,38 @@ export async function buscarLetra(texto, s) {
   return null;
 }
 
+/** NetEase (muy buena para música china, japonesa y de juegos): letra sincronizada y a veces traducción */
+async function letraNetEase(texto, s) {
+  const artista = (s.artista || "").split(/[,&;]/)[0].trim(), titulo = s.titulo || s.nombre || "";
+  const r = await json(texto, "https://music.163.com/api/search/get/web?csrf_token=&type=1&limit=8&offset=0&s=" + encodeURIComponent(`${titulo} ${artista}`.trim()));
+  const c = ((r.result && r.result.songs) || []).map((x) => [Math.abs((x.duration || 0) / 1000 - (s.duracion || 0)), x]).filter(([d]) => !s.duracion || d < 5).sort((a, b) => a[0] - b[0])[0];
+  if (!c) return null;
+  const j = await json(texto, `https://music.163.com/api/song/lyric?id=${c[1].id}&lv=1&kv=1&tv=-1`);
+  const sinc = j.lrc && j.lrc.lyric ? j.lrc.lyric : "";
+  return parsearLRC(sinc).length ? { sincronizada: sinc, plana: "", traduccion: j.tlyric && j.tlyric.lyric ? j.tlyric.lyric : "" } : null;
+}
+
+/** Letra de la canción con respaldo: si LRCLIB no la tiene sincronizada se prueba NetEase */
+export async function buscarLetraCompleta(texto, s) {
+  let L = null; try { L = await buscarLetra(texto, s); } catch (_) { /* se sigue */ }
+  if (L && parsearLRC(L.sincronizada).length) return L;
+  try { const N = await letraNetEase(texto, s); if (N) return { ...N, plana: (L && L.plana) || "" }; } catch (_) { /* sin respaldo */ }
+  return L;
+}
+
+/** Traduce una lista de líneas con el traductor gratuito de Google; devuelve una lista del mismo largo */
+export async function traducir(texto, lineas, destino = "es") {
+  const out = []; let i = 0;
+  while (i < lineas.length) {
+    const trozo = []; let largo = 0;
+    while (i < lineas.length && largo < 1400) { const t = lineas[i] && lineas[i].trim() ? lineas[i] : "·"; trozo.push(t); largo += encodeURIComponent(t).length + 3; i++; }
+    const j = await json(texto, `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${destino}&dt=t&q=${encodeURIComponent(trozo.join("\n"))}`);
+    const todo = ((j && j[0]) || []).map((x) => x[0] || "").join(""), partes = todo.split("\n");
+    for (let k = 0; k < trozo.length; k++) out.push(trozo[k] === "·" ? "" : partes.length === trozo.length ? partes[k].trim() : k === 0 ? todo : "");
+  }
+  return out;
+}
+
 /** "[01:23.45] texto" → [{t: segundos, txt}] */
 export function parsearLRC(lrc) {
   const out = [];

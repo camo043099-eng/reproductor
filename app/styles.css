@@ -172,6 +172,8 @@ input[type="range"] { width: 100%; accent-color: #fff; height: 28px; background:
 .letra-cuerpo p.actual { opacity: 1; transform: scale(1.03); }
 .letra-cuerpo p.pasada { opacity: 0.5; }
 .letra-cuerpo.plana p { opacity: 0.9; font-size: 1.25rem; font-weight: 600; cursor: default; }
+.letra-cuerpo p small { display: block; margin-top: .25em; font-size: .62em; font-weight: 600; opacity: .8; letter-spacing: 0; }
+#letra-trad[aria-pressed="true"] { color: #000; background: #fff; border-radius: 999px; }
 .letra-cuerpo .vacio { font-weight: 500; font-size: 1rem; }
 /* gestos y movimiento */
 .mini, .hoja-top, .portada-grande, .datos { touch-action: none; }
@@ -188,3 +190,9 @@ button, .fila { user-select: none; -webkit-user-select: none; }
 img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none; pointer-events: none; }
 
 .chips .chip.activo{color:#000}
+
+.indice { position: fixed; right: 2px; top: 22vh; bottom: calc(190px + env(safe-area-inset-bottom, 0px)); z-index: 20; display: flex; flex-direction: column; justify-content: space-between; align-items: center; width: 22px; touch-action: none; user-select: none; -webkit-user-select: none; font-size: .62rem; font-weight: 800; color: var(--tx2); padding: 4px 0; border-radius: 12px; }
+.indice span { line-height: 1; pointer-events: none; }
+.indice.tocando { background: rgba(255,255,255,.12); }
+.burbuja { position: fixed; left: 50%; top: 40%; transform: translate(-50%,-50%); z-index: 30; width: 84px; height: 84px; display: grid; place-items: center; font-size: 2.6rem; font-weight: 800; border-radius: 24px; background: rgba(30,30,34,.7); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); pointer-events: none; }
+.fila, .tarjeta { scroll-margin-top: 12px; }

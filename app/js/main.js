@@ -2,7 +2,7 @@ import { Reproductor, BANDAS, PRESETS } from "./player.js";
 import { leerEtiquetas } from "./tags.js";
 import * as db from "./db.js";
 import { ReproductorNativo } from "./nativo.js";
-import { buscarPortadaUrl, buscarLetra, parsearLRC, lineaActual } from "./internet.js";
+import { buscarPortadaUrl, buscarLetraCompleta, traducir, parsearLRC, lineaActual } from "./internet.js";
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 
 const $ = (s) => document.querySelector(s);
@@ -55,9 +55,9 @@ function imagenes(raiz) { raiz.querySelectorAll("img[data-alb]:not([data-obs])")
 const imgsDe = (alb) => document.querySelectorAll(`img[data-alb="${CSS.escape(alb)}"]`);
 
 // pinta listas largas por tandas: lo primero aparece al instante y el resto llega entre cuadros, sin congelar la pantalla
-let tokenPintado = 0;
+let tokenPintado = 0, forzarPintado = () => {};
 function pintar(c, items, f, envoltura) {
-  const mi = ++tokenPintado, N = 40;
+  const mi = ++tokenPintado, N = 40; forzarPintado = () => {};
   c.innerHTML = envoltura(items.slice(0, N).map(f).join(""));
   const cont = c.querySelector("[data-tandas]"); let i = N;
   const paso = () => {
@@ -65,6 +65,7 @@ function pintar(c, items, f, envoltura) {
     const fin = Math.min(items.length, i + 120); let h = ""; for (let k = i; k < fin; k++) h += f(items[k], k);
     cont.insertAdjacentHTML("beforeend", h); i = fin; imagenes(cont); requestAnimationFrame(paso);
   };
+  forzarPintado = () => { if (mi !== tokenPintado || i >= items.length) return; let h = ""; for (let k = i; k < items.length; k++) h += f(items[k], k); cont.insertAdjacentHTML("beforeend", h); i = items.length; imagenes(cont); };
   if (items.length > N) requestAnimationFrame(paso);
   imagenes(c);
 }
@@ -164,7 +165,7 @@ function dibujar() {
   tokenPintado++;
   const v = E.vista;
   $("#titulo-vista").textContent = v === "inicio" ? saludo() : v === "buscar" ? "Buscar" : "Tu biblioteca";
-  $("#buscador").hidden = v !== "buscar"; $("#pestanas").hidden = v !== "biblioteca"; $("#barra-orden").hidden = true;
+  $("#buscador").hidden = !(v === "buscar" || (v === "biblioteca" && !E.detalle)); $("#q").placeholder = v === "buscar" ? "¿Qué quieres escuchar?" : "Buscar en tu biblioteca…"; $("#indice").hidden = true; $("#pestanas").hidden = v !== "biblioteca"; $("#barra-orden").hidden = true;
   { const t = document.querySelector("[data-t=carpetas]"); if (t) t.hidden = !E.canciones.some((x) => x.carpeta); }
   document.querySelectorAll("#nav button").forEach((b) => { const a = b.dataset.v === v; a ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"); b.firstElementChild.innerHTML = IN[b.dataset.v]; });
   if (v !== "biblioteca" && !E.canciones.length) { $("#contenido").innerHTML = vacio(); return; }
@@ -202,23 +203,44 @@ function dibujarBuscar() {
     (listaActual.length ? `<h3 class="sub">Canciones</h3>` : `<div class="vacio">Nada coincide con “${esc(E.q)}”.</div>`);
   pintar(c, listaActual, (s, i) => filaCancion(s, i), (h) => cabeza + `<ul class="lista" data-tandas>${h}</ul>`);
 }
+// barra de letras A–Z para saltar rápido en listas largas
+function montarIndice(items, texto) {
+  const ind = $("#indice"), c = $("#contenido");
+  const letra = (t) => { const ch = normal(String(t || "").trim()).charAt(0).toUpperCase(); return /[A-Z]/.test(ch) ? ch : "#"; };
+  if (items.length < 25) { ind.hidden = true; return; }
+  const primero = new Map(); items.forEach((x, i) => { const l = letra(texto(x)); if (!primero.has(l)) primero.set(l, i); });
+  const letras = [...primero.keys()].sort((a, b) => (a === "#") - (b === "#") || a.localeCompare(b));
+  ind.innerHTML = letras.map((l) => `<span>${l}</span>`).join(""); ind.hidden = false;
+  const bur = $("#burbuja"); let ultima = "";
+  const ir = (y) => {
+    const r = ind.getBoundingClientRect(), k = Math.max(0, Math.min(letras.length - 1, Math.floor(((y - r.top) / r.height) * letras.length))), l = letras[k];
+    if (l === ultima) return; ultima = l; bur.textContent = l; bur.hidden = false; vibra(8);
+    forzarPintado(); const cont = c.querySelector("[data-tandas]"), el = cont && cont.children[primero.get(l)]; if (el) el.scrollIntoView({ block: "start" });
+  };
+  ind.onpointerdown = (e) => { ind.setPointerCapture(e.pointerId); ind.classList.add("tocando"); ultima = ""; ir(e.clientY); e.preventDefault(); };
+  ind.onpointermove = (e) => { if (ind.classList.contains("tocando")) ir(e.clientY); };
+  const fin = () => { ind.classList.remove("tocando"); bur.hidden = true; };
+  ind.onpointerup = fin; ind.onpointercancel = fin;
+}
 function dibujarBiblioteca() {
-  const c = $("#contenido"), q = "", d = E.detalle;
+  const c = $("#contenido"), q = normal(E.q.trim()), d = E.detalle;
   $("#barra-orden").hidden = !(E.tab === "canciones" && !d);
   document.querySelectorAll("#pestanas button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.t === E.tab)));
   if (!E.canciones.length) { c.innerHTML = vacio(); $("#resumen").textContent = ""; return; }
   if (d) return dibujarDetalle(c, d);
   if (E.tab === "canciones") {
-    listaActual = ordenadas();
+    listaActual = q ? ordenadas().filter((s) => coincide(s, q)) : ordenadas();
     const dur = listaActual.reduce((a, s) => a + (s.duracion || 0), 0);
     $("#resumen").textContent = `${listaActual.length} canciones · ${fmt(dur)}`;
     pintar(c, listaActual, (s, i) => filaCancion(s, i), (h) => `<ul class="lista" data-tandas>${h}</ul>`);
+    if (!listaActual.length) c.innerHTML = `<div class="vacio">Nada coincide con “${esc(E.q)}”.</div>`;
+    const base = { titulo: (s) => s.titulo || s.nombre, artista: (s) => s.artista, album: (s) => s.album }[E.orden]; if (base) montarIndice(listaActual, base);
   } else if (E.tab === "albumes") {
     const g = [...agrupar((s) => s.alb)].filter(([, v]) => v.some((s) => coincide(s, q))).sort((a, b) => colador.compare(a[1][0].album, b[1][0].album));
-    pintar(c, g, ([k, v]) => `<button class="tarjeta" type="button" data-det="album" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].album || "Sin álbum")}</b><span>${esc(v[0].albumArtista || v[0].artista || "")} · ${v.length}</span></button>`, (h) => `<div class="rejilla" data-tandas>${h}</div>`);
+    pintar(c, g, ([k, v]) => `<button class="tarjeta" type="button" data-det="album" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].album || "Sin álbum")}</b><span>${esc(v[0].albumArtista || v[0].artista || "")} · ${v.length}</span></button>`, (h) => `<div class="rejilla" data-tandas>${h}</div>`); montarIndice(g, ([, v]) => v[0].album);
   } else if (E.tab === "artistas") {
     const g = [...agrupar((s) => normal(s.albumArtista || s.artista))].filter(([, v]) => v.some((s) => coincide(s, q))).sort((a, b) => colador.compare(a[1][0].albumArtista || a[1][0].artista, b[1][0].albumArtista || b[1][0].artista));
-    pintar(c, g, ([k, v]) => `<button class="tarjeta" type="button" data-det="artista" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].albumArtista || v[0].artista || "Desconocido")}</b><span>${v.length} canciones</span></button>`, (h) => `<div class="rejilla" data-tandas>${h}</div>`);
+    pintar(c, g, ([k, v]) => `<button class="tarjeta" type="button" data-det="artista" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].albumArtista || v[0].artista || "Desconocido")}</b><span>${v.length} canciones</span></button>`, (h) => `<div class="rejilla" data-tandas>${h}</div>`); montarIndice(g, ([, v]) => v[0].albumArtista || v[0].artista);
   } else if (E.tab === "carpetas") {
     const g = [...agrupar((s) => s.carpeta || "")].sort((a, b) => colador.compare(a[0], b[0]));
     pintar(c, g, ([k, v]) => `<button class="tarjeta" type="button" data-det="carpeta" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(nombreCarpeta(k))}</b><span>${v.length} canciones</span></button>`, (h) => `<div class="rejilla" data-tandas>${h}</div>`);
@@ -323,7 +345,10 @@ function cerrar(id, desdeHistorial) {
   if (!desdeHistorial) { ignorarPop++; history.back(); }
   if (id === "hoja-rep") vizApagar();
 }
-window.addEventListener("popstate", () => { if (ignorarPop > 0) { ignorarPop--; return; } if (pila.length) cerrar(pila[pila.length - 1], true); else if (E.detalle) { E.detalle = null; dibujar(); } });
+window.addEventListener("popstate", () => { if (ignorarPop > 0) { ignorarPop--; return; } if (pila.length) cerrar(pila[pila.length - 1], true); else if (E.detalle) { E.detalle = null; dibujar(); }
+  else if (E.vista !== "inicio") { E.vista = "inicio"; dibujar(); animarCambio(); window.scrollTo(0, 0); history.pushState({ s: 1 }, ""); }
+  else if (!salirListo) { salirListo = true; avisar("Desliza otra vez para salir", 2000); setTimeout(() => { salirListo = false; history.pushState({ s: 1 }, ""); }, 2000); } });
+let salirListo = false;
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-cerrar]"); if (b) cerrar(b.closest(".hoja").id); });
 $("#fondo").addEventListener("click", () => { for (let i = pila.length - 1; i >= 0; i--) if ($("#" + pila[i]).classList.contains("corta")) { cerrar(pila[i]); break; } });
 
@@ -454,7 +479,7 @@ function enlazar() {
   R.addEventListener("dormido", () => avisar("Temporizador: música apagada. Buenas noches."));
   R.addEventListener("sueno", () => { if (pila.includes("hoja-sueno")) dibujarSueno(); });
 
-  $("#nav").addEventListener("click", (e) => { const b = e.target.closest("button[data-v]"); if (!b) return; E.vista = b.dataset.v; E.detalle = null; dibujar(); animarCambio(); window.scrollTo(0, 0); if (E.vista === "buscar") $("#q").focus(); });
+  $("#nav").addEventListener("click", (e) => { const b = e.target.closest("button[data-v]"); if (!b) return; E.vista = b.dataset.v; E.detalle = null; if (E.q) { E.q = ""; $("#q").value = ""; } dibujar(); animarCambio(); window.scrollTo(0, 0); if (E.vista === "buscar") $("#q").focus(); });
   $("#q").addEventListener("input", (e) => { E.q = e.target.value; dibujar(); });
   $("#b-agregar").addEventListener("click", () => (MOTOR ? iniciarNativo(true) : menu("Agregar música", [
     { t: "Elegir canciones", f: () => $("#f-audio").click() }, { t: "Elegir una carpeta completa", f: elegirCarpeta }])));
@@ -490,6 +515,7 @@ function enlazar() {
   $("#r-fav").addEventListener("click", () => { if (R.actual) alternarFav(R.actual); });
   $("#r-letra").addEventListener("click", abrirLetra);
   $("#letra-cuerpo").addEventListener("click", (e) => {
+    if (e.target.closest("#letra-trad")) return alternarTraduccion();
     if (e.target.closest("#letra-reintento")) { if (R.actual) cargarLetra(R.actual); return; }
     const p = e.target.closest("p[data-i]"); if (p && letraAct.lineas.length) R.buscar(letraAct.lineas[+p.dataset.i].t);
   });
@@ -594,6 +620,7 @@ function gestos() {
 
 // ── arranque ──
 async function iniciar() {
+  history.replaceState({ raiz: 1 }, ""); history.pushState({ s: 1 }, "");   // así el gesto de atrás no cierra la app de golpe
   reproductor = MOTOR ? new ReproductorNativo(MOTOR) : new Reproductor({ obtenerBlob: (id) => db.traer("archivos", id), obtenerPortada: async (s) => (s.alb ? db.traer("portadas", s.alb) : null) });
   window.__onda = { reproductor, E, db };                                    // para pruebas
   reproductor.instalarControlesSistema(); armarEq(); enlazar();
@@ -693,15 +720,39 @@ let letraAct = { id: null, lineas: [], idx: -2 };
 async function abrirLetra() { const s = reproductor.actual; if (!s) return; if (!pila.includes("hoja-letra")) abrir("hoja-letra"); await cargarLetra(s); }
 async function cargarLetra(s) {
   const cuerpo = $("#letra-cuerpo"); $("#letra-titulo").textContent = s.titulo || s.nombre;
-  letraAct = { id: s.id, lineas: [], idx: -2 };
+  letraAct = { id: s.id, lineas: [], idx: -2, textos: [], trad: null };
   cuerpo.className = "letra-cuerpo"; cuerpo.innerHTML = `<div class="vacio">Buscando la letra…</div>`;
-  let L = await db.traer("ajustes", "letra:" + s.id).catch(() => null), error = false;
-  if (!L) { try { L = await buscarLetra(texto, s); } catch (_) { error = true; } if (L) await db.poner("ajustes", L, "letra:" + s.id).catch(() => {}); }
+  let L = await db.traer("ajustes", "letra2:" + s.id).catch(() => null), error = false;
+  if (!L) { try { L = await buscarLetraCompleta(texto, s); } catch (_) { error = true; } if (L) await db.poner("ajustes", L, "letra2:" + s.id).catch(() => {}); }
   if (letraAct.id !== s.id) return;                                       // mientras tanto cambió la canción
   if (!L) { cuerpo.innerHTML = `<div class="vacio">${error ? "No pude buscar la letra. ¿Tienes internet?" : "No encontré la letra de esta canción."}<br><button class="boton" id="letra-reintento" type="button" style="margin-top:14px">Intentar otra vez</button></div>`; return; }
   const lineas = parsearLRC(L.sincronizada);
-  if (lineas.length) { letraAct.lineas = lineas; cuerpo.innerHTML = lineas.map((l, i) => `<p data-i="${i}">${esc(l.txt) || "♪"}</p>`).join(""); actualizarLetra(true); }
-  else { cuerpo.className = "letra-cuerpo plana"; cuerpo.innerHTML = String(L.plana).split(/\r?\n/).map((t) => `<p>${esc(t) || "&nbsp;"}</p>`).join(""); }
+  letraAct.L = L; letraAct.sinc = lineas.length > 0;
+  if (lineas.length) { letraAct.lineas = lineas; letraAct.textos = lineas.map((l) => l.txt); }
+  else letraAct.textos = String(L.plana).split(/\r?\n/);
+  letraAct.trad = await db.traer("ajustes", "trad:" + s.id).catch(() => null);
+  if (!letraAct.trad && L.traduccion && lineas.length) {                  // traducción que ya trae el servicio, alineada por tiempo
+    const tl = parsearLRC(L.traduccion); if (tl.length) letraAct.trad = lineas.map((l) => { const m = tl.find((x) => Math.abs(x.t - l.t) < 0.6); return m ? m.txt : ""; });
+  }
+  pintarLetra(); if (letraAct.sinc) actualizarLetra(true);
+}
+function pintarLetra() {
+  const cuerpo = $("#letra-cuerpo"), ver = tradLetra && letraAct.trad;
+  cuerpo.className = "letra-cuerpo" + (letraAct.sinc ? "" : " plana");
+  cuerpo.innerHTML = letraAct.textos.map((t, i) => `<p${letraAct.sinc ? ` data-i="${i}"` : ""}>${esc(t) || (letraAct.sinc ? "♪" : "&nbsp;")}${ver && letraAct.trad[i] ? `<small>${esc(letraAct.trad[i])}</small>` : ""}</p>`).join("");
+  $("#letra-trad").setAttribute("aria-pressed", String(!!ver)); letraAct.idx = -2;
+}
+let tradLetra = false;
+async function alternarTraduccion() {
+  const s = reproductor.actual; if (!s || !letraAct.textos.length) return;
+  if (tradLetra && letraAct.trad) { tradLetra = false; pintarLetra(); if (letraAct.sinc) actualizarLetra(true); return; }
+  tradLetra = true;
+  if (!letraAct.trad) {
+    avisar("Traduciendo…", 0);
+    try { letraAct.trad = await traducir(texto, letraAct.textos, "es"); await db.poner("ajustes", letraAct.trad, "trad:" + s.id).catch(() => {}); avisar("Listo", 1200); }
+    catch (_) { tradLetra = false; avisar("No pude traducir. ¿Tienes internet?"); return; }
+  }
+  if (letraAct.id === s.id) { pintarLetra(); if (letraAct.sinc) actualizarLetra(true); }
 }
 function actualizarLetra(salto) {
   if (!pila.includes("hoja-letra") || !letraAct.lineas.length) return;
