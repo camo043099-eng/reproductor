@@ -14,6 +14,7 @@ public final class NucleoEq {
     private double[][] coef = new double[N][5];                 // b0 b1 b2 a1 a2 (ya divididos por a0)
     private double[][][] estado = new double[2][N][4];          // [canal][banda]{x1,x2,y1,y2}
     private double lineal = 1;
+    private double ancho = 0;                                   // 0 = normal, 1 = el doble de separación estéreo
     private boolean pasaTodo = true;
 
     public synchronized void configurar(int hz, int canales) {
@@ -26,6 +27,7 @@ public final class NucleoEq {
         for (int i = 0; i < N; i++) gdb[i] = i < db.length ? Math.max(-12, Math.min(12, db[i])) : 0;
         eqOn = activo; sucio = true;
     }
+    public synchronized void ponerAncho(double a) { ancho = Math.max(0, Math.min(1, a)); sucio = true; }
     public synchronized void ponerGananciaDb(double db) { gananciaDb = Math.max(-24, Math.min(12, db)); sucio = true; }
 
     private synchronized void recalcular() {
@@ -35,7 +37,7 @@ public final class NucleoEq {
             if (!eqOn || Math.abs(gdb[i]) < 0.01 || F[i] >= hz / 2.0) { coef[i][0] = 1; coef[i][1] = coef[i][2] = coef[i][3] = coef[i][4] = 0; continue; }
             algunaBanda = true; calcular(i);
         }
-        pasaTodo = !algunaBanda && Math.abs(gananciaDb) < 0.001;
+        pasaTodo = !algunaBanda && Math.abs(gananciaDb) < 0.001 && ancho < 0.001;
         sucio = false;
     }
     /** fórmulas del "Audio EQ Cookbook" (Robert Bristow-Johnson): estante grave, picos y estante agudo */
@@ -73,8 +75,13 @@ public final class NucleoEq {
                 double y = co[0] * v + co[1] * s[0] + co[2] * s[1] - co[3] * s[2] - co[4] * s[3];
                 s[1] = s[0]; s[0] = v; s[3] = s[2]; s[2] = y; v = y;
             }
-            x[k] = (float) limitar(v);
+            x[k] = (float) v;
         }
+        if (ancho > 0.001 && C == 2) {                                   // más o menos "lado" respecto al "centro"
+            final double lado = 1 + ancho;
+            for (int k = 0; k + 1 < cuantas; k += 2) { double m = (x[k] + x[k + 1]) / 2, sd = (x[k] - x[k + 1]) / 2 * lado; x[k] = (float) (m + sd); x[k + 1] = (float) (m - sd); }
+        }
+        for (int k = 0; k < cuantas; k++) x[k] = (float) limitar(x[k]);
     }
     /** Pasa limpio hasta 0,92; por encima curva suave hacia 1 (sin recorte duro). */
     static double limitar(double v) {

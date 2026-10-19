@@ -10,7 +10,7 @@ export class ReproductorNativo extends EventTarget {
   constructor(N) {
     super(); this.N = N; this.nativo = true;
     this.lista = []; this.original = []; this.pos = -1;
-    this.aleatorio = false; this.repetir = "no"; this.rgModo = "pista"; this.preampDb = 0; this.eqOn = true; this.bandasDb = PRESETS.Plano.slice(); this.velocidad = 1; this.volumen = 1;
+    this.aleatorio = false; this.repetir = "no"; this.rgModo = "pista"; this.preampDb = 0; this.eqOn = true; this.bandasDb = PRESETS.Plano.slice(); this.velocidad = 1; this.volumen = 1; this.ancho = 0; this.env = 0; this.graves = 0;
     this._pos = 0; this._dur = 0; this._sonando = false; this._dormirEn = 0; this._tSueno = null;
     const on = (n, f) => N.addListener(n, f);
     on("tiempo", (e) => { this._pos = e.pos / 1000; if (e.dur > 0) this._dur = e.dur / 1000; this._emitir("tiempo"); });
@@ -84,7 +84,19 @@ export class ReproductorNativo extends EventTarget {
   ponerVelocidad(v) { this.velocidad = v; this.N.velocidad({ v }); }
   ponerRG(m) { this.rgModo = m; this.N.rg({ modo: m }); }
   ponerVolumen() { /* el volumen lo controlan los botones del teléfono */ }
-  aplicarTodo() { this._eq(); this.N.rg({ modo: this.rgModo }); this.N.velocidad({ v: this.velocidad }); this.N.repetir({ modo: this.repetir }); }
+  ponerEspacial() { return this.N.espacial({ ancho: this.ancho / 100, env: Math.round(this.env * 10), graves: Math.round(this.graves * 10) }); }
+  capacidades() { return this.N.capacidades(); }
+  efectosSistema() { return this.N.efectosSistema(); }
+  /** al volver a la app: pregunta al motor cómo va (por si no llegaron avisos mientras estaba en segundo plano) */
+  async resincronizar() {
+    try {
+      const e = await this.N.estado(); if (!e.ids?.length) return;
+      this._sonando = !!e.sonando; this._pos = e.pos / 1000; if (e.dur > 0) this._dur = e.dur / 1000;
+      if (e.indice >= 0 && e.indice < this.lista.length && e.indice !== this.pos) { this.pos = e.indice; this._emitir("cambio", this.actual); }
+      this._emitir("estado"); this._emitir("tiempo");
+    } catch (_) { /* sin respuesta */ }
+  }
+  aplicarTodo() { this.ponerEspacial(); this._eq(); this.N.rg({ modo: this.rgModo }); this.N.velocidad({ v: this.velocidad }); this.N.repetir({ modo: this.repetir }); }
 
   dormir(minutos) {
     clearTimeout(this._tSueno); this._dormirEn = 0;

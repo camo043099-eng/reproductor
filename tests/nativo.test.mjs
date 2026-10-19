@@ -46,3 +46,10 @@ test("ecualizador y temporizador envían lo correcto", async () => {
   r.dormir(15); assert.ok(r.dormirRestante > 14 * 60000); assert.deepEqual(f.llamadas.find((x) => x[0] === "dormir")[1], { minutos: 15 });
   r.dormir(0); assert.equal(r.dormirRestante, 0);
 });
+test("espacial y resincronizar", async () => {
+  const f = falso(), r = new ReproductorNativo(f.N); await r.cargarCola(canc(3), 0, true);
+  r.ancho = 50; r.env = 30; r.graves = 10; r.ponerEspacial();
+  assert.deepEqual(f.llamadas.filter((x) => x[0] === "espacial").pop()[1], { ancho: 0.5, env: 300, graves: 100 });
+  f.N.estado = async () => ({ ids: ["ms0", "ms1", "ms2"], indice: 2, pos: 9000, dur: 200000, sonando: true });
+  await r.resincronizar(); assert.equal(r.pos, 2); assert.equal(r.sonando, true); assert.equal(r.tiempo, 9);
+});

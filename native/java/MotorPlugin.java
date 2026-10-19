@@ -6,6 +6,9 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
+import android.media.audiofx.AudioEffect;
+import android.media.audiofx.BassBoost;
+import android.media.audiofx.Virtualizer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
@@ -58,6 +61,10 @@ public class MotorPlugin extends Plugin {
     private String modoRg = "pista";
     private double preampDb = 0;
     private Runnable apagar = null;
+    private Virtualizer virt = null;
+    private BassBoost bass = null;
+    private int sesionAudio = 0;
+    private int envFuerza = 0, gravesFuerza = 0;
 
     // ───────── utilidades ─────────
     private void ui(PluginCall call, Runnable r) {
@@ -70,6 +77,28 @@ public class MotorPlugin extends Plugin {
         if (escuchado == Motor.jugador) return;
         escuchado = Motor.jugador;
         escuchado.addListener(new Escucha());
+        sesionAudio = 0; virt = null; bass = null; efectos();
+    }
+    private void servicio() { try { getContext().startService(new Intent(getContext(), MotorServicio.class)); } catch (Exception e) { /* en segundo plano no se puede arrancar */ } }
+    private void anunciarSesion(boolean abrir) {                              // así Dolby y los efectos del sistema se pueden enganchar al audio de Onda
+        try {
+            Intent i = new Intent(abrir ? AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION : AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION);
+            i.putExtra(AudioEffect.EXTRA_AUDIO_SESSION, sesionAudio); i.putExtra(AudioEffect.EXTRA_PACKAGE_NAME, getContext().getPackageName()); i.putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC);
+            getContext().sendBroadcast(i);
+        } catch (Exception e) { /* opcional */ }
+    }
+    private void efectos() {
+        ExoPlayer p = Motor.jugador; if (p == null) return; int id = p.getAudioSessionId();
+        if (id == 0 || id == sesionAudio) return;
+        try { if (virt != null) virt.release(); } catch (Exception e) { } try { if (bass != null) bass.release(); } catch (Exception e) { }
+        virt = null; bass = null; sesionAudio = id;
+        try { virt = new Virtualizer(0, id); } catch (Throwable t) { virt = null; }
+        try { bass = new BassBoost(0, id); } catch (Throwable t) { bass = null; }
+        aplicarEfectos(); anunciarSesion(true);
+    }
+    private void aplicarEfectos() {
+        try { if (virt != null && virt.getStrengthSupported()) { virt.setStrength((short) envFuerza); virt.setEnabled(envFuerza > 0); } } catch (Throwable t) { }
+        try { if (bass != null && bass.getStrengthSupported()) { bass.setStrength((short) gravesFuerza); bass.setEnabled(gravesFuerza > 0); } } catch (Throwable t) { }
     }
     private void emitir(String nombre, JSObject datos) { notifyListeners(nombre, datos == null ? new JSObject() : datos); }
     private final Runnable tic = new Runnable() {
@@ -117,7 +146,10 @@ public class MotorPlugin extends Plugin {
 
     // ───────── escucha del reproductor ─────────
     private class Escucha implements Player.Listener {
-        @Override public void onIsPlayingChanged(boolean sonando) { emitir("estado", estadoActual()); h.removeCallbacks(tic); if (sonando) h.post(tic); }
+        @Override public void onIsPlayingChanged(boolean sonando) {
+            emitir("estado", estadoActual()); h.removeCallbacks(tic); if (sonando) { h.post(tic); servicio(); efectos(); anunciarSesion(true); } else anunciarSesion(false);
+        }
+        @Override public void onAudioSessionIdChanged(int id) { efectos(); }
         @Override public void onPlaybackStateChanged(int e) { emitir("estado", estadoActual()); }
         @Override public void onMediaItemTransition(MediaItem it, int motivo) {
             JSObject o = new JSObject(); o.put("indice", Motor.jugador.getCurrentMediaItemIndex()); o.put("id", it == null ? "" : it.mediaId); emitir("cambio", o);
@@ -254,7 +286,7 @@ public class MotorPlugin extends Plugin {
                 ExoPlayer p = Motor.jugador; JSArray a = call.getArray("items"); int idx = call.getInt("indice", 0); long pos = call.getData().optLong("posMs", 0);
                 boolean sonar = call.getBoolean("sonar", true);
                 p.setMediaItems(items(a), idx, pos); p.prepare(); p.setPlayWhenReady(sonar);
-                try { getContext().startService(new Intent(getContext(), MotorServicio.class)); } catch (Exception e) { /* sin servicio no habrá notificación */ }
+                servicio();
                 aplicarGanancia(); call.resolve();
             } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
         });
@@ -304,6 +336,31 @@ public class MotorPlugin extends Plugin {
                 JSArray b = call.getArray("bandas"); double[] db = new double[10]; for (int i = 0; i < 10 && i < b.length(); i++) db[i] = b.getDouble(i);
                 Motor.eq.nucleo.ponerBandas(db, call.getBoolean("on", true)); preampDb = call.getData().optDouble("pre", 0); aplicarGanancia(); call.resolve();
             } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+        });
+    }
+    @PluginMethod public void espacial(PluginCall call) {
+        ui(call, () -> {
+            Motor.eq.nucleo.ponerAncho(call.getData().optDouble("ancho", 0));
+            envFuerza = Math.max(0, Math.min(1000, call.getInt("env", 0))); gravesFuerza = Math.max(0, Math.min(1000, call.getInt("graves", 0)));
+            efectos(); aplicarEfectos(); call.resolve();
+        });
+    }
+    @PluginMethod public void capacidades(PluginCall call) {
+        ui(call, () -> {
+            efectos(); JSObject o = new JSObject();
+            boolean v = false, b = false;
+            try { v = virt != null && virt.getStrengthSupported(); } catch (Throwable t) { } try { b = bass != null && bass.getStrengthSupported(); } catch (Throwable t) { }
+            o.put("envolvente", v); o.put("graves", b); o.put("sesion", sesionAudio); call.resolve(o);
+        });
+    }
+    @PluginMethod public void efectosSistema(PluginCall call) {
+        ui(call, () -> {
+            efectos();
+            try {
+                Intent i = new Intent(AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL);
+                i.putExtra(AudioEffect.EXTRA_AUDIO_SESSION, sesionAudio); i.putExtra(AudioEffect.EXTRA_PACKAGE_NAME, getContext().getPackageName()); i.putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC);
+                getActivity().startActivity(i); call.resolve();
+            } catch (Exception e) { call.reject("sin panel"); }
         });
     }
     @PluginMethod public void rg(PluginCall call) { ui(call, () -> { modoRg = call.getString("modo", "pista"); aplicarGanancia(); call.resolve(); }); }

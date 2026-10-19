@@ -244,8 +244,8 @@ function actualizarMini() {
   $("#mini-titulo").textContent = s.titulo || s.nombre; $("#mini-artista").textContent = s.artista || "";
   portadaUrl(s.alb).then((u) => { $("#mini-port").src = u || SIN; $("#r-port").src = u || SIN; tinte(s.alb, u); });
   $("#r-titulo").textContent = s.titulo || s.nombre; $("#r-artista").textContent = s.artista || "Artista desconocido"; $("#r-album").textContent = [s.album, s.anio].filter(Boolean).join(" · ");
-  const chips = [s.formato, s.bitrate && s.formato !== "FLAC" ? `${s.bitrate} kbps` : "", s.sampleRate ? `${+(s.sampleRate / 1000).toFixed(1)} kHz` : "", s.bits ? `${s.bits} bits` : "", s.canales === 1 ? "Mono" : s.canales === 2 ? "Estéreo" : s.canales ? `${s.canales} canales` : ""].filter(Boolean);
-  $("#r-chips").innerHTML = chips.map((t) => `<span class="chip">${esc(t)}</span>`).join("");
+  const chips = [(s.bits >= 24 || s.sampleRate > 48000) && s.formato !== "MP3" && s.formato !== "AAC" ? "Hi-Res" : "", s.formato, s.bitrate && s.formato !== "FLAC" ? `${s.bitrate} kbps` : "", s.sampleRate ? `${+(s.sampleRate / 1000).toFixed(1)} kHz` : "", s.bits ? `${s.bits} bits` : "", s.canales === 1 ? "Mono" : s.canales === 2 ? "Estéreo" : s.canales ? `${s.canales} canales` : ""].filter(Boolean);
+  $("#r-chips").innerHTML = chips.map((t) => `<span class="chip${t === "Hi-Res" ? " activo" : ""}">${esc(t)}</span>`).join("");
   const f = $("#r-fav"); f.setAttribute("aria-pressed", String(!!s.fav)); f.firstElementChild.style.fill = s.fav ? "currentColor" : "none"; f.style.color = s.fav ? "var(--ac2)" : "";
   document.title = `${s.titulo || s.nombre} · Onda`;
   document.querySelectorAll(".fila").forEach((el) => el.classList.toggle("sonando", el.dataset.id === s.id));
@@ -280,7 +280,7 @@ function actualizarTiempo() {
 }
 
 // ── sesión y ajustes guardados ──
-async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz }, "config").catch(() => {}); }
+async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz }, "config").catch(() => {}); }
 let tSes = 0;
 async function guardarSesion(fuerza) {
   const ahora = Date.now(); if (!fuerza && ahora - tSes < 4000) return; tSes = ahora;
@@ -361,7 +361,13 @@ function armarEq() {
   $("#eq-bandas").innerHTML = BANDAS.map((f, i) => `<div class="banda"><span id="eq-v${i}">0</span><input type="range" min="-12" max="12" step="0.5" value="0" data-b="${i}" aria-label="${f} Hz"><span>${nom(f)}</span></div>`).join("");
   $("#eq-presets").innerHTML = Object.keys(PRESETS).map((n) => `<button class="chip" type="button" data-preset="${esc(n)}">${esc(n)}</button>`).join("");
 }
+function mostrarEspacial() {
+  const R = reproductor; $("#espacial").hidden = !MOTOR; if (!MOTOR) return;
+  $("#esp-ancho").value = R.ancho; $("#esp-ancho-v").textContent = R.ancho + "%"; $("#esp-env").value = R.env; $("#esp-env-v").textContent = R.env + "%"; $("#esp-gra").value = R.graves; $("#esp-gra-v").textContent = R.graves + "%";
+  R.capacidades().then((c) => { $("#esp-env-c").hidden = !c.envolvente; $("#esp-gra-c").hidden = !c.graves; }).catch(() => {});
+}
 function mostrarEq() {
+  mostrarEspacial();
   reproductor.bandasDb.forEach((v, i) => { const r = document.querySelector(`[data-b="${i}"]`); if (r) r.value = v; $("#eq-v" + i).textContent = (v > 0 ? "+" : "") + v; });
   $("#eq-on").checked = reproductor.eqOn; $("#eq-pre").value = reproductor.preampDb; $("#eq-pre-v").textContent = reproductor.preampDb + " dB";
   $("#eq-vel").value = reproductor.velocidad; $("#eq-vel-v").textContent = +reproductor.velocidad.toFixed(2) + "×";
@@ -460,6 +466,8 @@ function enlazar() {
 
   $("#eq-bandas").addEventListener("input", (e) => { const i = e.target.dataset.b; if (i == null) return; R.ajustarBanda(+i, +e.target.value); $("#eq-v" + i).textContent = (+e.target.value > 0 ? "+" : "") + e.target.value; guardarAjustes(); });
   $("#eq-presets").addEventListener("click", (e) => { const b = e.target.closest("[data-preset]"); if (!b) return; R.usarPreset(b.dataset.preset); mostrarEq(); guardarAjustes(); });
+  for (const [id, campo] of [["esp-ancho", "ancho"], ["esp-env", "env"], ["esp-gra", "graves"]]) $("#" + id).addEventListener("input", (e) => { R[campo] = +e.target.value; $("#" + id + "-v").textContent = e.target.value + "%"; R.ponerEspacial?.(); guardarAjustes(); });
+  $("#esp-sis").addEventListener("click", () => R.efectosSistema().catch(() => avisar("Tu teléfono no tiene un panel de efectos aparte. Busca “Calidad de sonido y efectos” o “Dolby Atmos” en los ajustes de sonido.", 6000)));
   $("#eq-on").addEventListener("change", (e) => { R.activarEq(e.target.checked); guardarAjustes(); });
   $("#eq-pre").addEventListener("input", (e) => { R.ponerPreamp(+e.target.value); $("#eq-pre-v").textContent = e.target.value + " dB"; guardarAjustes(); });
   $("#eq-vel").addEventListener("input", (e) => { R.ponerVelocidad(+e.target.value); $("#eq-vel-v").textContent = +(+e.target.value).toFixed(2) + "×"; guardarAjustes(); });
@@ -473,7 +481,7 @@ function enlazar() {
     R.pausa(); for (const a of ["canciones", "archivos", "portadas", "listas"]) await db.vaciar(a);
     E.canciones = []; E.listas = []; porId.clear(); urlsPort.clear(); E.detalle = null; $("#mini").hidden = true; cerrar("hoja-aj"); dibujar(); mostrarEspacio();
   });
-  document.addEventListener("visibilitychange", () => { if (document.hidden) guardarSesion(true); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) guardarSesion(true); else reproductor.resincronizar?.(); });
   gestos();
 }
 function gestos() {
@@ -548,7 +556,7 @@ async function iniciar() {
     reproductor.preampDb = cfg.pre || 0; reproductor.rgModo = cfg.rg || "pista"; reproductor.eqOn = cfg.eq !== false; reproductor.ponerVelocidad(cfg.vel || 1);
     E.aj.viz = !!cfg.viz; $("#aj-viz").checked = E.aj.viz;
   }
-  if (MOTOR) { document.querySelectorAll("#aj-viz, #aj-gap, #aj-persistir, #aj-borrar").forEach((e) => { (e.closest(".campo") || e).hidden = true; }); $("#aj-info").textContent = "Motor de audio nativo (ExoPlayer): cambio de canción sin pausa, ecualizador de 10 bandas de 32 bits y lectura directa de tus archivos."; $("#b-agregar").setAttribute("aria-label", "Actualizar biblioteca"); reproductor.aplicarTodo(); }
+  if (MOTOR) { if (cfg?.esp) { reproductor.ancho = cfg.esp.a || 0; reproductor.env = cfg.esp.e || 0; reproductor.graves = cfg.esp.g || 0; } document.querySelectorAll("#aj-viz, #aj-gap, #aj-persistir, #aj-borrar").forEach((e) => { (e.closest(".campo") || e).hidden = true; }); $("#aj-info").textContent = "Motor de audio nativo (ExoPlayer): cambio de canción sin pausa, ecualizador de 10 bandas de 32 bits y lectura directa de tus archivos."; $("#b-agregar").setAttribute("aria-label", "Actualizar biblioteca"); reproductor.aplicarTodo(); }
   dibujar(); mostrarEspacio();
   if (MOTOR) {
     await iniciarNativo(false);
