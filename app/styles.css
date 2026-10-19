@@ -462,7 +462,7 @@ html.sinanim *, html.sinanim *::before, html.sinanim *::after { animation-durati
 
 /* tema sólido: sin transparencias, desenfoques ni sombras (mucho más liviano) */
 /* sin vidrio: superficies lisas y baratas de dibujar; el fondo (degradado, carátula o tu imagen) se ve a través y los colores se adaptan a él */
-html { --sup: color-mix(in srgb, var(--t) 16%, rgba(20, 20, 26, .9)); --sup-borde: color-mix(in srgb, var(--t) 30%, rgba(255, 255, 255, .10)); }
+html { --sup: color-mix(in srgb, var(--t) 16%, rgb(20, 20, 26)); --sup-borde: color-mix(in srgb, var(--t) 30%, rgba(255, 255, 255, .10)); }
 html *, html *::before, html *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; box-shadow: none !important; text-shadow: none !important; }
 html .mini, html .nav, html .hoja.corta, html .aviso, html .tile, html .boton, html .chip, html .cabeza .ib, html .extras, html .genero, html .sel-btn, html .aj-cat, html .pp, html .buscador input, html .seg, html .interruptor span, html .vidrio { background: var(--sup) !important; border: 1px solid var(--sup-borde) !important; color: var(--tx); }
 html .boton.primario, html .boton.primario * { background: #fff !important; color: #000 !important; border-color: #fff !important; }
@@ -472,8 +472,9 @@ html .seg button[aria-pressed="true"], html .seg .on { color: #000; }
 html .cd-brillo { display: none !important; }
 html .hoja:not(.corta):not(.completa) { background: color-mix(in srgb, var(--t) 12%, #0c0c10) !important; }
 html .hoja.completa, html .hoja.letra { background: linear-gradient(color-mix(in srgb, var(--t) 60%, #000), color-mix(in srgb, var(--t) 22%, #000)) !important; }
-html[data-fondo="portada"] .hoja:not(.corta):not(.completa), html[data-fondo="imagen"] .hoja:not(.corta):not(.completa) { background: color-mix(in srgb, var(--t) 18%, rgba(8, 8, 12, .86)) !important; }
-html[data-fondo="portada"] .hoja.completa, html[data-fondo="imagen"] .hoja.completa, html[data-fondo="portada"] .hoja.letra, html[data-fondo="imagen"] .hoja.letra { background: linear-gradient(color-mix(in srgb, var(--t) 50%, rgba(0,0,0,.45)), rgba(0, 0, 0, .62)) !important; }
+html[data-fondo="portada"] .hoja:not(.corta):not(.completa), html[data-fondo="imagen"] .hoja:not(.corta):not(.completa) { background: color-mix(in srgb, var(--t) 20%, #0a0a0e) !important; }
+html[data-fondo="portada"] .hoja.completa, html[data-fondo="imagen"] .hoja.completa, html[data-fondo="portada"] .hoja.letra, html[data-fondo="imagen"] .hoja.letra { background: linear-gradient(color-mix(in srgb, var(--t) 55%, #000), color-mix(in srgb, var(--t) 18%, #000)) !important; }
+html .hoja.corta { background: color-mix(in srgb, var(--t) 14%, #131318) !important; }
 html .mix b, html .tarjeta b, html .tile b { color: #fff; }
 html .tile .fav, html .tile svg { color: var(--ac2); }
 html .tile .fav svg { color: inherit; }
