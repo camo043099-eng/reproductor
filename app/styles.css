@@ -482,3 +482,6 @@ html[data-fondo="degradado"] body, html[data-fondo="negro"] body { background: t
 html .sinport.fav, html .sinport.fav svg { color: #fff !important; }
 html .fichas .chip.mezcla { background: #fff !important; color: #000 !important; border-color: #fff !important; font-weight: 700; }
 html .tile b, html .chip, html .boton { text-shadow: none; }
+.aj-pag { grid-template-columns: minmax(0, 1fr); }
+.aj-pag > * { min-width: 0; max-width: 100%; }
+.aj-pag .campo > .sel-btn { flex: 0 1 52%; max-width: 52%; }
