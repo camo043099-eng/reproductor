@@ -14,8 +14,8 @@ export class ReproductorNativo extends EventTarget {
     this.letras = {}; this.ruta = "altavoz";
     this._pos = 0; this._dur = 0; this._sonando = false; this._dormirEn = 0; this._tSueno = null;
     const on = (n, f) => N.addListener(n, f);
-    on("tiempo", (e) => { this._pos = e.pos / 1000; if (e.dur > 0) this._dur = e.dur / 1000; this._emitir("tiempo"); });
-    on("estado", (e) => { this._sonando = !!e.sonando; this._pos = e.pos / 1000; if (e.dur > 0) this._dur = e.dur / 1000; this._emitir("estado"); });
+    on("tiempo", (e) => { this._pos = e.pos / 1000; this._posAt = performance.now(); if (e.dur > 0) this._dur = e.dur / 1000; this._emitir("tiempo"); });
+    on("estado", (e) => { this._sonando = !!e.sonando; this._pos = e.pos / 1000; this._posAt = performance.now(); if (e.dur > 0) this._dur = e.dur / 1000; this._emitir("estado"); });
     on("cambio", (e) => { if (e.indice >= 0 && e.indice < this.lista.length) { this.pos = e.indice; this._pos = 0; this._dur = this.actual?.duracion || 0; this._emitir("cambio", this.actual); } });
     on("detalles", (e) => { const s = this.lista.find((x) => x.id === e.id); if (!s) return; if (e.sampleRate) s.sampleRate = e.sampleRate; if (e.bits) s.bits = e.bits; if (e.canales) s.canales = e.canales; if (e.bitrate) s.bitrate = e.bitrate; this._emitir("detalles", s); });
     on("error", (e) => this._emitir("error", { mensaje: e.mensaje }));
@@ -30,6 +30,8 @@ export class ReproductorNativo extends EventTarget {
   get orden() { return this.lista.map((_, i) => i); }
   get cola() { return this.lista; }
   get tiempo() { return this._pos; }
+  /** posición estimada ahora mismo: el motor avisa cada ~0,25 s, entre aviso y aviso se avanza con el reloj (para la letra) */
+  get tiempoEst() { return this._sonando && this._posAt ? this._pos + ((performance.now() - this._posAt) / 1000) * (this.velocidad || 1) : this._pos; }
   get duracion() { return this._dur || this.actual?.duracion || 0; }
   get sonando() { return this._sonando; }
   get dormirRestante() { return this._dormirEn ? Math.max(0, this._dormirEn - Date.now()) : 0; }
@@ -60,7 +62,7 @@ export class ReproductorNativo extends EventTarget {
   siguiente() { return this.N.siguiente(); }
   anterior() { return this.N.anterior(); }
   irA(i) { return this.N.irA({ indice: i }); }
-  buscar(seg) { this._pos = Math.max(0, seg); this.N.buscar({ ms: Math.round(Math.max(0, seg) * 1000) }); this._emitir("tiempo"); }
+  buscar(seg) { this._pos = Math.max(0, seg); this._posAt = performance.now(); this.N.buscar({ ms: Math.round(Math.max(0, seg) * 1000) }); this._emitir("tiempo"); }
 
   ponerAleatorio(v) {
     v = !!v; if (v === this.aleatorio) return; this.aleatorio = v;

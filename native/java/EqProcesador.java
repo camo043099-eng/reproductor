@@ -19,6 +19,8 @@ public final class EqProcesador extends BaseAudioProcessor {
     public static volatile float nivelBajo = 0, nivelTotal = 0;
     /** datos para la pantalla "Información de audio" */
     public static volatile String entradaTxt = ""; public static volatile int entradaHz = 0, entradaCanales = 0; public static volatile long ultimoBloque = 0;
+    /** solo se miden las bandas cuando el efecto de ondas está a la vista (ahorra procesador) */
+    public static volatile boolean medir = false;
     private final double[] eb = new double[8];
     private double lp = 0, lpK = 0.02;
     /** energía en 8 bandas de frecuencia (graves → agudos) para las barras de colores */
@@ -43,17 +45,14 @@ public final class EqProcesador extends BaseAudioProcessor {
         if (tmp.length < n) tmp = new float[n];
         ByteBuffer in = input.duplicate().order(ByteOrder.LITTLE_ENDIAN);
         int p = input.position();
-        for (int i = 0; i < n; i++, p += bytes) {
-            float v;
-            if (enc == C.ENCODING_PCM_16BIT) v = in.getShort(p) / 32768f;
-            else if (enc == C.ENCODING_PCM_24BIT) { int s = (in.get(p) & 0xFF) | ((in.get(p + 1) & 0xFF) << 8) | (in.get(p + 2) << 16); v = s / 8388608f; }
-            else if (enc == C.ENCODING_PCM_32BIT) v = in.getInt(p) / 2147483648f;
-            else v = in.getFloat(p);
-            tmp[i] = v;
-        }
+        final float[] t = tmp;                                    // un solo bucle por formato (más liviano que decidir el formato en cada muestra)
+        if (enc == C.ENCODING_PCM_16BIT) { for (int i = 0; i < n; i++, p += 2) t[i] = in.getShort(p) * (1f / 32768f); }
+        else if (enc == C.ENCODING_PCM_24BIT) { for (int i = 0; i < n; i++, p += 3) { int s = (in.get(p) & 0xFF) | ((in.get(p + 1) & 0xFF) << 8) | (in.get(p + 2) << 16); t[i] = s * (1f / 8388608f); } }
+        else if (enc == C.ENCODING_PCM_32BIT) { for (int i = 0; i < n; i++, p += 4) t[i] = in.getInt(p) * (1f / 2147483648f); }
+        else { for (int i = 0; i < n; i++, p += 4) t[i] = in.getFloat(p); }
         input.position(input.position() + n * bytes);
         nucleo.procesar(tmp, n);
-        { int C = Math.max(1, inputAudioFormat.channelCount); double sb = 0, st = 0; int fr = n / C; java.util.Arrays.fill(eb, 0);
+        if (medir) { int C = Math.max(1, inputAudioFormat.channelCount); double sb = 0, st = 0; int fr = n / C; java.util.Arrays.fill(eb, 0);
           for (int f = 0; f < fr; f++) { double m = 0; for (int c = 0; c < C; c++) m += tmp[f * C + c]; m /= C; lp += (m - lp) * lpK; sb += lp * lp; st += m * m; double prev = 0; for (int i = 0; i < 7; i++) { lb[i] += (m - lb[i]) * kb[i]; double b = lb[i] - prev; eb[i] += b * b; prev = lb[i]; } double b7 = m - prev; eb[7] += b7 * b7; }
           if (fr > 0) { for (int i = 0; i < 8; i++) bandas[i] = (float) Math.min(4, Math.sqrt(eb[i] / fr) * (1.6 + i * 0.6)); nivelBajo = (float) Math.min(4, Math.sqrt(sb / fr) * 2.0); nivelTotal = (float) Math.min(4, Math.sqrt(st / fr) * 1.6); } }
         if (salida16) {

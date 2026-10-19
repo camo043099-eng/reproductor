@@ -6,7 +6,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, traducir, par
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.21";
+const VERSION = "0.9.22";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -608,7 +608,7 @@ async function abrirInfoAudio() {
   if (inf) {
     h += fila("Entrada al procesador", inf.procesando ? `${inf.entrada} · ${(inf.hz / 1000).toFixed(inf.hz % 1000 ? 1 : 0)} kHz` : "sin datos (pausa o Hi-Res puro)") + fila("Salida", inf.salida);
     h += fila("Hi-Res puro", inf.hiResPuro ? "activado" : "apagado") + fila("Ecualizador", reproductor.eqOn ? "activo (10 bandas, 32 bits)" : "apagado");
-    h += fila("Ganancia aplicada", `${inf.gananciaDb >= 0 ? "+" : ""}${(+inf.gananciaDb).toFixed(1)} dB`) + fila("ReplayGain", reproductor.rgModo === "off" ? "apagado" : reproductor.rgModo === "album" ? "por álbum" : "por canción") + fila("Fundido entre canciones", inf.fundidoMs ? inf.fundidoMs / 1000 + " s" : "sin fundido");
+    h += fila("Velocidad de reproducción", (+reproductor.velocidad || 1).toFixed(2).replace(/\.?0+$/, "") + "×") + fila("Ganancia aplicada", `${inf.gananciaDb >= 0 ? "+" : ""}${(+inf.gananciaDb).toFixed(1)} dB`) + fila("ReplayGain", reproductor.rgModo === "off" ? "apagado" : reproductor.rgModo === "album" ? "por álbum" : "por canción") + fila("Fundido entre canciones", inf.fundidoMs ? inf.fundidoMs / 1000 + " s" : "sin fundido");
     h += `<p class="suave pequeno">${inf.procesando ? "El procesador de Onda está activo: ecualizador, ondas y ajuste de volumen funcionan en esta canción." : "Esta canción no está pasando por el procesador de Onda (ecualizador y ondas no actúan). Si activaste Hi-Res puro, es lo esperado."}</p>`;
   } else h += `<p class="suave pequeno">En la versión web el audio lo procesa el navegador. La información detallada está en la app instalada.</p>`;
   h += fila("Salida de sonido", nombreSalidaTipo(reproductor.ruta));
@@ -968,6 +968,7 @@ function enlazar() {
   $("#f-copia").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) restaurarCopia(f); });
   $("#aj-hist-borrar").addEventListener("click", async () => { if (!confirm("¿Borrar todo tu historial de reproducción?")) return; HIST = { m: {}, d: {}, tot: 0 }; await db.poner("ajustes", HIST, "hist"); dibujar(); avisar("Historial borrado"); });
   $("#aj-fondo").addEventListener("change", (e) => { if (e.target.value === "imagen" && !fondoUsuario) $("#f-fondo").click(); });
+  $("#letra-m").addEventListener("click", () => ponerDesfaseLetra(-0.5)); $("#letra-p").addEventListener("click", () => ponerDesfaseLetra(0.5));
   $("#pp-form").addEventListener("submit", (e) => { e.preventDefault(); buscarCandidatas(); });
   $("#aj-fondo-img").addEventListener("click", () => $("#f-fondo").click());
   $("#f-fondo").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) elegirFondo(f); });
@@ -1228,7 +1229,7 @@ let letraAct = { id: null, lineas: [], idx: -2 };
 async function abrirLetra() { const s = reproductor.actual; if (!s) return; if (!pila.includes("hoja-letra")) abrir("hoja-letra"); await cargarLetra(s); }
 async function cargarLetra(s) {
   const cuerpo = $("#letra-cuerpo"); $("#letra-titulo").textContent = nom(s);
-  letraAct = { id: s.id, lineas: [], idx: -2, textos: [], trad: null };
+  letraAct = { id: s.id, lineas: [], idx: -2, textos: [], trad: null }; $("#letra-sync").hidden = true;
   cuerpo.className = "letra-cuerpo"; cuerpo.innerHTML = `<div class="vacio">Buscando la letra…</div>`;
   let L = await db.traer("ajustes", "letra2:" + s.id).catch(() => null), error = false;
   const emb = MOTOR && reproductor.letras ? reproductor.letras[s.id] : null, embSinc = emb && parsearLRC(emb).length > 0;   // letra que trae el propio archivo
@@ -1244,6 +1245,7 @@ async function cargarLetra(s) {
   if (!letraAct.trad && L.traduccion && lineas.length) {                  // traducción que ya trae el servicio, alineada por tiempo
     const tl = parsearLRC(L.traduccion); if (tl.length) letraAct.trad = lineas.map((l) => { const m = tl.find((x) => Math.abs(x.t - l.t) < 0.6); return m ? m.txt : ""; });
   }
+  letraAct.off = (await db.traer("ajustes", "letraoff:" + s.id).catch(() => 0)) || 0; $("#letra-sync").hidden = !letraAct.sinc; ponerDesfaseLetra(0);
   pintarLetra(); if (letraAct.sinc) actualizarLetra(true);
 }
 function pintarLetra() {
@@ -1274,9 +1276,25 @@ async function alternarTraduccion() {
   }
   if (letraAct.id === s.id) { pintarLetra(); if (letraAct.sinc) actualizarLetra(true); }
 }
+// la letra se adelanta un poco (el texto tarda en leerse) y se puede afinar por canción con los botones de la hoja
+const ADELANTO_LETRA = 0.35;
+const tEst = () => reproductor.tiempoEst ?? reproductor.tiempo;
+let rafLetra = 0;
+function bucleLetra() {
+  if (rafLetra) return;
+  const paso = () => { if (!pila.includes("hoja-letra") || !reproductor.sonando || document.hidden) { rafLetra = 0; return; } actualizarLetra(); rafLetra = requestAnimationFrame(paso); };
+  rafLetra = requestAnimationFrame(paso);
+}
+function ponerDesfaseLetra(d) {
+  const s = reproductor.actual; if (!s) return;
+  letraAct.off = Math.round(Math.max(-5, Math.min(5, (letraAct.off || 0) + d)) * 10) / 10;
+  $("#letra-off").textContent = "Sincronía " + (letraAct.off > 0 ? "+" : "") + letraAct.off.toFixed(1).replace(".", ",") + " s";
+  db.poner("ajustes", letraAct.off, "letraoff:" + s.id).catch(() => {}); actualizarLetra(true);
+}
 function actualizarLetra(salto) {
   if (!pila.includes("hoja-letra") || !letraAct.lineas.length) return;
-  const i = lineaActual(letraAct.lineas, reproductor.tiempo + 0.2); if (i === letraAct.idx) return;
+  bucleLetra();
+  const i = lineaActual(letraAct.lineas, tEst() + ADELANTO_LETRA + (letraAct.off || 0)); if (i === letraAct.idx) return;
   letraAct.idx = i; const ps = $("#letra-cuerpo").children;
   for (let k = 0; k < ps.length; k++) { ps[k].classList.toggle("actual", k === i); ps[k].classList.toggle("pasada", k < i); }
   if (i >= 0) ps[i].scrollIntoView({ block: "center", behavior: salto ? "auto" : "smooth" });

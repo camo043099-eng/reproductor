@@ -59,6 +59,10 @@ if "media3-exoplayer" not in t:
     libs = '    implementation "androidx.media3:media3-exoplayer:1.4.1"\n    implementation "androidx.media3:media3-session:1.4.1"\n    implementation "androidx.media3:media3-common:1.4.1"\n'
     t = t.replace("dependencies {\n", "dependencies {\n" + libs, 1)
 assert "media3-exoplayer" in t
+# la app de prueba no debe ser "depurable": en ese modo el procesador de audio corre más lento y se oyen cortes al empezar
+if "debuggable false" not in t:
+    assert "buildTypes {" in t, "no encuentro buildTypes"
+    t = t.replace("buildTypes {\n", "buildTypes {\n        debug {\n            debuggable false\n        }\n", 1)
 open(g, "w").write(t)
 
 # 4) Icono de Onda: PNG de todas las densidades + icono adaptativo (con versión monocromática para Android 13+)
