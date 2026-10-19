@@ -43,3 +43,10 @@ export async function espacio() {
   try { const e = await navigator.storage.estimate(); return { usado: e.usage || 0, cupo: e.quota || 0 }; } catch (_) { return { usado: 0, cupo: 0 }; }
 }
 export async function pedirPersistencia() { try { return await navigator.storage.persist(); } catch (_) { return false; } }
+
+/** guarda y borra muchas filas en una sola operación (rápido aunque sean miles) */
+export async function lote(almacen, poner = [], quitar = []) {
+  const d = await abrir(), t = d.transaction(almacen, "readwrite"), st = t.objectStore(almacen);
+  for (const v of poner) st.put(v); for (const k of quitar) st.delete(k);
+  await new Promise((ok, mal) => { t.oncomplete = ok; t.onerror = () => mal(t.error); t.onabort = () => mal(t.error); });
+}

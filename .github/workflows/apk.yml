@@ -12,6 +12,12 @@ jobs:
         with: { node-version: 20 }
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 17 }
+      - run: node --test tests/*.test.mjs
+      - name: Probar el ecualizador (Java)
+        run: |
+          mkdir -p /tmp/jc
+          javac -d /tmp/jc native/java/NucleoEq.java tests/java/PruebaEq.java
+          java -cp /tmp/jc PruebaEq
       - run: npm install
       - run: npx cap add android
       - name: Instalar el plugin nativo de carpetas
