@@ -740,12 +740,12 @@ function ritmoEncender() {
     g.lineCap = "round";
     // 8 bandas de frecuencia (graves abajo, agudos arriba, simétricas). Los colores salen del tono de la carátula.
     const N = ritBarras.length, X = n.x || [], nivel = Math.max(n.r * 0.9, ritImp * 0.85, n.b);
-    for (let k = 0; k < 8; k++) ritMax[k] = Math.max(ritMax[k] * 0.992, X[k] || 0, 0.02);
+    for (let k = 0; k < 8; k++) { ritMax[k] = Math.max(ritMax[k] * 0.992, X[k] || 0, 0.02); ritMed[k] += ((X[k] || 0) - ritMed[k]) * 0.02; }
     ritMatiz = matizDeAcento();
     const colBanda = (k) => `hsl(${(ritMatiz + (k / 7 - 0.5) * 110 + 360) % 360} 85% ${56 + k * 1.5}%`;
     for (let i = 0; i < N; i++) {
       const u = Math.abs(i / N - 0.5) * 2, bp = Math.min(7, u * 7.001), k0 = Math.floor(bp), k1 = Math.min(7, k0 + 1), f = bp - k0;
-      const v0 = (X[k0] || 0) / ritMax[k0], v1 = (X[k1] || 0) / ritMax[k1], vb = Math.min(1, (v0 * (1 - f) + v1 * f)) ** 1.2, v = X.length && (X[0] || X[3] || X[6]) ? vb : Math.max(vb, nivel * (0.2 + 0.4 * Math.random()) * (1 - u * 0.5));
+      const c0 = Math.max(0, Math.min(1, 0.45 + ((X[k0] || 0) - ritMed[k0]) / ritMax[k0] * 1.4)), c1 = Math.max(0, Math.min(1, 0.45 + ((X[k1] || 0) - ritMed[k1]) / ritMax[k1] * 1.4)), v0 = c0, v1 = c1, vb = Math.min(1, (v0 * (1 - f) + v1 * f)) ** 1.2, v = X.length && (X[0] || X[3] || X[6]) ? vb : Math.max(vb, nivel * (0.2 + 0.4 * Math.random()) * (1 - u * 0.5));
       ritBarras[i] += (v - ritBarras[i]) * (v > ritBarras[i] ? 0.6 : 0.14);
     }
     const R1 = R * 1.06;
@@ -781,8 +781,8 @@ function ritmoEncender() {
   ritRaf = requestAnimationFrame(paso);
 }
 // al cambiar de canción: se olvida todo lo anterior para que las ondas no queden "pegadas" con el nivel de la canción pasada
-let ritMaxB = 0.05, ritMaxR = 0.05;
-function ritmoReiniciar() { ritBarras.fill(0); ritMax.fill(0.05); ritMedia = 0; ritImp = 0; ritAros = []; ritMaxB = 0.05; ritMaxR = 0.05; if (MOTOR && reproductor.reiniciarNivel) reproductor.reiniciarNivel(); }
+let ritMaxB = 0.05, ritMaxR = 0.05; const ritMed = new Float32Array(8);
+function ritmoReiniciar() { ritBarras.fill(0); ritMax.fill(0.05); ritMedia = 0; ritImp = 0; ritAros = []; ritMaxB = 0.05; ritMaxR = 0.05; ritMed.fill(0); if (MOTOR && reproductor.reiniciarNivel) reproductor.reiniciarNivel(); }
 function ritmoApagar() { cancelAnimationFrame(ritRaf); ritRaf = 0; ritImp = 0; ritAros = []; { const cv = $("#r-ondas"); if (cv) cv.getContext("2d").clearRect(0, 0, cv.width, cv.height); } const el = document.querySelector("#hoja-rep .portada-grande"); if (el) { el.style.scale = ""; el.style.setProperty("--aro", 0); } if (MOTOR && reproductor.ponerRitmo) reproductor.ponerRitmo(false).catch(() => {}); }
 function vizApagar() { cancelAnimationFrame(vizRaf); vizRaf = 0; $("#r-viz").hidden = true; }
 
