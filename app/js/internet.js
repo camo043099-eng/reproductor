@@ -34,29 +34,62 @@ export async function buscarPortadaUrl(texto, s) {
   return null;
 }
 
+/** Variantes del título y del artista para buscar mejor (quita números de pista, paréntesis y mezcla de idiomas) */
+export function variantes(s) {
+  const bruto = String(s.titulo || s.nombre || "").replace(/\.[a-z0-9]{2,4}$/i, "");
+  const sinNum = bruto.replace(/^\s*\d{1,3}\s*[.\-_)]\s*/, "");
+  const sinParen = sinNum.replace(/\(.*?\)|\[.*?\]|（.*?）/g, " ").replace(/\s+(feat|ft|with)\.?\s.*$/i, "").replace(/\s+/g, " ").trim();
+  const cjk = (sinParen.match(/[぀-ヿ一-鿿가-힯][぀-ヿ一-鿿가-힯\s·]*/g) || []).join(" ").trim();
+  const latin = sinParen.replace(/[぀-ヿ一-鿿가-힯]+/g, " ").replace(/\s+/g, " ").trim();
+  const titulos = [...new Set([sinNum, sinParen, latin, cjk].map((t) => t.trim()).filter((t) => t.length > 0))];
+  const arts = [...new Set([(s.artista || s.albumArtista || "").split(/\s*(?:,|&|;| feat\.?| ft\.?| x )\s*/i)[0].trim(), ""])];
+  return { titulos, arts };
+}
+
 /** Letra de la canción: {sincronizada, plana} o null */
 export async function buscarLetra(texto, s) {
-  const artista = s.artista || s.albumArtista || "", titulo = s.titulo || s.nombre || "";
-  const limpio = (t) => String(t).replace(/\(.*?\)|\[.*?\]/g, "").replace(/\s+/g, " ").trim();
-  const q = new URLSearchParams({ artist_name: artista, track_name: titulo }); if (s.album) q.set("album_name", s.album); if (s.duracion) q.set("duration", String(Math.round(s.duracion)));
-  try { const j = await json(texto, "https://lrclib.net/api/get?" + q); if (j.syncedLyrics || j.plainLyrics) return { sincronizada: j.syncedLyrics || "", plana: j.plainLyrics || "" }; } catch (_) { /* sin coincidencia exacta */ }
-  try {
-    const lista = await json(texto, "https://lrclib.net/api/search?q=" + encodeURIComponent(limpio(`${artista} ${titulo}`)));
-    const cerca = (lista || []).filter((r) => r.syncedLyrics || r.plainLyrics).map((r) => [Math.abs((r.duration || 0) - (s.duracion || 0)) + (coincide(r.trackName, titulo) ? 0 : 60), r]).sort((a, b) => a[0] - b[0])[0];
-    if (cerca && cerca[0] < 12) return { sincronizada: cerca[1].syncedLyrics || "", plana: cerca[1].plainLyrics || "" };
-  } catch (_) { /* nada más que probar */ }
+  const { titulos, arts } = variantes(s), dur = s.duracion || 0;
+  const bueno = (r, t) => (r.syncedLyrics || r.plainLyrics) && (!dur || !r.duration || Math.abs(r.duration - dur) < 15) && (coincide(r.trackName, t) || coincide(r.trackName, s.titulo || ""));
+  const mejor = (lista, t) => (lista || []).filter((r) => bueno(r, t)).sort((a, b) => (!!b.syncedLyrics - !!a.syncedLyrics) || Math.abs((a.duration || 0) - dur) - Math.abs((b.duration || 0) - dur))[0];
+  const salida = (r) => ({ sincronizada: r.syncedLyrics || "", plana: r.plainLyrics || "" });
+  for (const t of titulos) for (const a of arts) {
+    if (!a) continue;
+    const q = new URLSearchParams({ artist_name: a, track_name: t }); if (s.album) q.set("album_name", s.album); if (dur) q.set("duration", String(Math.round(dur)));
+    try { const j = await json(texto, "https://lrclib.net/api/get?" + q); if (j.syncedLyrics || j.plainLyrics) return salida(j); } catch (_) { /* sin coincidencia exacta */ }
+  }
+  for (const t of titulos) for (const a of arts) {
+    try { const r = mejor(await json(texto, "https://lrclib.net/api/search?q=" + encodeURIComponent(`${a} ${t}`.trim())), t); if (r) return salida(r); } catch (_) { /* siguiente intento */ }
+  }
+  for (const t of titulos) {                                                       // solo por título, por si el artista viene distinto
+    try { const r = mejor(await json(texto, "https://lrclib.net/api/search?track_name=" + encodeURIComponent(t)), t); if (r) return salida(r); } catch (_) { /* siguiente */ }
+  }
   return null;
 }
 
 /** NetEase (muy buena para música china, japonesa y de juegos): letra sincronizada y a veces traducción */
 async function letraNetEase(texto, s) {
-  const artista = (s.artista || "").split(/[,&;]/)[0].trim(), titulo = s.titulo || s.nombre || "";
-  const r = await json(texto, "https://music.163.com/api/search/get/web?csrf_token=&type=1&limit=8&offset=0&s=" + encodeURIComponent(`${titulo} ${artista}`.trim()));
-  const c = ((r.result && r.result.songs) || []).map((x) => [Math.abs((x.duration || 0) / 1000 - (s.duracion || 0)), x]).filter(([d]) => !s.duracion || d < 5).sort((a, b) => a[0] - b[0])[0];
-  if (!c) return null;
-  const j = await json(texto, `https://music.163.com/api/song/lyric?id=${c[1].id}&lv=1&kv=1&tv=-1`);
-  const sinc = j.lrc && j.lrc.lyric ? j.lrc.lyric : "";
-  return parsearLRC(sinc).length ? { sincronizada: sinc, plana: "", traduccion: j.tlyric && j.tlyric.lyric ? j.tlyric.lyric : "" } : null;
+  const { titulos, arts } = variantes(s), dur = s.duracion || 0;
+  for (const t of titulos) for (const a of arts) {
+    try {
+      const r = await json(texto, "https://music.163.com/api/search/get/web?csrf_token=&type=1&limit=10&offset=0&s=" + encodeURIComponent(`${t} ${a}`.trim()));
+      const c = ((r.result && r.result.songs) || []).map((x) => [Math.abs((x.duration || 0) / 1000 - dur), x]).filter(([d]) => !dur || d < 6).sort((x, y) => x[0] - y[0])[0];
+      if (!c) continue;
+      const j = await json(texto, `https://music.163.com/api/song/lyric?id=${c[1].id}&lv=1&kv=1&tv=-1`);
+      const sinc = j.lrc && j.lrc.lyric ? j.lrc.lyric : "";
+      if (parsearLRC(sinc).length) return { sincronizada: sinc, plana: "", traduccion: j.tlyric && j.tlyric.lyric ? j.tlyric.lyric : "" };
+    } catch (_) { /* siguiente variante */ }
+  }
+  return null;
+}
+
+/** Último recurso: letra sin tiempos (lyrics.ovh) */
+async function letraPlana(texto, s) {
+  const { titulos, arts } = variantes(s);
+  for (const t of titulos) for (const a of arts) {
+    if (!a) continue;
+    try { const j = await json(texto, `https://api.lyrics.ovh/v1/${encodeURIComponent(a)}/${encodeURIComponent(t)}`); if (j.lyrics && j.lyrics.trim().length > 20) return { sincronizada: "", plana: j.lyrics.replace(/\r/g, "").trim() }; } catch (_) { /* siguiente */ }
+  }
+  return null;
 }
 
 /** Letra de la canción con respaldo: si LRCLIB no la tiene sincronizada se prueba NetEase */
@@ -64,7 +97,8 @@ export async function buscarLetraCompleta(texto, s) {
   let L = null; try { L = await buscarLetra(texto, s); } catch (_) { /* se sigue */ }
   if (L && parsearLRC(L.sincronizada).length) return L;
   try { const N = await letraNetEase(texto, s); if (N) return { ...N, plana: (L && L.plana) || "" }; } catch (_) { /* sin respaldo */ }
-  return L;
+  if (L) return L;
+  try { return await letraPlana(texto, s); } catch (_) { return null; }
 }
 
 /** Traduce una lista de líneas con el traductor gratuito de Google; devuelve una lista del mismo largo */

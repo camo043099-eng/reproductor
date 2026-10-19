@@ -15,3 +15,8 @@ test("si LRCLIB no sincroniza, usa NetEase", async () => {
   const L = await buscarLetraCompleta(texto, { titulo: "Ode", artista: "A, B", duracion: 242 });
   assert.match(L.sincronizada, /uno/); assert.match(L.traduccion, /one/); assert.equal(L.plana, "solo texto");
 });
+import { variantes } from "../app/js/internet.js";
+test("variantes separa título mezclado y quita número de pista", () => {
+  const v = variantes({ titulo: "03 - Ode to the Nameless Martyr 致以无名的抗争者 (OST)", artista: "鳴潮, jixwang" });
+  assert.ok(v.titulos.includes("Ode to the Nameless Martyr")); assert.ok(v.titulos.includes("致以无名的抗争者")); assert.equal(v.arts[0], "鳴潮");
+});

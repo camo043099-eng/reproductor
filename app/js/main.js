@@ -345,10 +345,17 @@ function cerrar(id, desdeHistorial) {
   if (!desdeHistorial) { ignorarPop++; history.back(); }
   if (id === "hoja-rep") vizApagar();
 }
-window.addEventListener("popstate", () => { if (ignorarPop > 0) { ignorarPop--; return; } if (pila.length) cerrar(pila[pila.length - 1], true); else if (E.detalle) { E.detalle = null; dibujar(); }
-  else if (E.vista !== "inicio") { E.vista = "inicio"; dibujar(); animarCambio(); window.scrollTo(0, 0); history.pushState({ s: 1 }, ""); }
-  else if (!salirListo) { salirListo = true; avisar("Desliza otra vez para salir", 2000); setTimeout(() => { salirListo = false; history.pushState({ s: 1 }, ""); }, 2000); } });
 let salirListo = false;
+// atrás: cierra lo abierto, vuelve a Inicio y, en Inicio, pide un segundo gesto para salir
+function atras(porHistorial) {
+  if (pila.length) { cerrar(pila[pila.length - 1], porHistorial); return; }
+  if (E.detalle) { E.detalle = null; dibujar(); return; }
+  if (E.vista !== "inicio") { E.vista = "inicio"; dibujar(); animarCambio(); window.scrollTo(0, 0); if (porHistorial) history.pushState({ s: 1 }, ""); return; }
+  if (!salirListo) { salirListo = true; avisar("Desliza otra vez para salir", 2000); setTimeout(() => { salirListo = false; if (porHistorial) history.pushState({ s: 1 }, ""); }, 2000); return; }
+  if (!porHistorial) { const A = plug("App"); (A?.minimizeApp || A?.exitApp)?.call(A); }              // la música sigue sonando
+}
+window.addEventListener("popstate", () => { if (ignorarPop > 0) { ignorarPop--; return; } atras(true); });
+{ const A = plug("App"); if (A?.addListener) A.addListener("backButton", () => atras(false)); }
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-cerrar]"); if (b) cerrar(b.closest(".hoja").id); });
 $("#fondo").addEventListener("click", () => { for (let i = pila.length - 1; i >= 0; i--) if ($("#" + pila[i]).classList.contains("corta")) { cerrar(pila[i]); break; } });
 
@@ -516,6 +523,7 @@ function enlazar() {
   $("#r-letra").addEventListener("click", abrirLetra);
   $("#letra-cuerpo").addEventListener("click", (e) => {
     if (e.target.closest("#letra-trad")) return alternarTraduccion();
+    if (e.target.closest("#letra-pegar")) return pegarLetra();
     if (e.target.closest("#letra-reintento")) { if (R.actual) cargarLetra(R.actual); return; }
     const p = e.target.closest("p[data-i]"); if (p && letraAct.lineas.length) R.buscar(letraAct.lineas[+p.dataset.i].t);
   });
@@ -725,7 +733,7 @@ async function cargarLetra(s) {
   let L = await db.traer("ajustes", "letra2:" + s.id).catch(() => null), error = false;
   if (!L) { try { L = await buscarLetraCompleta(texto, s); } catch (_) { error = true; } if (L) await db.poner("ajustes", L, "letra2:" + s.id).catch(() => {}); }
   if (letraAct.id !== s.id) return;                                       // mientras tanto cambió la canción
-  if (!L) { cuerpo.innerHTML = `<div class="vacio">${error ? "No pude buscar la letra. ¿Tienes internet?" : "No encontré la letra de esta canción."}<br><button class="boton" id="letra-reintento" type="button" style="margin-top:14px">Intentar otra vez</button></div>`; return; }
+  if (!L) { cuerpo.innerHTML = `<div class="vacio">${error ? "No pude buscar la letra. ¿Tienes internet?" : "No encontré la letra de esta canción."}<br><button class="boton" id="letra-reintento" type="button" style="margin-top:14px">Intentar otra vez</button> <button class="boton" id="letra-pegar" type="button" style="margin-top:14px">Pegar letra</button></div>`; return; }
   const lineas = parsearLRC(L.sincronizada);
   letraAct.L = L; letraAct.sinc = lineas.length > 0;
   if (lineas.length) { letraAct.lineas = lineas; letraAct.textos = lineas.map((l) => l.txt); }
@@ -740,9 +748,19 @@ function pintarLetra() {
   const cuerpo = $("#letra-cuerpo"), ver = tradLetra && letraAct.trad;
   cuerpo.className = "letra-cuerpo" + (letraAct.sinc ? "" : " plana");
   cuerpo.innerHTML = letraAct.textos.map((t, i) => `<p${letraAct.sinc ? ` data-i="${i}"` : ""}>${esc(t) || (letraAct.sinc ? "♪" : "&nbsp;")}${ver && letraAct.trad[i] ? `<small>${esc(letraAct.trad[i])}</small>` : ""}</p>`).join("");
+  cuerpo.insertAdjacentHTML("beforeend", `<div class="vacio"><button class="boton" id="letra-pegar" type="button">Cambiar letra</button></div>`);
   $("#letra-trad").setAttribute("aria-pressed", String(!!ver)); letraAct.idx = -2;
 }
 let tradLetra = false;
+function pegarLetra() {
+  const s = reproductor.actual; if (!s) return; const cuerpo = $("#letra-cuerpo");
+  cuerpo.className = "letra-cuerpo"; cuerpo.innerHTML = `<div class="vacio"><p>Pega aquí la letra (con o sin tiempos tipo [01:23.45]).</p><textarea id="letra-texto" rows="12" style="width:100%;padding:12px;border-radius:16px;color:var(--tx);background:rgba(255,255,255,.1);font-size:1rem"></textarea><br><button class="boton" id="letra-guardar" type="button" style="margin-top:12px">Guardar letra</button></div>`;
+  $("#letra-guardar").onclick = async () => {
+    const t = $("#letra-texto").value.trim(); if (!t) return;
+    const L = parsearLRC(t).length ? { sincronizada: t, plana: "" } : { sincronizada: "", plana: t };
+    await db.poner("ajustes", L, "letra2:" + s.id).catch(() => {}); await db.borrar("ajustes", "trad:" + s.id).catch(() => {}); cargarLetra(s);
+  };
+}
 async function alternarTraduccion() {
   const s = reproductor.actual; if (!s || !letraAct.textos.length) return;
   if (tradLetra && letraAct.trad) { tradLetra = false; pintarLetra(); if (letraAct.sinc) actualizarLetra(true); return; }

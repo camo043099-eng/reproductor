@@ -338,7 +338,7 @@ public class MotorPlugin extends Plugin {
     }
 
     // ───────── internet (portadas y letras): solo a servicios de la lista ─────────
-    private static final String[] PERMITIDOS = {"itunes.apple.com", "mzstatic.com", "api.deezer.com", "dzcdn.net", "lrclib.net", "musicbrainz.org", "coverartarchive.org", "archive.org", "music.163.com", "translate.googleapis.com"};
+    private static final String[] PERMITIDOS = {"itunes.apple.com", "mzstatic.com", "api.deezer.com", "dzcdn.net", "lrclib.net", "musicbrainz.org", "coverartarchive.org", "archive.org", "music.163.com", "translate.googleapis.com", "api.lyrics.ovh"};
     private static boolean permitido(String direccion) {
         try {
             URL u = new URL(direccion); if (!"https".equals(u.getProtocol())) return false; String host = u.getHost().toLowerCase(Locale.ROOT);
