@@ -21,7 +21,7 @@ try:
         pg.click("#mini-play"); pg.wait_for_function("!window.__onda.reproductor.sonando")
         pg.click("#mini-sig"); pg.wait_for_function("window.__onda.reproductor.pos==1", timeout=8000)
         pg.click("[data-t=albumes]"); assert pg.query_selector(".tarjeta"), "sin álbumes"
-        pg.click("#nav [data-v=inicio]"); assert pg.query_selector(".tile") and pg.query_selector(".estante"), "inicio vacío"
+        pg.click("#nav [data-v=inicio]"); pg.wait_for_selector(".tile"); assert pg.query_selector(".tile") and pg.query_selector(".estante"), "inicio vacío"
         pg.click("#nav [data-v=buscar]"); pg.fill("#q", "tema"); pg.wait_for_selector("#contenido .fila"); assert pg.locator("#contenido .fila").count()==1
         pg.click("#nav [data-v=biblioteca]")
         pg.click("[data-t=listas]"); pg.click("[data-det=lista]"); assert "Favoritas" in pg.inner_text(".cabecera-detalle")

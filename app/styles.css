@@ -494,3 +494,7 @@ html .letra-sync { gap: 8px; }
 /* hojas: se animan en su propia capa y más rápido, para que cerrar el reproductor no vaya a tirones */
 .hoja:not([hidden]) { will-change: transform; transition-duration: .32s; }
 .hoja:not(.ver) .portada-grande, .hoja:not(.ver) .portada-grande * { transition: none !important; animation: none !important; }
+/* fondo: velo oscuro parejo para que las listas se lean sobre cualquier imagen, y la capa del fondo no se repinta */
+html[data-fondo="portada"] .ambiente::after, html[data-fondo="imagen"] .ambiente::after { background: linear-gradient(rgba(0,0,0,.62), rgba(0,0,0,.82)); }
+.ambiente { will-change: transform; contain: strict; }
+.contenido.entra { animation: none; }

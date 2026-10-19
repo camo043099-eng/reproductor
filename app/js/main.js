@@ -6,7 +6,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.32";
+const VERSION = "0.9.33";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -72,10 +72,10 @@ function pintar(c, items, f, envoltura) {
   const cont = c.querySelector("[data-tandas]"); let i = N;
   const paso = () => {
     if (mi !== tokenPintado || !cont.isConnected || i >= items.length) return;
-    const fin = Math.min(items.length, i + 120); let h = ""; for (let k = i; k < fin; k++) h += f(items[k], k);
-    cont.insertAdjacentHTML("beforeend", h); i = fin; imagenes(cont); requestAnimationFrame(paso);
+    const fin = Math.min(items.length, i + 60); let h = ""; for (let k = i; k < fin; k++) h += f(items[k], k);
+    const t = document.createElement("template"); t.innerHTML = h; imagenes(t.content); cont.appendChild(t.content); i = fin; requestAnimationFrame(paso);
   };
-  forzarPintado = () => { if (mi !== tokenPintado || i >= items.length) return; let h = ""; for (let k = i; k < items.length; k++) h += f(items[k], k); cont.insertAdjacentHTML("beforeend", h); i = items.length; imagenes(cont); };
+  forzarPintado = () => { if (mi !== tokenPintado || i >= items.length) return; let h = ""; for (let k = i; k < items.length; k++) h += f(items[k], k); const t = document.createElement("template"); t.innerHTML = h; imagenes(t.content); cont.appendChild(t.content); i = items.length; };
   if (items.length > N) requestAnimationFrame(paso);
   imagenes(c);
 }
@@ -457,14 +457,23 @@ async function tinte(alb, url) {
   if (!col) { col = await extraerColor(url); tintes.set(alb, col); }
   ultimaTinta = col; ultimaPortada = url || null; aplicarColores();
 }
+async function reducirFondo(blob) {                                       // un fondo de 12 MP pesa y frena cada cuadro: se guarda a 1080 px
+  try {
+    const bmp = await createImageBitmap(blob); if (Math.max(bmp.width, bmp.height) <= 1400) return blob;
+    const k = 1400 / Math.max(bmp.width, bmp.height), c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height); return (await new Promise((ok) => c.toBlob(ok, "image/jpeg", 0.82))) || blob;
+  } catch (_) { return blob; }
+}
 async function elegirFondo(archivo) {
+  archivo = await reducirFondo(archivo);
   const url = URL.createObjectURL(archivo); const tinta = await extraerColor(url);
   if (fondoUsuario?.url) URL.revokeObjectURL(fondoUsuario.url);
   fondoUsuario = { url, tinta }; await db.poner("ajustes", archivo, "fondoImg").catch(() => {});
   E.aj.fondo = "imagen"; $("#aj-fondo").value = "imagen"; aplicarAvanzados(); guardarAjustes();
 }
 async function cargarFondoUsuario() {
-  const b = await db.traer("ajustes", "fondoImg").catch(() => null); if (!b) return;
+  let b = await db.traer("ajustes", "fondoImg").catch(() => null); if (!b) return;
+  { const r = await reducirFondo(b); if (r !== b) { b = r; db.poner("ajustes", b, "fondoImg").catch(() => {}); } }
   const url = URL.createObjectURL(b); fondoUsuario = { url, tinta: await extraerColor(url) }; aplicarColores();
 }
 let arrastrando = false;
@@ -949,7 +958,7 @@ function enlazar() {
   R.addEventListener("dormido", () => avisar("Temporizador: música apagada. Buenas noches."));
   R.addEventListener("sueno", () => { if (pila.includes("hoja-sueno")) dibujarSueno(); });
 
-  $("#nav").addEventListener("click", (e) => { const b = e.target.closest("button[data-v]"); if (!b) return; while (pila.length) cerrar(pila[pila.length - 1]); E.vista = b.dataset.v; E.detalle = null; if (E.q) { E.q = ""; $("#q").value = ""; } dibujar(); animarCambio(); window.scrollTo(0, 0); if (E.vista === "buscar") $("#q").focus(); });
+  $("#nav").addEventListener("click", (e) => { const b = e.target.closest("button[data-v]"); if (!b) return; while (pila.length) cerrar(pila[pila.length - 1]); E.vista = b.dataset.v; E.detalle = null; if (E.q) { E.q = ""; $("#q").value = ""; } document.querySelectorAll("#nav button").forEach((x) => { x === b ? x.setAttribute("aria-current", "page") : x.removeAttribute("aria-current"); }); window.scrollTo(0, 0); requestAnimationFrame(() => setTimeout(() => { dibujar(); if (E.vista === "buscar") $("#q").focus({ preventScroll: true }); }, 0)); });
   { let tq = 0; $("#q").addEventListener("input", (e) => { E.q = e.target.value; clearTimeout(tq); tq = setTimeout(dibujar, 140); }); }
   $("#b-agregar").addEventListener("click", () => (MOTOR ? iniciarNativo(true) : menu("Agregar música", [
     { t: "Elegir canciones", f: () => $("#f-audio").click() }, { t: "Elegir una carpeta completa", f: elegirCarpeta }])));
