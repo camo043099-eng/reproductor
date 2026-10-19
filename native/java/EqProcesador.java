@@ -19,6 +19,7 @@ public final class EqProcesador extends BaseAudioProcessor {
     public static volatile float nivelBajo = 0, nivelTotal = 0;
     /** datos para la pantalla "Información de audio" */
     public static volatile String entradaTxt = ""; public static volatile int entradaHz = 0, entradaCanales = 0; public static volatile long ultimoBloque = 0;
+    private final double[] eb = new double[8];
     private double lp = 0, lpK = 0.02;
     /** energía en 8 bandas de frecuencia (graves → agudos) para las barras de colores */
     public static final float[] bandas = new float[8];
@@ -52,7 +53,7 @@ public final class EqProcesador extends BaseAudioProcessor {
         }
         input.position(input.position() + n * bytes);
         nucleo.procesar(tmp, n);
-        { int C = Math.max(1, inputAudioFormat.channelCount); double sb = 0, st = 0; int fr = n / C; double[] eb = new double[8];
+        { int C = Math.max(1, inputAudioFormat.channelCount); double sb = 0, st = 0; int fr = n / C; java.util.Arrays.fill(eb, 0);
           for (int f = 0; f < fr; f++) { double m = 0; for (int c = 0; c < C; c++) m += tmp[f * C + c]; m /= C; lp += (m - lp) * lpK; sb += lp * lp; st += m * m; double prev = 0; for (int i = 0; i < 7; i++) { lb[i] += (m - lb[i]) * kb[i]; double b = lb[i] - prev; eb[i] += b * b; prev = lb[i]; } double b7 = m - prev; eb[7] += b7 * b7; }
           if (fr > 0) { for (int i = 0; i < 8; i++) bandas[i] = (float) Math.min(4, Math.sqrt(eb[i] / fr) * (1.6 + i * 0.6)); nivelBajo = (float) Math.min(4, Math.sqrt(sb / fr) * 2.0); nivelTotal = (float) Math.min(4, Math.sqrt(st / fr) * 1.6); } }
         if (salida16) {

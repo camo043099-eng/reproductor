@@ -433,3 +433,17 @@ html.sinblur *, html.sinblur *::before, html.sinblur *::after { -webkit-backdrop
 .info-fila span { color: var(--su, rgba(255, 255, 255, 0.6)); flex: 0 0 auto; }
 .info-fila b { font-weight: 600; text-align: right; min-width: 0; overflow-wrap: anywhere; }
 html.sinanim *, html.sinanim *::before, html.sinanim *::after { animation-duration: 0.01s !important; animation-iteration-count: 1 !important; transition-duration: 0.01s !important; }
+
+/* avisos: compactos (el ancho dependía de la mitad de la pantalla y el texto se partía en 3 líneas) */
+.aviso { width: max-content; max-width: calc(100% - 28px); padding: 7px 14px 7px 8px; gap: 8px; border-radius: 16px; font-size: 0.82rem; line-height: 1.25; background: rgba(20, 20, 24, 0.9); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.aviso .av-ico { width: 22px; height: 22px; } .aviso .av-ico svg { width: 13px; height: 13px; }
+.aviso > span:last-child { min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+
+/* elegir carátula: dos columnas que no se estiran por el texto (antes salía una sola, enorme y cortada) */
+.pp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pp { min-width: 0; }
+
+/* reproductor: el espacio libre se reparte (la carátula queda centrada y los controles abajo) en vez de dejar un hueco negro */
+.hoja.completa > .portada-grande { margin-top: auto; margin-bottom: auto; }
+.hoja.completa > .datos { margin-top: 0; }
+.hoja.completa > .extras { margin-bottom: 6px; }
