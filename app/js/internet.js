@@ -3,7 +3,8 @@
 
 const norm = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\(.*?\)|\[.*?\]/g, " ").replace(/[^a-z0-9぀-ヿ一-鿿가-힯]+/g, " ").trim();
 const coincide = (a, b) => { a = norm(a); b = norm(b); return !!a && !!b && (a === b || a.includes(b) || b.includes(a)); };
-const json = async (texto, url) => JSON.parse(await texto(url));
+const conLimite = (p, ms) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("tiempo agotado")), ms))]);
+const json = async (texto, url) => JSON.parse(await conLimite(Promise.resolve(texto(url)), 6000));    // un servicio lento ya no deja la búsqueda colgada
 
 /** URL de la portada más probable según artista, álbum y título (o null) */
 const GENERICOS = new Set(["music", "musica", "download", "downloads", "descargas", "audio", "audios", "songs", "unknown album", "album", "sin album", "0", "sdcard", "telegram", "whatsapp audio", "ringtones", "alarms", "notifications", "recordings", "podcasts", "mp3", "flac", "new folder"]);
@@ -179,4 +180,11 @@ export async function candidatasPortada(texto, consulta) {
     if (!hubo) break;
   }
   return out;
+}
+
+/** Búsqueda libre de letras (cualquier canción del mundo, no solo la que suena): lista de {titulo, artista, dur, sinc, L} */
+export async function buscarLetrasGlobal(texto, consulta) {
+  const q = String(consulta || "").trim(); if (!q) return [];
+  const r = await json(texto, "https://lrclib.net/api/search?q=" + encodeURIComponent(q));
+  return (r || []).filter((x) => x.syncedLyrics || x.plainLyrics).slice(0, 25).map((x) => ({ titulo: x.trackName, artista: x.artistName, album: x.albumName, dur: x.duration || 0, sinc: !!x.syncedLyrics, L: { sincronizada: x.syncedLyrics || "", plana: x.plainLyrics || "" } }));
 }

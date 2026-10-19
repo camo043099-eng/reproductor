@@ -485,3 +485,9 @@ html .tile b, html .chip, html .boton { text-shadow: none; }
 .aj-pag { grid-template-columns: minmax(0, 1fr); }
 .aj-pag > * { min-width: 0; max-width: 100%; }
 .aj-pag .campo > .sel-btn { flex: 0 1 52%; max-width: 52%; }
+.letra-sync { background: none !important; pointer-events: none; padding: 8px 0 calc(10px + env(safe-area-inset-bottom, 0px)); }
+.letra-sync > * { pointer-events: auto; }
+html .letra-sync { gap: 8px; }
+.letra-sync span { background: var(--sup, #1b1b21); border: 1px solid var(--sup-borde, #2b2b33); border-radius: 999px; padding: 9px 14px; min-width: 0; }
+.letra-cuerpo { padding-bottom: 90px; }
+#letra-trad[aria-pressed="true"] { background: var(--ac2, #c9d0ff) !important; color: #000 !important; }

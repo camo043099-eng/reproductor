@@ -2,11 +2,11 @@ import { Reproductor, BANDAS, PRESETS } from "./player.js";
 import { leerEtiquetas } from "./tags.js";
 import * as db from "./db.js";
 import { ReproductorNativo } from "./nativo.js";
-import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, traducir, parsearLRC, lineaActual, albumGenerico } from "./internet.js";
+import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasGlobal, traducir, parsearLRC, lineaActual, albumGenerico } from "./internet.js";
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.28";
+const VERSION = "0.9.29";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -380,8 +380,17 @@ function aplicarRealce() {                                                // sol
   const malo = s && /^(MP3|AAC|OGG|WMA)$/.test(s.formato || "") && s.bitrate > 0 && s.bitrate < 315;
   const v = malo && m === "suave" ? 0.10 : malo && m === "medio" ? 0.18 : 0; if (v === ultimoRealce) return; ultimoRealce = v; try { reproductor.ponerRealce(v).catch(() => {}); } catch (_) { /* motor aún no listo */ }
 }
+let letraPrevia = null;                                                    // baja la letra en segundo plano para que ya esté lista al abrirla
+function bajarLetraPrevia(s) {
+  if (!s || letraPrevia === s.id || navigator.onLine === false) return; letraPrevia = s.id;
+  setTimeout(async () => {
+    if (reproductor.actual?.id !== s.id) return;
+    if (await db.traer("ajustes", "letra2:" + s.id).catch(() => null)) return;
+    try { const L = await Promise.race([buscarLetraCompleta(texto, s), new Promise((_, no) => setTimeout(() => no(new Error("t")), 20000))]); if (L) await db.poner("ajustes", L, "letra2:" + s.id); } catch (_) { /* se busca al abrir la letra */ }
+  }, 2500);
+}
 function actualizarMini() {
-  const s = reproductor.actual; $("#mini").hidden = !s; aplicarRealce();
+  const s = reproductor.actual; $("#mini").hidden = !s; aplicarRealce(); bajarLetraPrevia(s);
   document.body.style.paddingBottom = "";
   if (!s) return;
   ponerLargo($("#mini-titulo"), nom(s)); $("#mini-artista").textContent = s.artista || "";
@@ -976,6 +985,7 @@ function enlazar() {
   $("#letra-trad").addEventListener("click", alternarTraduccion);
   $("#letra-cuerpo").addEventListener("click", (e) => {
     if (e.target.closest("#letra-pegar")) return pegarLetra();
+    if (e.target.closest("#letra-buscar")) return buscarOtraLetra();
     if (e.target.closest("#letra-reintento")) { if (R.actual) cargarLetra(R.actual); return; }
     const p = e.target.closest("p[data-i]"); if (p && letraAct.lineas.length) R.buscar(letraAct.lineas[+p.dataset.i].t);
   });
@@ -1256,9 +1266,9 @@ async function cargarLetra(s) {
   let L = await db.traer("ajustes", "letra2:" + s.id).catch(() => null), error = false;
   const emb = MOTOR && reproductor.letras ? reproductor.letras[s.id] : null, embSinc = emb && parsearLRC(emb).length > 0;   // letra que trae el propio archivo
   if (embSinc && !(L && L.sincronizada && L.manual)) L = { sincronizada: emb, plana: "", incrustada: true };
-  if (!L) { try { L = await buscarLetraCompleta(texto, s); } catch (_) { error = true; } if (L && emb && !L.sincronizada) L = { sincronizada: "", plana: emb, incrustada: true }; if (L) await db.poner("ajustes", L, "letra2:" + s.id).catch(() => {}); }
+  if (!L) { try { L = await Promise.race([buscarLetraCompleta(texto, s), new Promise((_, no) => setTimeout(() => no(new Error("tiempo")), 20000))]); } catch (_) { error = true; } if (L && emb && !L.sincronizada) L = { sincronizada: "", plana: emb, incrustada: true }; if (L) await db.poner("ajustes", L, "letra2:" + s.id).catch(() => {}); }
   if (letraAct.id !== s.id) return;                                       // mientras tanto cambió la canción
-  if (!L) { cuerpo.innerHTML = `<div class="vacio">${error ? "No pude buscar la letra. ¿Tienes internet?" : "No encontré la letra de esta canción."}<br><button class="boton" id="letra-reintento" type="button" style="margin-top:14px">Intentar otra vez</button> <button class="boton" id="letra-pegar" type="button" style="margin-top:14px">Pegar letra</button></div>`; return; }
+  if (!L) { cuerpo.innerHTML = `<div class="vacio">${error ? "No pude buscar la letra. ¿Tienes internet?" : "No encontré la letra de esta canción."}<br><button class="boton" id="letra-reintento" type="button" style="margin-top:14px">Intentar otra vez</button> <button class="boton" id="letra-buscar" type="button" style="margin-top:14px">Buscar otra letra</button> <button class="boton" id="letra-pegar" type="button" style="margin-top:14px">Pegar letra</button></div>`; return; }
   const lineas = parsearLRC(L.sincronizada);
   letraAct.L = L; letraAct.sinc = lineas.length > 0;
   if (lineas.length) { letraAct.lineas = lineas; letraAct.textos = lineas.map((l) => l.txt); }
@@ -1274,10 +1284,30 @@ function pintarLetra() {
   const cuerpo = $("#letra-cuerpo"), ver = tradLetra && letraAct.trad;
   cuerpo.className = "letra-cuerpo" + (letraAct.sinc ? "" : " plana");
   cuerpo.innerHTML = letraAct.textos.map((t, i) => `<p${letraAct.sinc ? ` data-i="${i}"` : ""}>${esc(t) || (letraAct.sinc ? "♪" : "&nbsp;")}${ver && letraAct.trad[i] ? `<small>${esc(letraAct.trad[i])}</small>` : ""}</p>`).join("");
-  cuerpo.insertAdjacentHTML("beforeend", `<div class="vacio"><button class="boton" id="letra-pegar" type="button">Cambiar letra</button></div>`);
-  $("#letra-trad").setAttribute("aria-pressed", String(!!ver)); letraAct.idx = -2;
+  cuerpo.insertAdjacentHTML("beforeend", `<div class="vacio"><button class="boton" id="letra-buscar" type="button">Buscar otra letra</button> <button class="boton" id="letra-pegar" type="button">Pegar letra</button></div>`);
+  $("#letra-trad").setAttribute("aria-pressed", String(!!ver)); $("#letra-trad").textContent = ver ? "Traducido ✓" : "Traducir"; letraAct.idx = -2;
 }
 let tradLetra = false;
+// búsqueda libre: cualquier canción, artista o fragmento; al tocar un resultado esa letra queda para la canción que suena
+function buscarOtraLetra() {
+  const s = reproductor.actual; if (!s) return; const cuerpo = $("#letra-cuerpo");
+  cuerpo.className = "letra-cuerpo"; cuerpo.innerHTML = `<div class="vacio"><p>Busca la letra de cualquier canción (artista y título):</p><div class="buscador" style="margin:0 0 12px"><input id="lb-q" type="search" placeholder="Ej. Sonata Arctica My Land" autocomplete="off"></div><div id="lb-res"></div></div>`;
+  const q = $("#lb-q"), res = $("#lb-res"); q.value = [s.artista && !/desconocid|unknown/i.test(s.artista) ? s.artista : "", s.titulo || s.nombre || ""].join(" ").trim(); let tk = 0, ult = 0;
+  const buscar = async () => {
+    const mi = ++tk, t = q.value.trim(); if (t.length < 2) { res.innerHTML = ""; return; }
+    res.innerHTML = `<p class="suave">Buscando…</p>`;
+    try {
+      const r = await buscarLetrasGlobal(texto, t); if (mi !== tk) return; window.__lb = r;
+      res.innerHTML = r.length ? r.map((x, i) => `<button class="fila" type="button" data-lb="${i}" style="width:100%;text-align:left"><span style="display:grid;gap:2px;min-width:0"><b>${esc(x.titulo)}</b><small class="suave">${esc(x.artista)}${x.album ? " · " + esc(x.album) : ""} · ${Math.floor(x.dur / 60)}:${String(Math.round(x.dur % 60)).padStart(2, "0")}${x.sinc ? " · sincronizada" : " · sin tiempos"}</small></span></button>`).join("") : `<p class="suave">No encontré nada. Prueba con menos palabras.</p>`;
+    } catch (_) { if (mi === tk) res.innerHTML = `<p class="suave">No pude buscar. ¿Tienes internet?</p>`; }
+  };
+  q.addEventListener("input", () => { clearTimeout(ult); ult = setTimeout(buscar, 450); });
+  res.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-lb]"); if (!b) return; const x = window.__lb?.[+b.dataset.lb]; if (!x) return;
+    await db.poner("ajustes", { ...x.L, manual: true }, "letra2:" + s.id).catch(() => {}); await db.borrar("ajustes", "trad:" + s.id).catch(() => {}); await db.borrar("ajustes", "letraoff:" + s.id).catch(() => {}); cargarLetra(s);
+  });
+  buscar(); q.focus();
+}
 function pegarLetra() {
   const s = reproductor.actual; if (!s) return; const cuerpo = $("#letra-cuerpo");
   cuerpo.className = "letra-cuerpo"; cuerpo.innerHTML = `<div class="vacio"><p>Pega aquí la letra (con o sin tiempos tipo [01:23.45]).</p><textarea id="letra-texto" rows="12" style="width:100%;padding:12px;border-radius:16px;color:var(--tx);background:rgba(255,255,255,.1);font-size:1rem"></textarea><br><button class="boton" id="letra-guardar" type="button" style="margin-top:12px">Guardar letra</button></div>`;
