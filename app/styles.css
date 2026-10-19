@@ -255,3 +255,20 @@ html.sinchips #r-chips { display: none !important; }
 .stats li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--linea); }
 .stats li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stats li span:last-child { color: var(--tx2); flex: 0 0 auto; }
+
+/* interruptores: el ancho completo de ".campo label" los estiraba */
+.campo label.interruptor { width: 52px; display: block; }
+.interruptor input:checked + span { background: var(--sw, #34c759); border-color: var(--sw, #34c759); }
+/* la barra de arriba de las hojas tapa lo que pasa por detrás */
+.hoja:not(.completa) .hoja-top { background: linear-gradient(rgba(0,0,0,.92), rgba(0,0,0,.78)); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-radius: 0 0 16px 16px; }
+/* fondos personalizables */
+html[data-fondo="negro"] .ambiente { background: #000; }
+html[data-fondo="portada"] .ambiente, html[data-fondo="imagen"] .ambiente { background: #000; overflow: hidden; }
+html[data-fondo="portada"] .ambiente::before, html[data-fondo="imagen"] .ambiente::before { content: ""; position: absolute; inset: -12%; background: var(--fondo-img) center / cover no-repeat; opacity: .55; transition: opacity .6s ease; }
+html[data-fondo="portada"] .ambiente::before { filter: blur(46px) saturate(1.5); }
+html[data-fondo="portada"] .ambiente::after, html[data-fondo="imagen"] .ambiente::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(0,0,0,.25), rgba(0,0,0,.72)); }
+/* explorar por género con carátula */
+.genero { position: relative; overflow: hidden; }
+.genero img { position: absolute; right: -6px; bottom: -8px; width: 64px; height: 64px; border-radius: 8px; object-fit: cover; rotate: 24deg; box-shadow: 0 4px 14px rgba(0,0,0,.45); }
+.genero b, .genero span { position: relative; z-index: 1; max-width: 70%; }
+.acciones-detalle { flex-wrap: wrap; }

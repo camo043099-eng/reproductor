@@ -146,11 +146,13 @@
     <div class="campo solo-nativo" hidden><span>Ocultar tonos, alarmas y notas de voz</span><label class="interruptor"><input type="checkbox" id="aj-sistema" checked><span></span></label></div>
     <div class="campo solo-nativo" hidden><span>Ocultar audios cortos</span><select id="aj-min"><option value="0">No ocultar</option><option value="15">Menos de 15 s</option><option value="30">Menos de 30 s</option><option value="60">Menos de 1 min</option></select></div>
     <div class="campo"><span>Buscar portadas en internet solas</span><label class="interruptor"><input type="checkbox" id="aj-auto" checked><span></span></label></div>
-    <button class="boton" id="aj-portadas" type="button">Buscar ahora las portadas que faltan</button>
+    <button class="boton" id="aj-portadas" type="button">Descargar carátulas que faltan</button>
     <button class="boton solo-nativo" id="aj-reescanear" type="button" hidden>Volver a buscar música en el teléfono</button>
 
     <h3 class="sub">Apariencia</h3>
-    <div class="campo"><span>Color de acento</span><select id="aj-acento"><option value="">Blanco azulado</option><option value="#1ed760">Verde</option><option value="#ff5d5d">Rojo</option><option value="#4da3ff">Azul</option><option value="#ff7ac8">Rosa</option><option value="#ffb44d">Naranja</option><option value="#b48cff">Morado</option></select></div>
+    <div class="campo"><span>Color de acento</span><select id="aj-acento"><option value="auto">Automático (colores de la carátula)</option><option value="">Blanco azulado</option><option value="#1ed760">Verde</option><option value="#ff5d5d">Rojo</option><option value="#4da3ff">Azul</option><option value="#ff7ac8">Rosa</option><option value="#ffb44d">Naranja</option><option value="#b48cff">Morado</option></select></div>
+    <div class="campo"><span>Fondo</span><select id="aj-fondo"><option value="degradado">Degradado de la carátula</option><option value="portada">Carátula difuminada</option><option value="negro">Negro puro</option><option value="imagen">Mi propia imagen</option></select></div>
+    <button class="boton" id="aj-fondo-img" type="button" hidden>Elegir imagen de fondo</button>
     <div class="campo"><span>Tamaño de la letra</span><select id="aj-letra"><option value="0.85">Pequeña</option><option value="1">Normal</option><option value="1.2">Grande</option></select></div>
     <div class="campo"><span>Reducir transparencias</span><label class="interruptor"><input type="checkbox" id="aj-plano"><span></span></label></div>
     <p class="suave pequeno">Cambia el efecto de vidrio por colores sólidos. Ayuda si la app se siente pesada.</p>
@@ -171,6 +173,7 @@
   </div>
 </section>
 
+<input type="file" id="f-fondo" accept="image/*" hidden>
 <input type="file" id="f-copia" accept=".json,application/json" hidden>
 <input type="file" id="f-imagen" accept="image/*" hidden>
 <input type="file" id="f-audio" accept="audio/*,.flac,.mp3,.m4a,.aac,.ogg,.opus,.wav,.alac,.aiff" multiple hidden>

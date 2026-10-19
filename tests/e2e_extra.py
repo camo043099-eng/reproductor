@@ -48,7 +48,7 @@ try:
           const reg = (n) => async (a) => { llamadas.push([n, a]); return {}; };
           const M = new Proxy({
             addListener: (n, f) => { oy[n] = f; return Promise.resolve({ remove() {} }); },
-            texto: async ({ url }) => ({ codigo: 200, cuerpo: url.includes('lrclib') ? JSON.stringify({ syncedLyrics: '[00:01.00] primera\\n[00:05.00] segunda', plainLyrics: 'x' }) : JSON.stringify({ results: [], data: [] }) }),
+            texto: async ({ url }) => ({ codigo: 200, cuerpo: url.includes('translate.googleapis') ? JSON.stringify([decodeURIComponent(new URL(url).searchParams.get('q')).split('\\n').map((l, i, a) => ['ES:' + l + (i < a.length - 1 ? '\\n' : ''), l])]) : url.includes('lrclib') ? JSON.stringify({ syncedLyrics: '[00:01.00] primera\\n[00:05.00] segunda', plainLyrics: 'x' }) : JSON.stringify({ results: [], data: [] }) }),
             permisos: async () => ({ audio: true }), escanear: async () => ({ canciones: lista }), portada: async () => ({}),
             estado: async () => ({ ids: [], indice: -1, pos: 0, sonando: false }),
           }, { get: (t, k) => (k in t ? t[k] : reg(k)) });
@@ -72,6 +72,7 @@ try:
         pn.click("#hoja-eq [data-cerrar]"); pn.wait_for_selector("#hoja-eq", state="hidden")
         pn.click("#r-letra"); pn.wait_for_selector("#letra-cuerpo p[data-i]"); assert pn.locator("#letra-cuerpo p").count() == 2, pn.inner_html("#letra-cuerpo")
         pn.evaluate("window.__oy.tiempo({pos:5500,dur:203000,indice:2})"); pn.wait_for_selector("#letra-cuerpo p.actual"); assert pn.inner_text("#letra-cuerpo p.actual") == "segunda"
+        pn.click("#letra-trad"); pn.wait_for_function("document.querySelectorAll('#letra-cuerpo small').length==2", timeout=5000); assert "ES:primera" in pn.inner_text("#letra-cuerpo"), pn.inner_text("#letra-cuerpo"); print("traducir OK")
         pn.click("#letra-cuerpo p >> nth=0"); assert pn.evaluate("window.__llamadas.some(x=>x[0]=='buscar' && x[1].ms==1000)"); print("letras OK")
         pn.click("#hoja-letra [data-cerrar]"); pn.wait_for_selector("#hoja-letra", state="hidden")
         pn.click("#r-azar"); pn.wait_for_function("window.__llamadas.some(x=>x[0]=='reordenar')")
@@ -82,6 +83,10 @@ try:
         assert "Más escuchadas" in pn.inner_text(".tiles"), pn.inner_text(".tiles"); assert pn.locator(".mix").count() >= 0
         pn.click("[data-estadisticas]"); pn.wait_for_selector("#hoja-stats.ver .num"); assert pn.locator("#stats-cuerpo .num").count() == 4; pn.click("#hoja-stats [data-cerrar]"); pn.wait_for_selector("#hoja-stats", state="hidden")
         print("inicio + actividad OK")
+        pn.click("#nav [data-v=buscar]"); pn.wait_for_selector(".genero"); assert pn.locator(".genero img").count() >= 1, "sin caratulas en generos"; print("generos con caratula OK")
+        pn.click("#nav [data-v=inicio]"); pn.wait_for_selector(".tiles"); assert pn.locator("[data-portadas]").count() >= 1, "falta boton de caratulas"; print("boton caratulas OK")
+        pn.evaluate("(() => { const s = document.querySelector('#aj-fondo'); s.value = 'portada'; s.dispatchEvent(new Event('change', {bubbles: true})); })()")
+        assert pn.evaluate("document.documentElement.dataset.fondo") == "portada"; assert pn.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--ac2').trim()") != "", "acento automatico"; print("fondo + acento OK")
         print("nativo (simulado) OK")
         b.close()
 finally:

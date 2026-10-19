@@ -148,6 +148,14 @@ function ordenar(arr) {
   const f = { titulo: (a, b) => c(a.titulo || a.nombre, b.titulo || b.nombre), artista: (a, b) => c(a.artista, b.artista) || c(a.album, b.album) || (a.disco - b.disco) || (a.pista - b.pista), album: (a, b) => c(a.album, b.album) || (a.disco - b.disco) || (a.pista - b.pista), reciente: (a, b) => b.fecha - a.fecha }[k];
   return arr.slice().sort(f);
 }
+const SINONIMOS = [[/sound\s?track|sountrack|\bost\b|banda sonora|サウンドトラック|原声/i, "Banda sonora"], [/video\s?game|^game|テレビゲーム|ゲーム|videojuego/i, "Videojuegos"], [/^j-?pop$|^jpop$/i, "J-Pop"], [/^pop$|ポップ/i, "Pop"], [/^rock$|ロック/i, "Rock"],
+  [/electro|electr[oó]nic|エレクトロ/i, "Electrónica"], [/hip.?hop|^rap$/i, "Hip-Hop"], [/anime|アニメ/i, "Anime"], [/classical|クラシック|cl[aá]sica/i, "Clásica"], [/metal|メタル/i, "Metal"], [/^dance$/i, "Dance"], [/r&b|^rnb$/i, "R&B"], [/jazz|ジャズ/i, "Jazz"]];
+function generosDe(s) {
+  if (s._g) return s._g; const out = new Set();
+  for (const raw of String(s.genero || "").split(/[;,/|]+/)) { const t = raw.trim(); if (!t) continue; const m = SINONIMOS.find(([re]) => re.test(t)); out.add(m ? m[1] : t.charAt(0).toUpperCase() + t.slice(1)); }
+  return (s._g = [...out]);
+}
+const conteoGeneros = () => { const g = new Map(); for (const s of E.canciones) for (const x of generosDe(s)) g.set(x, (g.get(x) || 0) + 1); return g; };
 const coincide = (s, q) => !q || (s._b ||= normal([s.titulo, s.artista, s.album, s.nombre, s.genero, s.anio].join(" "))).includes(q);
 function filaCancion(s, i, extra = "") {
   const sonando = reproductor.actual?.id === s.id;
@@ -184,7 +192,7 @@ function dibujarInicio() {
   const alb = (s) => albs.find((a) => a.k === s.alb);
   const albsUlt = []; for (const s of ult) { const a = alb(s); if (a && !albsUlt.includes(a)) albsUlt.push(a); if (albsUlt.length >= 12) break; }
   const arts = [...agrupar((s) => normal(s.albumArtista || s.artista))].map(([k, v]) => ({ k, s: v[0], n: v.length })).sort((a, b) => b.n - a.n).slice(0, 12);
-  const gen = new Map(); for (const s of E.canciones) if (s.genero) gen.set(s.genero, (gen.get(s.genero) || 0) + 1);
+  const gen = conteoGeneros();
   const generos = [...gen].filter(([, n]) => n >= 3).sort((a, b) => b[1] - a[1]).slice(0, 8);
   listasInicio = { fav: fav.slice(0, 20), rec: rec.slice(0, 20), ult: ult.slice(0, 20), mas: mas.slice(0, 20) };
   const tono = (t) => { let h = 0; for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; };
@@ -198,8 +206,8 @@ function dibujarInicio() {
   const cancion = (s, i, lista) => `<button class="tarjeta" type="button" data-lista="${lista}" data-i="${i}">${imgHtml(s)}<b>${esc(s.titulo || s.nombre)}</b><span>${esc(s.artista || "")}</span></button>`;
   const albumTarjeta = (a, grande) => `<button class="tarjeta${grande ? " grande" : ""}" type="button" data-det="album" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.album || "Sin álbum")}</b><span>${esc(a.s.albumArtista || a.s.artista || "")}</span></button>`;
   const mix = (k, nombre, s, etiqueta) => `<button class="mix" type="button" data-det="lista" data-k="${esc(k)}" style="--h:${tono(nombre)}">${imgHtml(s)}<i>${etiqueta}</i><b>${esc(nombre)}</b></button>`;
-  const mixes = generos.map(([g]) => mix("__gen:" + g, "Mix " + g, E.canciones.find((s) => s.genero === g), "MIX")).concat(nuevas.length > 10 ? [mix("__olv", "Para redescubrir", nuevas[Math.floor(nuevas.length / 2)], "SIN ESCUCHAR")] : []).join("");
-  const fichas = [`<button class="chip mezcla" data-mezclar type="button">Mezclar todo</button>`, `<button class="chip" data-det="lista" data-k="__fav" type="button">Favoritas</button>`, `<button class="chip" data-estadisticas type="button">Tu actividad</button>`,
+  const mixes = generos.map(([g]) => mix("__gen:" + g, "Mix " + g, E.canciones.find((s) => generosDe(s).includes(g)), "MIX")).concat(nuevas.length > 10 ? [mix("__olv", "Para redescubrir", nuevas[Math.floor(nuevas.length / 2)], "SIN ESCUCHAR")] : []).join("");
+  const fichas = [`<button class="chip mezcla" data-mezclar type="button">Mezclar todo</button>`, `<button class="chip" data-det="lista" data-k="__fav" type="button">Favoritas</button>`, `<button class="chip" data-estadisticas type="button">Tu actividad</button>`, `<button class="chip" data-portadas type="button">Descargar carátulas</button>`,
     ...generos.slice(0, 5).map(([g]) => `<button class="chip" data-det="lista" data-k="${esc("__gen:" + g)}" type="button">${esc(g)}</button>`),
     `<button class="chip" data-ir="canciones" type="button">Canciones</button>`, `<button class="chip" data-ir="albumes" type="button">Álbumes</button>`, `<button class="chip" data-ir="artistas" type="button">Artistas</button>`, `<button class="chip" data-ir="listas" type="button">Listas</button>`];
   c.innerHTML = `<div class="fichas">${fichas.join("")}</div>
@@ -217,9 +225,9 @@ function dibujarInicio() {
 function dibujarBuscar() {
   const c = $("#contenido"), q = normal(E.q.trim());
   if (!q) {
-    const g = new Map(); for (const s of E.canciones) if (s.genero) g.set(s.genero, (g.get(s.genero) || 0) + 1);
+    const g = conteoGeneros();
     const tonos = (t) => { let h = 0; for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; };
-    c.innerHTML = g.size ? `<h3 class="sub">Explorar todo</h3><div class="generos">${[...g].sort((a, b) => b[1] - a[1]).map(([t, n]) => `<button type="button" class="genero" data-q="${esc(t)}" style="--h:${tonos(t)}"><b>${esc(t)}</b><span>${n}</span></button>`).join("")}</div>` : `<div class="vacio">Escribe el nombre de una canción, un artista o un álbum.</div>`;
+    c.innerHTML = g.size ? `<h3 class="sub">Explorar todo</h3><div class="generos">${[...g].sort((a, b) => b[1] - a[1]).map(([t, n]) => `<button type="button" class="genero" data-det="lista" data-k="${esc("__gen:" + t)}" style="--h:${tonos(t)}">${imgHtml(E.canciones.find((s) => generosDe(s).includes(t)))}<b>${esc(t)}</b><span>${n} canciones</span></button>`).join("")}</div>` : `<div class="vacio">Escribe el nombre de una canción, un artista o un álbum.</div>`;
     return;
   }
   listaActual = ordenar(E.canciones.filter((s) => coincide(s, q)));
@@ -262,7 +270,7 @@ function dibujarBiblioteca() {
     const base = { titulo: (s) => s.titulo || s.nombre, artista: (s) => s.artista, album: (s) => s.album }[E.orden]; if (base) montarIndice(listaActual, base);
   } else if (E.tab === "albumes") {
     const g = [...agrupar((s) => s.alb)].filter(([, v]) => v.some((s) => coincide(s, q))).sort((a, b) => colador.compare(a[1][0].album, b[1][0].album));
-    pintar(c, g, ([k, v]) => `<button class="tarjeta" type="button" data-det="album" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].album || "Sin álbum")}</b><span>${esc(v[0].albumArtista || v[0].artista || "")} · ${v.length}</span></button>`, (h) => `<div class="rejilla" data-tandas>${h}</div>`); montarIndice(g, ([, v]) => v[0].album);
+    pintar(c, g, ([k, v]) => `<button class="tarjeta" type="button" data-det="album" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].album || "Sin álbum")}</b><span>${esc(v[0].albumArtista || v[0].artista || "")} · ${v.length}</span></button>`, (h) => `<div class="acciones-detalle"><button class="boton" type="button" data-portadas>Descargar carátulas que faltan</button></div><div class="rejilla" data-tandas>${h}</div>`); montarIndice(g, ([, v]) => v[0].album);
   } else if (E.tab === "artistas") {
     const g = [...agrupar((s) => normal(s.albumArtista || s.artista))].filter(([, v]) => v.some((s) => coincide(s, q))).sort((a, b) => colador.compare(a[1][0].albumArtista || a[1][0].artista, b[1][0].albumArtista || b[1][0].artista));
     pintar(c, g, ([k, v]) => `<button class="tarjeta" type="button" data-det="artista" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].albumArtista || v[0].artista || "Desconocido")}</b><span>${v.length} canciones</span></button>`, (h) => `<div class="rejilla" data-tandas>${h}</div>`); montarIndice(g, ([, v]) => v[0].albumArtista || v[0].artista);
@@ -287,7 +295,7 @@ function cancionesDe(d) {
   if (d.k === "__mas") return masEscuchadas();
   if (d.k === "__ult") return ultimasEscuchadas();
   if (d.k === "__olv") return sinEscuchar();
-  if (d.k.startsWith("__gen:")) { const g = d.k.slice(6); return E.canciones.filter((s) => s.genero === g); }
+  if (d.k.startsWith("__gen:")) { const g = d.k.slice(6); return E.canciones.filter((s) => generosDe(s).includes(g)); }
   const l = E.listas.find((x) => x.id === d.k); return l ? l.ids.map((id) => porId.get(id)).filter(Boolean) : [];
 }
 function dibujarDetalle(c, d) {
@@ -296,7 +304,7 @@ function dibujarDetalle(c, d) {
   const titulo = d.tipo === "carpeta" ? nombreCarpeta(d.k) : d.tipo === "album" ? (listaActual[0]?.album || "Álbum") : d.tipo === "artista" ? (listaActual[0]?.albumArtista || listaActual[0]?.artista || "Artista") : l ? l.nombre : ({ __fav: "Favoritas", __mas: "Más escuchadas", __ult: "Escuchadas hace poco", __olv: "Para redescubrir" }[d.k] || (d.k.startsWith("__gen:") ? "Mix " + d.k.slice(6) : "Favoritas"));
   $("#resumen").textContent = "";
   c.innerHTML = `<div class="cabecera-detalle"><button class="ib" type="button" data-volver aria-label="Volver">${I.volver}</button><h2>${esc(titulo)}</h2>${l ? `<button class="ib" type="button" data-borrar-lista aria-label="Borrar lista">${I.mas3}</button>` : ""}</div>
-  <div class="acciones-detalle"><button class="boton primario" type="button" data-tocar-todo>Reproducir</button><button class="boton" type="button" data-tocar-azar>Aleatorio</button></div>
+  <div class="acciones-detalle"><button class="boton primario" type="button" data-tocar-todo>Reproducir</button><button class="boton" type="button" data-tocar-azar>Aleatorio</button>${d.tipo === "album" ? `<button class="boton" type="button" data-portada-album>Buscar carátula</button>` : ""}</div>
   <div id="det-lista"></div>`;
   const cont = $("#det-lista");
   if (listaActual.length) pintar(cont, listaActual, (s, i) => filaCancion(s, i, d.tipo === "album" ? "" : ` · ${esc(s.album || "")}`), (h) => `<ul class="lista" data-tandas>${h}</ul>`); else cont.innerHTML = `<div class="vacio">Aquí no hay canciones todavía.</div>`;
@@ -336,20 +344,49 @@ function actualizarEstado() {
   $("#mini-play").innerHTML = p ? I.pausa : I.play; $("#r-play").innerHTML = p ? I.pausa : I.play;
 }
 const tintes = new Map();
+async function extraerColor(url) {
+  let r = { col: "#3a3f7a", ac: "#c9d0ff" };
+  if (!url) return r;
+  try {
+    const im = new Image(); im.src = url; await im.decode(); const c = document.createElement("canvas"); c.width = c.height = 12; const g = c.getContext("2d"); g.drawImage(im, 0, 0, 12, 12);
+    const d = g.getImageData(0, 0, 12, 12).data; let R = 0, G = 0, B = 0, w = 0;
+    for (let i = 0; i < d.length; i += 4) { const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]), sat = (mx - mn) / (mx || 1), k = 0.05 + sat * sat; R += d[i] * k; G += d[i + 1] * k; B += d[i + 2] * k; w += k; }
+    R /= w; G /= w; B /= w; const m = Math.max(R, G, B) || 1, f = 150 / m;                       // brillo medio: el vidrio se ve mejor
+    r.col = `rgb(${Math.round(Math.min(255, R * f))},${Math.round(Math.min(255, G * f))},${Math.round(Math.min(255, B * f))})`;
+    // color de acento: mismo tono pero vivo y claro, para que se lea sobre fondo oscuro
+    const mx = Math.max(R, G, B) / 255, mn = Math.min(R, G, B) / 255, dl = mx - mn; let h = 0;
+    if (dl) { h = mx === R / 255 ? ((G - B) / 255 / dl) % 6 : mx === G / 255 ? (B - R) / 255 / dl + 2 : (R - G) / 255 / dl + 4; h = Math.round(h * 60); if (h < 0) h += 360; }
+    const sat = Math.min(0.95, Math.max(0.55, (mx ? dl / mx : 0) * 1.25));
+    r.ac = `hsl(${h} ${Math.round(sat * 100)}% 72%)`;
+  } catch (_) { /* sin color */ }
+  return r;
+}
+let ultimaTinta = null, ultimaPortada = null, fondoUsuario = null;
+function aplicarColores() {
+  const r = document.documentElement, a = E.aj, t = (a.fondo === "imagen" && fondoUsuario?.tinta) || ultimaTinta;
+  if (t) r.style.setProperty("--t", t.col);
+  const ac = a.acento ?? "auto";
+  if (ac === "auto" && t) { r.style.setProperty("--ac2", t.ac); r.style.setProperty("--sw", t.ac); }
+  else if (ac && ac !== "auto") { r.style.setProperty("--ac2", ac); r.style.setProperty("--sw", ac); }
+  else { r.style.removeProperty("--ac2"); r.style.removeProperty("--sw"); }
+  const f = a.fondo || "degradado"; r.dataset.fondo = f;
+  const u = f === "portada" ? ultimaPortada : f === "imagen" ? fondoUsuario?.url : null;
+  r.style.setProperty("--fondo-img", u ? `url("${u}")` : "none");
+}
 async function tinte(alb, url) {
   let col = tintes.get(alb);
-  if (!col) {
-    col = "#3a3f7a";
-    if (url) try {
-      const im = new Image(); im.src = url; await im.decode(); const c = document.createElement("canvas"); c.width = c.height = 12; const g = c.getContext("2d"); g.drawImage(im, 0, 0, 12, 12);
-      const d = g.getImageData(0, 0, 12, 12).data; let r = 0, gr = 0, b = 0, w = 0;
-      for (let i = 0; i < d.length; i += 4) { const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]), sat = (mx - mn) / (mx || 1), k = 0.05 + sat * sat; r += d[i] * k; gr += d[i + 1] * k; b += d[i + 2] * k; w += k; }
-      r /= w; gr /= w; b /= w; const m = Math.max(r, gr, b) || 1, f = 150 / m;                       // brillo medio: el vidrio se ve mejor
-      col = `rgb(${Math.round(Math.min(255, r * f))},${Math.round(Math.min(255, gr * f))},${Math.round(Math.min(255, b * f))})`;
-    } catch (_) { /* sin color */ }
-    tintes.set(alb, col);
-  }
-  document.documentElement.style.setProperty("--t", col);
+  if (!col) { col = await extraerColor(url); tintes.set(alb, col); }
+  ultimaTinta = col; ultimaPortada = url || null; aplicarColores();
+}
+async function elegirFondo(archivo) {
+  const url = URL.createObjectURL(archivo); const tinta = await extraerColor(url);
+  if (fondoUsuario?.url) URL.revokeObjectURL(fondoUsuario.url);
+  fondoUsuario = { url, tinta }; await db.poner("ajustes", archivo, "fondoImg").catch(() => {});
+  E.aj.fondo = "imagen"; $("#aj-fondo").value = "imagen"; aplicarAvanzados(); guardarAjustes();
+}
+async function cargarFondoUsuario() {
+  const b = await db.traer("ajustes", "fondoImg").catch(() => null); if (!b) return;
+  const url = URL.createObjectURL(b); fondoUsuario = { url, tinta: await extraerColor(url) }; aplicarColores();
 }
 let arrastrando = false;
 function actualizarTiempo() {
@@ -360,7 +397,7 @@ function actualizarTiempo() {
 }
 
 // ── sesión y ajustes guardados ──
-async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento || "", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false } }, "config").catch(() => {}); }
+async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false } }, "config").catch(() => {}); }
 let tSes = 0;
 async function guardarSesion(fuerza) {
   const ahora = Date.now(); if (!fuerza && ahora - tSes < 4000) return; tSes = ahora;
@@ -432,7 +469,7 @@ async function restaurarCopia(archivo) {
 
 // ── ajustes avanzados ──
 const TOGGLES = [["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-plano", "plano", false], ["aj-vib", "vib", true], ["aj-chips", "chips", true]];
-const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", ""], ["aj-letra", "letraTam", "1"]];
+const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"]];
 let tocadoEnfoque = false;
 function sincronizarAjustes() {
   for (const [id, clave, def] of TOGGLES) $("#" + id).checked = E.aj[clave] === undefined ? def : !!E.aj[clave];
@@ -442,7 +479,7 @@ function sincronizarAjustes() {
 function aplicarAvanzados() {
   const r = document.documentElement, a = E.aj;
   r.classList.toggle("plano", !!a.plano); r.classList.toggle("sinchips", a.chips === false); window.__vibrar = a.vib !== false;
-  if (a.acento) r.style.setProperty("--ac2", a.acento); else r.style.removeProperty("--ac2");
+  aplicarColores(); $("#aj-fondo-img").hidden = a.fondo !== "imagen";
   r.style.setProperty("--lt", a.letraTam || "1");
   if (MOTOR && reproductor) { const o = { silencio: !!a.silencio, ruido: a.ruido !== false }; if (tocadoEnfoque || a.enfoque === false) o.enfoque = a.enfoque !== false; reproductor.ponerAvanzado(o).catch(() => {}); }
 }
@@ -613,6 +650,8 @@ function enlazar() {
     if (e.target.closest("[data-agregar]")) return MOTOR ? iniciarNativo(true) : $("#b-agregar").click();
     const ir = e.target.closest("[data-ir]"); if (ir) { E.vista = "biblioteca"; E.tab = ir.dataset.ir; E.detalle = null; dibujar(); animarCambio(); return; }
     if (e.target.closest("[data-estadisticas]")) return abrirStats();
+    if (e.target.closest("[data-portadas]")) return descargarFaltantes(true);
+    if (e.target.closest("[data-portada-album]")) { const s0 = listaActual[0]; if (s0) portadaWeb(s0); return; }
     if (e.target.closest("[data-mezclar]")) return tocar(ordenar(E.canciones), 0, true);
     const gq = e.target.closest("[data-q]"); if (gq) { E.q = gq.dataset.q; $("#q").value = E.q; dibujar(); return; }
     const cl = e.target.closest("[data-lista]"); if (cl) return tocar(listasInicio[cl.dataset.lista], +cl.dataset.i);
@@ -636,8 +675,8 @@ function enlazar() {
   $("#r-rep").addEventListener("click", () => { const m = { no: "todo", todo: "uno", uno: "no" }[R.repetir]; R.ponerRepetir(m); $("#r-rep").dataset.modo = m; $("#r-rep").style.opacity = m === "no" ? "" : "1"; avisar({ no: "Sin repetir", todo: "Repetir toda la cola", uno: "Repetir esta canción" }[m], 1500); });
   $("#r-fav").addEventListener("click", () => { if (R.actual) alternarFav(R.actual); });
   $("#r-letra").addEventListener("click", abrirLetra);
+  $("#letra-trad").addEventListener("click", alternarTraduccion);
   $("#letra-cuerpo").addEventListener("click", (e) => {
-    if (e.target.closest("#letra-trad")) return alternarTraduccion();
     if (e.target.closest("#letra-pegar")) return pegarLetra();
     if (e.target.closest("#letra-reintento")) { if (R.actual) cargarLetra(R.actual); return; }
     const p = e.target.closest("p[data-i]"); if (p && letraAct.lineas.length) R.buscar(letraAct.lineas[+p.dataset.i].t);
@@ -651,6 +690,9 @@ function enlazar() {
   $("#aj-restaurar").addEventListener("click", () => $("#f-copia").click());
   $("#f-copia").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) restaurarCopia(f); });
   $("#aj-hist-borrar").addEventListener("click", async () => { if (!confirm("¿Borrar todo tu historial de reproducción?")) return; HIST = { m: {}, d: {}, tot: 0 }; await db.poner("ajustes", HIST, "hist"); dibujar(); avisar("Historial borrado"); });
+  $("#aj-fondo").addEventListener("change", (e) => { if (e.target.value === "imagen" && !fondoUsuario) $("#f-fondo").click(); });
+  $("#aj-fondo-img").addEventListener("click", () => $("#f-fondo").click());
+  $("#f-fondo").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) elegirFondo(f); });
   $("#aj-reescanear").addEventListener("click", () => { cerrar("hoja-aj"); $("#b-agregar").click(); });
   $("#aj-auto").addEventListener("change", (e) => { E.aj.auto = e.target.checked; guardarAjustes(); });
   $("#r-lista").addEventListener("click", () => { if (R.actual) agregarALista(R.actual); });
@@ -761,9 +803,9 @@ async function iniciar() {
   if (cfg) {
     E.orden = cfg.orden || "titulo"; $("#orden").value = E.orden; reproductor.bandasDb = cfg.bandas?.length === BANDAS.length ? cfg.bandas : reproductor.bandasDb;
     reproductor.preampDb = cfg.pre || 0; reproductor.rgModo = cfg.rg || "pista"; reproductor.eqOn = cfg.eq !== false; reproductor.ponerVelocidad(cfg.vel || 1);
-    E.aj.viz = !!cfg.viz; $("#aj-viz").checked = E.aj.viz; E.aj.auto = cfg.auto !== false; $("#aj-auto").checked = E.aj.auto; E.aj.salida = cfg.salida || null; Object.assign(E.aj, cfg.av || {});
+    E.aj.viz = !!cfg.viz; $("#aj-viz").checked = E.aj.viz; E.aj.auto = cfg.auto !== false; $("#aj-auto").checked = E.aj.auto; E.aj.salida = cfg.salida || null; Object.assign(E.aj, cfg.av || {}); if (cfg.av && cfg.av.fondo === undefined) E.aj.acento = "auto";
   }
-  sincronizarAjustes();
+  sincronizarAjustes(); cargarFondoUsuario();
   HIST = (await db.traer("ajustes", "hist").catch(() => null)) || { m: {}, d: {}, tot: 0 };
   if (cfg?.av && (cfg.av.sistema === false || +cfg.av.minSeg)) await cargarTodo();
   if (MOTOR) { if (cfg?.esp) { reproductor.ancho = cfg.esp.a || 0; reproductor.env = cfg.esp.e || 0; reproductor.graves = cfg.esp.g || 0; } document.querySelectorAll("#aj-viz, #aj-gap, #aj-persistir, #aj-borrar").forEach((e) => { (e.closest(".campo") || e).hidden = true; }); $("#aj-info").textContent = "Motor de audio nativo (ExoPlayer): cambio de canción sin pausa, ecualizador de 10 bandas de 32 bits y lectura directa de tus archivos."; $("#b-agregar").setAttribute("aria-label", "Actualizar biblioteca"); reproductor.aplicarTodo(); document.querySelectorAll(".solo-nativo").forEach((e) => { e.hidden = false; }); $("#aj-salida").hidden = false; $("#aj-salida-info").hidden = false; etiquetaSalida(); reproductor.ponerSalida(E.aj.salida).catch(() => {}); }

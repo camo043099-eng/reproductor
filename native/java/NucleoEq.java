@@ -31,12 +31,23 @@ public final class NucleoEq {
     public synchronized void ponerGananciaDb(double db) { gananciaDb = Math.max(-24, Math.min(12, db)); sucio = true; }
 
     private synchronized void recalcular() {
-        lineal = Math.pow(10, gananciaDb / 20);
         boolean algunaBanda = false;
         for (int i = 0; i < N; i++) {
             if (!eqOn || Math.abs(gdb[i]) < 0.01 || F[i] >= hz / 2.0) { coef[i][0] = 1; coef[i][1] = coef[i][2] = coef[i][3] = coef[i][4] = 0; continue; }
             algunaBanda = true; calcular(i);
         }
+        // margen automático: se baja la ganancia lo que el ecualizador sube como máximo, para que los picos no se recorten ni suenen sucios
+        double maxDb = 0;
+        if (algunaBanda) for (int k = 0; k < 240; k++) {
+            double f = 20 * Math.pow(1000, k / 239.0); if (f >= hz / 2.0) break;
+            double w = 2 * Math.PI * f / hz, c1 = Math.cos(w), s1 = Math.sin(w), c2 = Math.cos(2 * w), s2 = Math.sin(2 * w), mag2 = 1;
+            for (int i = 0; i < N; i++) {
+                double[] co = coef[i]; double nr = co[0] + co[1] * c1 + co[2] * c2, ni = -(co[1] * s1 + co[2] * s2), dr = 1 + co[3] * c1 + co[4] * c2, di = -(co[3] * s1 + co[4] * s2);
+                mag2 *= (nr * nr + ni * ni) / (dr * dr + di * di);
+            }
+            maxDb = Math.max(maxDb, 10 * Math.log10(mag2));
+        }
+        lineal = Math.pow(10, (gananciaDb - Math.min(9, maxDb)) / 20);
         pasaTodo = !algunaBanda && Math.abs(gananciaDb) < 0.001 && ancho < 0.001;
         sucio = false;
     }

@@ -57,11 +57,22 @@ export class Reproductor extends EventTarget {
     let ant = this.pre; if (this.eqOn) for (const f of this.filtros) { ant.connect(f); ant = f; }
     ant.connect(this.analizador); this.analizador.connect(this.salida); this.salida.connect(this.ctx.destination);
   }
-  aplicarEq() { if (!this.ctx) return; this.filtros.forEach((f, i) => { f.gain.value = this.bandasDb[i] || 0; }); this._conectar(); }
-  aplicarPreamp() { if (this.pre) this.pre.gain.value = aLineal(this.preampDb); }
+  aplicarEq() { if (!this.ctx) return; this.filtros.forEach((f, i) => { f.gain.value = this.bandasDb[i] || 0; }); this._conectar(); this._margen(); }
+  /** margen automático: se baja lo que el ecualizador sube como máximo para que los picos no se recorten */
+  _margen() {
+    let max = 0;
+    if (this.eqOn && this.filtros?.length && this.bandasDb.some((v) => v)) {
+      const n = 160, fr = new Float32Array(n), mag = new Float32Array(n), fase = new Float32Array(n), tot = new Float32Array(n).fill(1);
+      for (let k = 0; k < n; k++) fr[k] = Math.min(20 * Math.pow(1000, k / (n - 1)), this.ctx.sampleRate / 2 - 1);
+      for (const f of this.filtros) { f.getFrequencyResponse(fr, mag, fase); for (let k = 0; k < n; k++) tot[k] *= mag[k]; }
+      for (let k = 0; k < n; k++) max = Math.max(max, 20 * Math.log10(tot[k]));
+    }
+    this._comp = Math.min(9, max); this.aplicarPreamp();
+  }
+  aplicarPreamp() { if (this.pre) this.pre.gain.value = aLineal(this.preampDb - (this._comp || 0)); }
   ajustarBanda(i, db) { this.bandasDb[i] = Math.max(-12, Math.min(12, db)); this.aplicarEq(); }
   usarPreset(nombre) { if (PRESETS[nombre]) { this.bandasDb = PRESETS[nombre].slice(); this.aplicarEq(); } }
-  activarEq(v) { this.eqOn = !!v; if (this.ctx) this._conectar(); }
+  activarEq(v) { this.eqOn = !!v; if (this.ctx) { this._conectar(); this._margen(); } }
   ponerPreamp(db) { this.preampDb = Math.max(-12, Math.min(12, db)); this.aplicarPreamp(); }
   ponerVolumen(v) { this.volumen = Math.max(0, Math.min(1, v)); for (const e of this.els) e.volume = this.volumen; }
   ponerVelocidad(v) { this.velocidad = v; for (const e of this.els) { e.playbackRate = v; e.preservesPitch = true; } }

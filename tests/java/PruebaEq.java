@@ -11,11 +11,15 @@ public class PruebaEq {
         ok(java.util.Arrays.equals(x, y), "plano y sin ganancia: idéntico bit a bit");
         double[] b = new double[10]; b[5] = 6; e.ponerBandas(b, true);
         y = x.clone(); e.procesar(y, y.length);
-        double r = rms(y, 40000) / rms(x, 40000); ok(Math.abs(20 * Math.log10(r) - 6) < 0.4, "+6 dB a 1 kHz da ~+6 dB (" + 20 * Math.log10(r) + ")");
+        double r = rms(y, 40000) / rms(x, 40000); ok(Math.abs(20 * Math.log10(r)) < 0.5, "+6 dB a 1 kHz queda en ~0 dB neto por el margen automático (" + 20 * Math.log10(r) + ")");
         e.reiniciar(); float[] z = seno(100, 0.3, hz, 44100), z2 = z.clone(); e.procesar(z2, z2.length);
-        ok(Math.abs(20 * Math.log10(rms(z2, 40000) / rms(z, 40000))) < 1.0, "banda de 1 kHz casi no toca 100 Hz");
+        ok(20 * Math.log10(rms(z2, 40000) / rms(z, 40000)) < -4.5, "con el margen, lo que no se sube queda ~6 dB más bajo");
         e.ponerBandas(new double[10], false); e.ponerGananciaDb(-6); y = x.clone(); e.procesar(y, y.length);
         ok(Math.abs(20 * Math.log10(rms(y, 40000) / rms(x, 40000)) + 6) < 0.05, "ganancia -6 dB");
+        // preset Rock: ninguna frecuencia puede pasar de la amplitud de entrada (sin recortes ni distorsión)
+        NucleoEq r2 = new NucleoEq(); r2.configurar(hz, 2); r2.ponerBandas(new double[]{4, 3, 2, 0, -1, -1, 1, 3, 4, 5}, true);
+        double peor = 0; for (double fr : new double[]{31, 45, 62, 100, 200, 500, 1000, 2000, 3000, 4000, 6000, 8000, 12000, 16000}) { r2.reiniciar(); float[] q = seno(fr, 0.9, hz, 44100); r2.procesar(q, q.length); float m = 0; for (int i = 20000; i < q.length; i++) m = Math.max(m, Math.abs(q[i])); peor = Math.max(peor, m); }
+        ok(peor <= 0.93, "preset Rock con senos al 90%: el pico máximo no pasa de 0,93 (" + peor + ")");
         e.ponerGananciaDb(12); float[] f = seno(1000, 0.9, hz, 44100); e.procesar(f, f.length);
         float mx = 0; for (float v : f) mx = Math.max(mx, Math.abs(v)); ok(mx <= 1.0f, "el limitador nunca pasa de 1 (" + mx + ")");
         e.ponerBandas(new double[10], false); e.ponerGananciaDb(0); e.reiniciar();
