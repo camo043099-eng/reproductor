@@ -410,3 +410,26 @@ html[data-fondo="portada"] .hoja.completa, html[data-fondo="imagen"] .hoja.compl
 #r-ondas { contain: strict; }
 
 html.sinblur *, html.sinblur *::before, html.sinblur *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+
+/* ── ajustes por categorías ── */
+.aj-buscar { padding: 4px 0 10px; }
+.aj-buscar input { width: 100%; height: 46px; padding: 0 18px; border-radius: 999px; color: var(--tx); font-size: 1rem; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.08); }
+.aj-menu { display: grid; gap: 8px; }
+.aj-menu[hidden], .aj-pag[hidden], .aj-buscar[hidden], .saltos[hidden], #aj-nada[hidden] { display: none !important; }
+.aj-cat { display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 14px; border-radius: 18px; text-align: left; color: var(--tx); background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.1); }
+.aj-cat i { flex: 0 0 auto; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; color: var(--ci, #aaa); background: color-mix(in srgb, var(--ci, #aaa) 18%, transparent); }
+.aj-cat i svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.aj-cat span { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.aj-cat b { font-size: 1.02rem; font-weight: 700; }
+.aj-cat small { color: var(--su, rgba(255, 255, 255, 0.6)); font-size: 0.82rem; line-height: 1.25; }
+.aj-cat em { font-style: normal; font-size: 1.5rem; opacity: 0.5; }
+.aj-pag { display: grid; gap: 6px; }
+.aj-tit-pag { display: none; }
+.buscando .aj-pag { display: grid !important; }
+.aj-oculto { display: none !important; }
+.saltos { display: flex; justify-content: center; gap: 12px; margin: 2px 0 6px; }
+.info-audio { display: grid; gap: 4px; padding: 4px 4px 18px; }
+.info-fila { display: flex; justify-content: space-between; gap: 14px; padding: 9px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.08); font-size: 0.92rem; }
+.info-fila span { color: var(--su, rgba(255, 255, 255, 0.6)); flex: 0 0 auto; }
+.info-fila b { font-weight: 600; text-align: right; min-width: 0; overflow-wrap: anywhere; }
+html.sinanim *, html.sinanim *::before, html.sinanim *::after { animation-duration: 0.01s !important; animation-iteration-count: 1 !important; transition-duration: 0.01s !important; }

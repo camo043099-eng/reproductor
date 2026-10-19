@@ -65,7 +65,7 @@ public class MotorPlugin extends Plugin {
     private ExoPlayer escuchado = null;
     private final Map<String, double[]> rg = new HashMap<>();   // id → {pista, album} en dB (NaN si no hay)
     private String modoRg = "pista";
-    private double preampDb = 0;
+    private double preampDb = 0; private double gananciaAplicadaDb = 0;
     private Runnable apagar = null;
     private Virtualizer virt = null;
     private BassBoost bass = null;
@@ -144,6 +144,21 @@ public class MotorPlugin extends Plugin {
     @PluginMethod public void ritmo(PluginCall call) {
         ui(call, () -> { ritmoOn = call.getBoolean("on", false); h.removeCallbacks(ritmoTic); if (ritmoOn) h.post(ritmoTic); call.resolve(); });
     }
+    /** Hi-Res puro: se guarda y se aplica al volver a abrir la app (el reproductor se crea una sola vez) */
+    @PluginMethod public void hiResPuro(PluginCall call) {
+        boolean on = call.getBoolean("on", false);
+        getContext().getSharedPreferences("onda_motor", Context.MODE_PRIVATE).edit().putBoolean("hires", on).apply(); call.resolve();
+    }
+    /** datos reales del procesamiento para la pantalla de información de audio */
+    @PluginMethod public void infoAudio(PluginCall call) {
+        JSObject o = new JSObject();
+        boolean activo = System.currentTimeMillis() - EqProcesador.ultimoBloque < 3000;
+        o.put("procesando", activo); o.put("entrada", EqProcesador.entradaTxt); o.put("hz", EqProcesador.entradaHz); o.put("canales", EqProcesador.entradaCanales);
+        o.put("salida", EqProcesador.salida16 ? "PCM 16 bits" : "PCM flotante 32 bits"); o.put("gananciaDb", gananciaAplicadaDb);
+        o.put("hiResPuro", getContext().getSharedPreferences("onda_motor", Context.MODE_PRIVATE).getBoolean("hires", false));
+        o.put("fundidoMs", fundidoMs); o.put("modoRg", modoRg);
+        call.resolve(o);
+    }
     private static float curva(float x) { x = Math.max(0f, Math.min(1f, x)); return x * x * (3f - 2f * x); }   // suavizado (smoothstep)
     @PluginMethod public void fundido(PluginCall call) {
         ui(call, () -> {
@@ -198,7 +213,7 @@ public class MotorPlugin extends Plugin {
             double v = "album".equals(modoRg) ? (Double.isNaN(album) ? pista : album) : (Double.isNaN(pista) ? album : pista);
             if (!Double.isNaN(v)) db = Math.min(v, 0);                        // sin conocer el pico, nunca sube el volumen (solo lo baja): evita bajos que saturan
         }
-        Motor.eq.nucleo.ponerGananciaDb(db + preampDb);
+        gananciaAplicadaDb = db + preampDb; Motor.eq.nucleo.ponerGananciaDb(db + preampDb);
     }
     private static double leerDb(String t) {
         if (t == null) return Double.NaN;

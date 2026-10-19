@@ -68,6 +68,7 @@
   <button class="chip" id="r-buscar-port" type="button" hidden style="align-self:center;margin:-6px 0 8px">Buscar carátula en internet</button>
   <div class="datos"><h2 id="r-titulo"></h2><p id="r-artista"></p><p class="suave" id="r-album"></p></div>
   <div class="chips" id="r-chips"></div>
+  <div class="saltos" id="r-saltos" hidden><button class="chip" id="r-m10" type="button">−10 s</button><button class="chip" id="r-p10" type="button">+10 s</button></div>
   <div class="barra" id="r-barra-c"><span class="burbuja-t" id="r-burbuja" hidden>0:00</span><input id="r-barra" type="range" min="0" max="1000" value="0" aria-label="Posición"><div class="tiempos"><span id="r-t1">0:00</span><span id="r-t2">0:00</span></div></div>
   <div class="controles">
     <button class="ib" id="r-azar" aria-label="Aleatorio" aria-pressed="false"></button>
@@ -143,28 +144,49 @@
 
 <!-- ajustes -->
 <section class="hoja" id="hoja-aj" hidden role="dialog" aria-label="Ajustes">
-  <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span>Ajustes</span><span></span></div>
+  <div class="hoja-top"><button class="ib" id="aj-atras" aria-label="Cerrar"></button><span id="aj-titulo">Ajustes</span><span></span></div>
   <div class="ajustes">
-    <h3 class="sub solo-nativo" hidden>Sonido</h3>
+    <div class="aj-buscar"><input id="aj-q" type="search" placeholder="Buscar un ajuste…" autocomplete="off" aria-label="Buscar un ajuste"></div>
+    <div class="aj-menu" id="aj-menu">
+    <button class="aj-cat" type="button" data-ir="audio" style="--ci:#e0709a"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 010 6M18.5 6.500a8 8 0 010 11"/></svg></i><span><b>Audio</b><small>Hi-Res, fundido, foco de audio, salida</small></span><em aria-hidden="true">›</em></button>
+    <button class="aj-cat" type="button" data-ir="efectos" style="--ci:#a678e6"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M12 4a8 8 0 018 8"/></svg></i><span><b>Carátula y efectos</b><small>CD, ondas, espectro</small></span><em aria-hidden="true">›</em></button>
+    <button class="aj-cat" type="button" data-ir="apariencia" style="--ci:#6e8be8"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 100 18c1.500 0 2-1 1.500-2s0-2 1.500-2h2a3 3 0 003-3A9 9 0 0012 3z"/><circle cx="8" cy="11" r="1"/><circle cx="12" cy="7.500" r="1"/><circle cx="16" cy="11" r="1"/></svg></i><span><b>Apariencia</b><small>Colores, fondo, letra, animaciones</small></span><em aria-hidden="true">›</em></button>
+    <button class="aj-cat" type="button" data-ir="caratulas" style="--ci:#52a579"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg></i><span><b>Carátulas</b><small>Búsqueda en internet y descarga</small></span><em aria-hidden="true">›</em></button>
+    <button class="aj-cat" type="button" data-ir="biblioteca" style="--ci:#5f86c8"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></i><span><b>Biblioteca</b><small>Escaneo, pistas cortas, historial, pistas largas</small></span><em aria-hidden="true">›</em></button>
+    <button class="aj-cat" type="button" data-ir="datos" style="--ci:#d98d4f"><i><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.700 3.600 3 8 3s8-1.300 8-3V6M4 12v6c0 1.700 3.600 3 8 3s8-1.300 8-3v-6"/></svg></i><span><b>Datos y almacenamiento</b><small>Copia de seguridad, espacio, borrar</small></span><em aria-hidden="true">›</em></button>
+    <button class="aj-cat" type="button" data-ir="acerca" style="--ci:#8a8f9c"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.500v.5"/></svg></i><span><b>Acerca de Onda</b><small>Versión y bienvenida</small></span><em aria-hidden="true">›</em></button>
+    </div>
+    <p class="vacio" id="aj-nada" hidden>No encontré ese ajuste.</p>
+    <div class="aj-pag" data-pag="audio" hidden>
+      <h3 class="sub aj-tit-pag">Audio</h3>
     <div class="campo solo-nativo" hidden><span>Saltar silencios</span><label class="interruptor"><input type="checkbox" id="aj-silencio"><span></span></label></div>
     <p class="suave pequeno solo-nativo" hidden>Acorta los silencios largos dentro de las canciones.</p>
-    <div class="campo solo-nativo" hidden><span>Pausar al desconectar los audífonos</span><label class="interruptor"><input type="checkbox" id="aj-ruido" checked><span></span></label></div>
-    <div class="campo solo-nativo" hidden><span>Pausar cuando otra app reproduce audio</span><label class="interruptor"><input type="checkbox" id="aj-enfoque" checked><span></span></label></div>
-    <p class="suave pequeno solo-nativo" hidden>Si lo apagas, Onda sigue sonando junto con otras apps (videos, juegos…).</p>
+<div class="campo solo-nativo" hidden><span>Hi-Res puro (24 bits sin procesar)</span><label class="interruptor"><input type="checkbox" id="aj-hires"><span></span></label></div>
+<p class="suave pequeno solo-nativo" hidden id="aj-hires-nota">Los FLAC de 24 bits salen tal cual, sin ecualizador, sin ondas y sin ajuste de volumen. Se aplica al volver a abrir Onda.</p>
+    <div class="campo solo-nativo" hidden><span>Fundido entre canciones</span><select id="aj-fundido"><option value="0">Sin fundido</option><option value="2">2 segundos</option><option value="4">4 segundos</option><option value="6">6 segundos</option><option value="8">8 segundos</option><option value="10">10 segundos</option><option value="12">12 segundos</option></select></div>
+<p class="suave pequeno solo-nativo" hidden>El cambio de canción sin pausa (gapless) siempre está activo; el fundido baja y sube el volumen entre canciones.</p>
+    <div class="campo"><span>Cambio de canción casi sin pausa</span><label class="interruptor"><input type="checkbox" id="aj-gap" checked disabled><span></span></label></div>
+    <div class="campo solo-nativo" hidden><span>Ecualizador distinto por salida (altavoz, Bluetooth…)</span><label class="interruptor"><input type="checkbox" id="aj-eqsalida"><span></span></label></div>
     <button class="boton" id="aj-salida" type="button" hidden>Salida de audio de Onda: Automática</button>
     <p class="suave pequeno" id="aj-salida-info" hidden>Elige por dónde suena solo Onda. Por ejemplo, el parlante del teléfono mientras otras apps usan tus audífonos Bluetooth.</p>
+<h3 class="sub solo-nativo" hidden>Foco de audio</h3>
+    <div class="campo solo-nativo" hidden><span>Pausar cuando otra app reproduce audio</span><label class="interruptor"><input type="checkbox" id="aj-enfoque" checked><span></span></label></div>
+    <p class="suave pequeno solo-nativo" hidden>Si lo apagas, Onda sigue sonando junto con otras apps (videos, juegos…).</p>
+    <div class="campo solo-nativo" hidden><span>Pausar al desconectar los audífonos</span><label class="interruptor"><input type="checkbox" id="aj-ruido" checked><span></span></label></div>
+<button class="boton solo-nativo" id="aj-infoaudio" type="button" hidden>Información de audio (cómo suena esta canción)</button>
+    </div>
+    <div class="aj-pag" data-pag="efectos" hidden>
+      <h3 class="sub aj-tit-pag">Carátula y efectos</h3>
+    <div class="campo"><span>Carátula al ritmo de la música</span><select id="aj-ritmo"><option value="cd">CD que gira y late</option><option value="circulo">Círculo que salta</option><option value="off">Apagado</option></select></div>
+    <div class="campo"><span>Estilo de las ondas</span><select id="aj-ritmoest"><option value="onda">Onda suave</option><option value="barras">Barras finas</option></select></div>
+    <div class="campo solo-nativo" hidden><span>Sincronía del efecto (si va adelantado, súbelo; si va atrasado, bájalo)</span><select id="aj-ritmolat"><option value="60">60 ms</option><option value="120">120 ms</option><option value="180">180 ms</option><option value="260">260 ms</option><option value="340">340 ms</option><option value="420">420 ms</option><option value="520">520 ms</option><option value="650">650 ms</option></select></div>
+<div class="campo"><span>Fluidez del efecto</span><select id="aj-ritmofps"><option value="60">Máxima (60 cuadros)</option><option value="30">Ahorrar batería (30 cuadros)</option></select></div>
     <div class="campo"><span>Visualizador de espectro</span><label class="interruptor"><input type="checkbox" id="aj-viz"><span></span></label></div>
     <p class="suave pequeno">Un dibujo de barras que se mueve con la música, solo mientras suena y el reproductor está abierto. Apagado por defecto.</p>
-    <div class="campo"><span>Cambio de canción casi sin pausa</span><label class="interruptor"><input type="checkbox" id="aj-gap" checked disabled><span></span></label></div>
-
-    <h3 class="sub">Biblioteca</h3>
-    <div class="campo solo-nativo" hidden><span>Ocultar tonos, alarmas y notas de voz</span><label class="interruptor"><input type="checkbox" id="aj-sistema" checked><span></span></label></div>
-    <div class="campo solo-nativo" hidden><span>Ocultar audios cortos</span><select id="aj-min"><option value="0">No ocultar</option><option value="15">Menos de 15 s</option><option value="30">Menos de 30 s</option><option value="60">Menos de 1 min</option></select></div>
-    <div class="campo"><span>Buscar portadas en internet solas</span><label class="interruptor"><input type="checkbox" id="aj-auto" checked><span></span></label></div>
-    <button class="boton" id="aj-portadas" type="button">Descargar carátulas que faltan</button>
-    <button class="boton solo-nativo" id="aj-reescanear" type="button" hidden>Volver a buscar música en el teléfono</button>
-
-    <h3 class="sub" id="aj-apariencia">Apariencia</h3>
+    <div class="campo"><span>Mostrar calidad (FLAC, kHz, bits)</span><label class="interruptor"><input type="checkbox" id="aj-chips" checked><span></span></label></div>
+    </div>
+    <div class="aj-pag" data-pag="apariencia" hidden>
+      <h3 class="sub aj-tit-pag">Apariencia</h3>
     <div class="campo"><span>Color de acento</span><select id="aj-acento"><option value="auto">Automático (colores de la carátula)</option><option value="">Blanco azulado</option><option value="#1ed760">Verde</option><option value="#ff5d5d">Rojo</option><option value="#4da3ff">Azul</option><option value="#ff7ac8">Rosa</option><option value="#ffb44d">Naranja</option><option value="#b48cff">Morado</option></select></div>
     <div class="campo"><span>Fondo</span><select id="aj-fondo"><option value="degradado">Degradado de la carátula</option><option value="portada">Carátula difuminada</option><option value="negro">Negro puro</option><option value="imagen">Mi propia imagen</option></select></div>
     <button class="boton" id="aj-fondo-img" type="button" hidden>Elegir imagen de fondo</button>
@@ -172,27 +194,53 @@
     <div class="campo"><span>Desenfoque de vidrio (más bonito; apágalo si el teléfono se siente pesado)</span><label class="interruptor"><input type="checkbox" id="aj-blur" checked><span></span></label></div>
     <div class="campo"><span>Reducir transparencias</span><label class="interruptor"><input type="checkbox" id="aj-plano"><span></span></label></div>
     <p class="suave pequeno">Cambia el efecto de vidrio por colores sólidos. Ayuda si la app se siente pesada.</p>
+<div class="campo"><span>Reducir animaciones</span><label class="interruptor"><input type="checkbox" id="aj-anim"><span></span></label></div>
+<p class="suave pequeno">Acorta los movimientos de la interfaz. Los efectos de la carátula se controlan en “Carátula y efectos”.</p>
+<div class="campo"><span>Abrir en la biblioteca</span><label class="interruptor"><input type="checkbox" id="aj-iniciobib"><span></span></label></div>
     <div class="campo"><span>Vibración en los gestos</span><label class="interruptor"><input type="checkbox" id="aj-vib" checked><span></span></label></div>
-    <div class="campo solo-nativo" hidden><span>Fundido entre canciones</span><select id="aj-fundido"><option value="0">Sin fundido</option><option value="2">2 segundos</option><option value="4">4 segundos</option><option value="6">6 segundos</option></select></div>
-    <div class="campo solo-nativo" hidden><span>Ecualizador distinto por salida (altavoz, Bluetooth…)</span><label class="interruptor"><input type="checkbox" id="aj-eqsalida"><span></span></label></div>
-    <div class="campo"><span>Carátula al ritmo de la música</span><select id="aj-ritmo"><option value="cd">CD que gira y late</option><option value="circulo">Círculo que salta</option><option value="off">Apagado</option></select></div>
-    <div class="campo"><span>Estilo de las ondas</span><select id="aj-ritmoest"><option value="onda">Onda suave</option><option value="barras">Barras finas</option></select></div>
-    <div class="campo solo-nativo" hidden><span>Sincronía del efecto (si va adelantado, súbelo; si va atrasado, bájalo)</span><select id="aj-ritmolat"><option value="60">60 ms</option><option value="120">120 ms</option><option value="180">180 ms</option><option value="260">260 ms</option><option value="340">340 ms</option><option value="420">420 ms</option><option value="520">520 ms</option><option value="650">650 ms</option></select></div>
-    <div class="campo"><span>Mostrar calidad (FLAC, kHz, bits)</span><label class="interruptor"><input type="checkbox" id="aj-chips" checked><span></span></label></div>
-
-    <button class="boton" id="aj-intro" type="button">Ver la animación de bienvenida</button>
-    <h3 class="sub">Tus datos</h3>
-    <button class="boton" id="aj-copia" type="button">Guardar copia de seguridad</button>
-    <button class="boton" id="aj-restaurar" type="button">Restaurar una copia</button>
+    </div>
+    <div class="aj-pag" data-pag="caratulas" hidden>
+      <h3 class="sub aj-tit-pag">Carátulas</h3>
+    <div class="campo"><span>Buscar portadas en internet solas</span><label class="interruptor"><input type="checkbox" id="aj-auto" checked><span></span></label></div>
+    <button class="boton" id="aj-portadas" type="button">Descargar carátulas que faltan</button>
+<p class="suave pequeno">En el reproductor, si una canción no tiene carátula, toca “Buscar carátula en internet” para elegir entre varias.</p>
+    </div>
+    <div class="aj-pag" data-pag="biblioteca" hidden>
+      <h3 class="sub aj-tit-pag">Biblioteca</h3>
+    <div class="campo solo-nativo" hidden><span>Ocultar tonos, alarmas y notas de voz</span><label class="interruptor"><input type="checkbox" id="aj-sistema" checked><span></span></label></div>
+    <div class="campo solo-nativo" hidden><span>Ocultar audios cortos</span><select id="aj-min"><option value="0">No ocultar</option><option value="6">Menos de 6 s</option><option value="10">Menos de 10 s</option><option value="15">Menos de 15 s</option><option value="30">Menos de 30 s</option><option value="60">Menos de 1 min</option></select></div>
+<div class="campo"><span>Contar como reproducida después de</span><select id="aj-contar"><option value="auto">Automático (30 s o la mitad)</option><option value="0.25">25 % de la canción</option><option value="0.5">50 % de la canción</option><option value="0.75">75 % de la canción</option><option value="0.9">90 % de la canción</option></select></div>
+<p class="suave pequeno">Afecta a tus estadísticas y a las mezclas del día.</p>
+<h3 class="sub">Pistas largas (podcasts, sets, audiolibros)</h3>
+<div class="campo"><span>Recordar dónde me quedé</span><label class="interruptor"><input type="checkbox" id="aj-progreso" checked><span></span></label></div>
+<div class="campo"><span>Se consideran largas desde</span><select id="aj-largo"><option value="10">10 min</option><option value="20">20 min</option><option value="30">30 min</option><option value="45">45 min</option><option value="60">1 hora</option></select></div>
+<div class="campo"><span>Botones −10 s / +10 s en el reproductor</span><label class="interruptor"><input type="checkbox" id="aj-saltos" checked><span></span></label></div>
+    <button class="boton solo-nativo" id="aj-reescanear" type="button" hidden>Volver a buscar música en el teléfono</button>
+    </div>
+    <div class="aj-pag" data-pag="datos" hidden>
+      <h3 class="sub aj-tit-pag">Datos y almacenamiento</h3>
+<button class="boton" id="aj-copia" type="button">Exportar ajustes y datos (copia de seguridad)</button>
+<button class="boton" id="aj-restaurar" type="button">Importar ajustes y datos</button>
     <p class="suave pequeno">La copia guarda tus favoritas, listas, historial de reproducción y ajustes en un archivo (carpeta Descargas/Onda). Sirve para pasarlos a otro teléfono o después de reinstalar.</p>
     <button class="boton peligro" id="aj-hist-borrar" type="button">Borrar mi historial de reproducción</button>
-
-    <h3 class="sub">Almacenamiento</h3>
     <div class="campo"><span>Almacenamiento</span><b id="aj-espacio">…</b></div>
     <button class="boton" id="aj-persistir" type="button">Pedir que el teléfono no borre mi música</button>
     <button class="boton peligro" id="aj-borrar" type="button">Borrar toda la biblioteca</button>
     <p class="suave pequeno" id="aj-info"></p>
+    </div>
+    <div class="aj-pag" data-pag="acerca" hidden>
+      <h3 class="sub aj-tit-pag">Acerca de Onda</h3>
+<div class="campo"><span>Versión</span><b id="aj-version">…</b></div>
+    <button class="boton" id="aj-intro" type="button">Ver la animación de bienvenida</button>
+<p class="suave pequeno">Onda es tu reproductor de música propio, hecho para escuchar sin límites y sin anuncios.</p>
+    </div>
   </div>
+</section>
+
+<!-- información de audio -->
+<section class="hoja corta" id="hoja-info" hidden role="dialog" aria-label="Información de audio">
+  <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span>Información de audio</span><span></span></div>
+  <div class="info-audio" id="info-audio"></div>
 </section>
 
 <input type="file" id="f-fondo" accept="image/*" hidden>

@@ -38,6 +38,8 @@ export class ReproductorNativo extends EventTarget {
   espectro() { return false; }
   /** nivel de graves/total (0..1) enviado por el motor, con pequeño retraso para coincidir con lo que se oye */
   ponerRitmo(on) { this._ritmo = !!on; return this.N.ritmo({ on: !!on }); }
+  infoAudio() { return this.N.infoAudio(); }
+  ponerHiRes(on) { return this.N.hiResPuro({ on: !!on }); }
   reiniciarNivel() { this._cola = []; this._ult = null; }
   nivel(lat = 260) { const q = this._cola || [], t = performance.now() - lat; let v = null; while (q.length && q[0].t <= t) v = q.shift(); if (v) this._ult = v; return this._ult || { b: 0, r: 0, x: [0, 0, 0, 0, 0, 0, 0, 0] }; }
 
