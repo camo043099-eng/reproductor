@@ -144,6 +144,10 @@ public class MotorPlugin extends Plugin {
     @PluginMethod public void ritmo(PluginCall call) {
         ui(call, () -> { ritmoOn = call.getBoolean("on", false); EqProcesador.medir = ritmoOn; h.removeCallbacks(ritmoTic); if (ritmoOn) h.post(ritmoTic); call.resolve(); });
     }
+    /** realce de brillo para MP3/AAC de poca calidad (0 = apagado) */
+    @PluginMethod public void realce(PluginCall call) {
+        Motor.eq.nucleo.ponerRealce(call.getDouble("mezcla", 0.0)); call.resolve();
+    }
     /** Hi-Res puro: se guarda y se aplica al volver a abrir la app (el reproductor se crea una sola vez) */
     @PluginMethod public void hiResPuro(PluginCall call) {
         boolean on = call.getBoolean("on", false);

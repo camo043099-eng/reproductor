@@ -18,6 +18,9 @@ public final class NucleoEq {
     private int rampa = 0, rampaTot = 1;                                       // muestras (por canal) que faltan de entrada suave tras empezar/saltar
     private double ancho = 0;                                   // 0 = normal, 1 = el doble de separación estéreo
     private boolean pasaTodo = true;
+    private double realce = 0;                                   // 0 = apagado; 0,10 suave; 0,18 medio (mezcla del brillo regenerado)
+    private final double[][] hp = new double[2][4];              // [canal]{x1, y1 (1.er filtro), x1, y1 (2.º filtro)}
+    public synchronized void ponerRealce(double m) { realce = Math.max(0, Math.min(0.3, m)); }
 
     public synchronized void configurar(int hz, int canales) {
         this.hz = hz; this.canales = Math.max(1, canales);
@@ -79,7 +82,7 @@ public final class NucleoEq {
         if (saltarGan) { gAct = lineal; saltarGan = false; }
         final double kG = 1 - Math.exp(-1.0 / (0.02 * Math.max(8000, hz)));
         final int C = canales;
-        if (pasaTodo && gAct == lineal) { rampa = 0; return; }   // plano y sin ganancia: pasa idéntico, bit a bit
+        if (pasaTodo && gAct == lineal && realce == 0) { rampa = 0; return; }   // plano y sin ganancia: pasa idéntico, bit a bit
         final double g = lineal;
         for (int k = 0; k < cuantas; k++) {
             int c = k % C; if (c == 0) { gAct += (g - gAct) * kG; if (Math.abs(g - gAct) < 1e-7) gAct = g; }
@@ -91,6 +94,12 @@ public final class NucleoEq {
                 double[] s = est[b];
                 double y = co[0] * v + co[1] * s[0] + co[2] * s[1] - co[3] * s[2] - co[4] * s[3];
                 s[1] = s[0]; s[0] = v; s[3] = s[2]; s[2] = y; v = y;
+            }
+            if (realce > 0 && c < 2) {                                    // regenera brillo que el MP3 de poca calidad recortó (armónicos suaves de lo que sí quedó)
+                final double a = 1.0 / (1.0 + 2 * Math.PI * 5000.0 / Math.max(8000, hz)); double[] h = hp[c];
+                double e = a * (h[1] + v - h[0]); h[0] = v; h[1] = e;
+                double g2 = Math.tanh(3 * e), d = a * (h[3] + g2 - h[2]); h[2] = g2; h[3] = d;
+                v += realce * d;
             }
             if (rampa > 0) { v *= 1.0 - (double) rampa / rampaTot; if (c == C - 1) rampa--; }   // entrada suave de ~12 ms: sin chasquido al empezar o saltar
             x[k] = (float) v;

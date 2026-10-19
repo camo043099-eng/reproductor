@@ -165,6 +165,8 @@
     <p class="suave pequeno solo-nativo" hidden>Acorta los silencios largos dentro de las canciones.</p>
 <div class="campo solo-nativo" hidden><span>Hi-Res puro (24 bits sin procesar)</span><label class="interruptor"><input type="checkbox" id="aj-hires"><span></span></label></div>
 <p class="suave pequeno solo-nativo" hidden id="aj-hires-nota">Los FLAC de 24 bits salen tal cual, sin ecualizador, sin ondas y sin ajuste de volumen. Se aplica al volver a abrir Onda.</p>
+    <div class="campo solo-nativo" hidden><span>Mejorar MP3 de baja calidad (menos de 320 kbps)</span><select id="aj-realce"><option value="0">Apagado</option><option value="suave">Suave (recomendado)</option><option value="medio">Medio (más brillo)</option></select></div>
+    <p class="suave pequeno solo-nativo" hidden>Regenera un poco de brillo y claridad en los agudos que el MP3 recortó. No devuelve lo que se perdió: es una mejora, no magia. Solo actúa en MP3/AAC/OGG de menos de 320 kbps; FLAC y archivos buenos no se tocan.</p>
     <div class="campo solo-nativo" hidden><span>Fundido entre canciones</span><select id="aj-fundido"><option value="0">Sin fundido</option><option value="2">2 segundos</option><option value="4">4 segundos</option><option value="6">6 segundos</option><option value="8">8 segundos</option><option value="10">10 segundos</option><option value="12">12 segundos</option></select></div>
 <p class="suave pequeno solo-nativo" hidden>El cambio de canción sin pausa (gapless) siempre está activo; el fundido baja y sube el volumen entre canciones.</p>
     <div class="campo"><span>Cambio de canción casi sin pausa</span><label class="interruptor"><input type="checkbox" id="aj-gap" checked disabled><span></span></label></div>
@@ -189,14 +191,11 @@
     </div>
     <div class="aj-pag" data-pag="apariencia" hidden>
       <h3 class="sub aj-tit-pag">Apariencia</h3>
-<div class="campo"><span>Tema visual</span><select id="aj-tema"><option value="cristal">Cristal (bonito, más pesado)</option><option value="solido">Sólido (más rápido, gasta menos batería)</option></select></div>
 <p class="suave pequeno">El tema sólido quita transparencias, desenfoques y sombras: la app va más fluida, sobre todo en teléfonos modestos.</p>
     <div class="campo"><span>Color de acento</span><select id="aj-acento"><option value="auto">Automático (colores de la carátula)</option><option value="">Blanco azulado</option><option value="#1ed760">Verde</option><option value="#ff5d5d">Rojo</option><option value="#4da3ff">Azul</option><option value="#ff7ac8">Rosa</option><option value="#ffb44d">Naranja</option><option value="#b48cff">Morado</option></select></div>
-    <div class="campo"><span>Fondo</span><select id="aj-fondo"><option value="degradado">Degradado de la carátula</option><option value="portada">Carátula difuminada</option><option value="negro">Negro puro</option><option value="imagen">Mi propia imagen</option></select></div>
-    <button class="boton" id="aj-fondo-img" type="button" hidden>Elegir imagen de fondo</button>
+    <div class="campo"><span>Fondo</span><select id="aj-fondo"><option value="degradado">Degradado de la carátula</option><option value="portada">Carátula difuminada</option><option value="negro">Negro puro</option><option value="imagen">Mi fondo de pantalla (la app adapta sus colores)</option></select></div>
+    <button class="boton" id="aj-fondo-img" type="button" hidden>Elegir fondo de pantalla</button>
     <div class="campo"><span>Tamaño de la letra</span><select id="aj-letra"><option value="0.85">Pequeña</option><option value="1">Normal</option><option value="1.2">Grande</option></select></div>
-    <div class="campo"><span>Desenfoque de vidrio (más bonito; apágalo si el teléfono se siente pesado)</span><label class="interruptor"><input type="checkbox" id="aj-blur" checked><span></span></label></div>
-    <div class="campo"><span>Reducir transparencias</span><label class="interruptor"><input type="checkbox" id="aj-plano"><span></span></label></div>
     <p class="suave pequeno">Cambia el efecto de vidrio por colores sólidos. Ayuda si la app se siente pesada.</p>
 <div class="campo"><span>Reducir animaciones</span><label class="interruptor"><input type="checkbox" id="aj-anim"><span></span></label></div>
 <p class="suave pequeno">Acorta los movimientos de la interfaz. Los efectos de la carátula se controlan en “Carátula y efectos”.</p>

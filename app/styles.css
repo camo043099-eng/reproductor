@@ -185,8 +185,8 @@ input[type="range"] { width: 100%; accent-color: #fff; height: 28px; background:
 .completa .portada-grande { transition: translate 0.45s var(--rebote), rotate 0.45s var(--rebote), transform 0.6s var(--rebote); }
 .hoja.corta::before { content: ""; position: absolute; left: 50%; top: 8px; width: 38px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.35); transform: translateX(-50%); }
 .hoja.corta .hoja-top { padding-top: 22px; }
-.contenido.entra { animation: entra 0.38s var(--muelle); }
-@keyframes entra { from { opacity: 0; transform: translateY(14px) scale(0.99); } }
+.contenido.entra { animation: entra 0.16s ease-out; }
+@keyframes entra { from { opacity: 0; } }
 button, .fila { user-select: none; -webkit-user-select: none; }
 img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none; pointer-events: none; }
 
@@ -461,11 +461,23 @@ html.sinanim *, html.sinanim *::before, html.sinanim *::after { animation-durati
 #menu-op button.sel { color: var(--ac2, #c9d0ff); font-weight: 700; }
 
 /* tema sólido: sin transparencias, desenfoques ni sombras (mucho más liviano) */
-html.solido *, html.solido *::before, html.solido *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; box-shadow: none !important; text-shadow: none !important; }
-html.solido body { background: #0b0b0e; }
-html.solido .ambiente { display: none !important; }
-html.solido .hoja, html.solido .hoja.completa, html.solido .hoja.letra, html.solido .hoja:not(.corta):not(.completa) { background: #0e0e12 !important; }
-html.solido .mini, html.solido .nav, html.solido .hoja.corta, html.solido .aviso, html.solido .tile, html.solido .boton, html.solido .chip, html.solido .extras, html.solido .genero, html.solido .mix, html.solido .sel-btn, html.solido .aj-cat, html.solido .pp { background: #1b1b21 !important; border-color: #2b2b33 !important; }
-html.solido .hoja:not(.completa) .hoja-top { background: #0e0e12 !important; }
-html.solido .cd-brillo { display: none !important; }
-.aj-pag { grid-template-columns: minmax(0, 1fr); } .aj-pag > * { min-width: 0; }
+/* sin vidrio: superficies lisas y baratas de dibujar; el fondo (degradado, carátula o tu imagen) se ve a través y los colores se adaptan a él */
+html { --sup: color-mix(in srgb, var(--t) 16%, rgba(20, 20, 26, .9)); --sup-borde: color-mix(in srgb, var(--t) 30%, rgba(255, 255, 255, .10)); }
+html *, html *::before, html *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; box-shadow: none !important; text-shadow: none !important; }
+html .mini, html .nav, html .hoja.corta, html .aviso, html .tile, html .boton, html .chip, html .cabeza .ib, html .extras, html .genero, html .sel-btn, html .aj-cat, html .pp, html .buscador input, html .seg, html .interruptor span, html .vidrio { background: var(--sup) !important; border: 1px solid var(--sup-borde) !important; color: var(--tx); }
+html .boton.primario, html .boton.primario * { background: #fff !important; color: #000 !important; border-color: #fff !important; }
+html .boton.primario svg { fill: none; stroke: #000; }
+html .interruptor input:checked + span { background: var(--ac2) !important; }
+html .seg button[aria-pressed="true"], html .seg .on { color: #000; }
+html .cd-brillo { display: none !important; }
+html .hoja:not(.corta):not(.completa) { background: color-mix(in srgb, var(--t) 12%, #0c0c10) !important; }
+html .hoja.completa, html .hoja.letra { background: linear-gradient(color-mix(in srgb, var(--t) 60%, #000), color-mix(in srgb, var(--t) 22%, #000)) !important; }
+html[data-fondo="portada"] .hoja:not(.corta):not(.completa), html[data-fondo="imagen"] .hoja:not(.corta):not(.completa) { background: color-mix(in srgb, var(--t) 18%, rgba(8, 8, 12, .86)) !important; }
+html[data-fondo="portada"] .hoja.completa, html[data-fondo="imagen"] .hoja.completa, html[data-fondo="portada"] .hoja.letra, html[data-fondo="imagen"] .hoja.letra { background: linear-gradient(color-mix(in srgb, var(--t) 50%, rgba(0,0,0,.45)), rgba(0, 0, 0, .62)) !important; }
+html .mix b, html .tarjeta b, html .tile b { color: #fff; }
+html .tile .fav, html .tile svg { color: var(--ac2); }
+html .tile .fav svg { color: inherit; }
+html[data-fondo="degradado"] body, html[data-fondo="negro"] body { background: transparent; }
+html .sinport.fav, html .sinport.fav svg { color: #fff !important; }
+html .fichas .chip.mezcla { background: #fff !important; color: #000 !important; border-color: #fff !important; font-weight: 700; }
+html .tile b, html .chip, html .boton { text-shadow: none; }

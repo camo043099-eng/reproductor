@@ -30,5 +30,12 @@ public class PruebaEq {
         e.ponerAncho(0); e.ponerGananciaDb(0); double[] g = new double[10]; java.util.Arrays.fill(g, 12); e.ponerBandas(g, true); e.reiniciar();
         float[] ru = new float[88200]; java.util.Random rd = new java.util.Random(1); for (int i = 0; i < ru.length; i++) ru[i] = (float) (rd.nextGaussian() * 0.1);
         e.procesar(ru, ru.length); boolean fin = true; for (float v : ru) if (Float.isNaN(v) || Float.isInfinite(v) || Math.abs(v) > 1) fin = false; ok(fin, "estable con todas las bandas a +12 dB");
+        NucleoEq re = new NucleoEq(); re.configurar(hz, 2); re.ponerRealce(0.18);
+        float[] sil = new float[8000]; re.procesar(sil, sil.length); boolean cero = true; for (float v : sil) if (v != 0) cero = false; ok(cero, "realce: el silencio sigue siendo silencio");
+        re.reiniciar(); float[] g1 = seno(1000, 0.3, hz, 44100), g2 = g1.clone(); re.procesar(g2, g2.length);
+        ok(Math.abs(20 * Math.log10(rms(g2, 40000) / rms(g1, 40000))) < 0.5, "realce: un grave de 1 kHz casi no cambia");
+        re.reiniciar(); float[] a1 = seno(9000, 0.3, hz, 44100), a2 = a1.clone(); re.procesar(a2, a2.length); float pk = 0; boolean fi = true; for (float v : a2) { pk = Math.max(pk, Math.abs(v)); if (Float.isNaN(v)) fi = false; }
+        ok(fi && pk <= 1.0f, "realce: agudos al 30% estables y sin pasar de 1 (" + pk + ")");
+        re.ponerRealce(0); re.reiniciar(); float[] p1 = seno(9000, 0.3, hz, 44100), p2 = p1.clone(); re.procesar(p2, p2.length); ok(java.util.Arrays.equals(p1, p2), "realce apagado: idéntico bit a bit");
     }
 }
