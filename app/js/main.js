@@ -328,6 +328,7 @@ function actualizarMini() {
   const nueva = s.id !== ultimoId, primera = ultimoId === null; ultimoId = s.id;
   portadaUrl(s.alb).then((u) => {
     $("#mini-port").src = u || SIN; $("#r-port").src = u || SIN; tinte(s.alb, u);
+    if (MOTOR && !u && nueva && E.aj.auto !== false && !intentadasSesion.has(s.alb)) { intentadasSesion.add(s.alb); portadaWeb(s, true).catch(() => {}); }
     if (nueva && !primera) { const g = $(".portada-grande"); g.style.setProperty("--dir", dirCambio); animar(g, "voltea", 900); animar(g, "brilla", 1100); animar($("#mini-port"), "pop", 700); dirCambio = 1; }
   });
   $("#r-titulo").textContent = s.titulo || s.nombre; $("#r-artista").textContent = s.artista || "Artista desconocido"; $("#r-album").textContent = [s.album, s.anio].filter(Boolean).join(" · ");
@@ -341,6 +342,7 @@ function actualizarMini() {
 }
 function actualizarEstado() {
   const p = reproductor.sonando; $(".portada-grande").classList.toggle("pausada", !p);
+  { const b = $("#r-barra-c"); b.classList.toggle("suena", p); b.classList.toggle("pausada", !p); } bucleBarra();
   $("#mini-play").innerHTML = p ? I.pausa : I.play; $("#r-play").innerHTML = p ? I.pausa : I.play;
 }
 const tintes = new Map();
@@ -389,10 +391,26 @@ async function cargarFondoUsuario() {
   const url = URL.createObjectURL(b); fondoUsuario = { url, tinta: await extraerColor(url) }; aplicarColores();
 }
 let arrastrando = false;
+// la barra avanza fluida entre un aviso del motor y el siguiente (solo mientras suena y la app está a la vista)
+let ancla = { t: 0, at: 0 }, rafBarra = 0, segPintado = -1;
+function pintarBarra(t, d) {
+  const p = d ? Math.min(100, (t / d) * 100) : 0;
+  $("#mini-prog").style.transform = `scaleX(${p / 100})`;
+  if (!arrastrando) { const b = $("#r-barra"); b.style.setProperty("--p", p + "%"); b.value = Math.round(p * 10); const sg = Math.floor(t); if (sg !== segPintado) { segPintado = sg; $("#r-t1").textContent = fmt(t); } }
+}
+function bucleBarra() {
+  if (rafBarra) return;
+  const paso = () => {
+    if (!reproductor.sonando || document.hidden) { rafBarra = 0; return; }
+    if (!arrastrando) { const d = reproductor.duracion; pintarBarra(Math.min(d || 0, ancla.t + ((performance.now() - ancla.at) / 1000) * (reproductor.velocidad || 1)), d); }
+    rafBarra = requestAnimationFrame(paso);
+  };
+  rafBarra = requestAnimationFrame(paso);
+}
 function actualizarTiempo() {
-  const t = reproductor.tiempo, d = reproductor.duracion;
-  $("#mini-prog").style.width = d ? `${Math.min(100, (t / d) * 100)}%` : "0";
-  if (!arrastrando) { $("#r-barra").value = d ? Math.round((t / d) * 1000) : 0; $("#r-barra").style.setProperty("--p", (d ? (t / d) * 100 : 0) + "%"); $("#r-t1").textContent = fmt(t); }
+  const t = reproductor.tiempo, d = reproductor.duracion, est = ancla.t + ((performance.now() - ancla.at) / 1000) * (reproductor.velocidad || 1);
+  if (!reproductor.sonando || Math.abs(est - t) > 0.5) ancla = { t, at: performance.now() };          // se corrige solo si se desvió o hubo un salto
+  if (!reproductor.sonando) pintarBarra(t, d); else bucleBarra();
   $("#r-t2").textContent = fmt(d);
 }
 
@@ -700,8 +718,15 @@ function enlazar() {
   $("#r-eq").addEventListener("click", () => { mostrarEq(); abrir("hoja-eq"); });
   $("#r-sueno").addEventListener("click", () => { dibujarSueno(); abrir("hoja-sueno"); });
   const barra = $("#r-barra");
-  barra.addEventListener("input", () => { arrastrando = true; $("#r-t1").textContent = fmt((barra.value / 1000) * R.duracion); });
-  barra.addEventListener("change", () => { R.buscar((barra.value / 1000) * R.duracion); arrastrando = false; });
+  const burbuja = $("#r-burbuja");
+  barra.addEventListener("input", () => {
+    arrastrando = true; const f = barra.value / 1000, t = f * R.duracion;
+    $("#r-t1").textContent = fmt(t); barra.style.setProperty("--p", f * 100 + "%"); burbuja.textContent = fmt(t); burbuja.style.setProperty("--bx", `calc(${f * 100}% + ${(0.5 - f) * 14}px)`); burbuja.hidden = false; burbuja.classList.add("ver"); barra.classList.add("toca");
+  });
+  barra.addEventListener("change", () => {
+    R.buscar((barra.value / 1000) * R.duracion); ancla = { t: (barra.value / 1000) * R.duracion, at: performance.now() }; arrastrando = false; segPintado = -1; vibra(6);
+    burbuja.classList.remove("ver"); barra.classList.remove("toca"); barra.classList.remove("salto"); void barra.offsetWidth; barra.classList.add("salto"); bucleBarra();
+  });
 
   $("#cola-lista").addEventListener("click", (e) => {
     const f = e.target.closest(".fila"); if (!f) return;
@@ -727,7 +752,7 @@ function enlazar() {
     R.pausa(); for (const a of ["canciones", "archivos", "portadas", "listas"]) await db.vaciar(a);
     E.canciones = []; E.listas = []; porId.clear(); urlsPort.clear(); E.detalle = null; $("#mini").hidden = true; cerrar("hoja-aj"); dibujar(); mostrarEspacio();
   });
-  document.addEventListener("visibilitychange", () => { if (document.hidden) { guardarSesion(true); guardarHist(); } else { reproductor.resincronizar?.(); if (MOTOR && E.aj.salida) reproductor.ponerSalida(E.aj.salida).catch(() => {}); } });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) { guardarSesion(true); guardarHist(); } else { autoPortadas(); bucleBarra(); reproductor.resincronizar?.(); if (MOTOR && E.aj.salida) reproductor.ponerSalida(E.aj.salida).catch(() => {}); } });
   gestos();
 }
 function gestos() {
@@ -851,7 +876,7 @@ async function iniciarNativo(manual) {
     avisar(manual ? "Actualizando…" : "Buscando música…", 0); const t0 = performance.now();
     const res = await MOTOR.escanear(); await fusionar(res.canciones || []);
     avisar(`${E.canciones.length} canciones listas (${((performance.now() - t0) / 1000).toFixed(1)} s)`, 2600);
-    portadasNativas().then(() => { if (E.aj.auto !== false) descargarFaltantes(false); }).catch(() => {});
+    portadasNativas().then(() => autoPortadas()).catch(() => {});
   } catch (e) { avisar("No pude leer tu música: " + String(e?.message || e), 6000); }
   finally { escaneando = false; }
 }
@@ -880,17 +905,31 @@ async function portadaWeb(s, callado) {
 let imagenPara = null;
 function elegirImagen(s) { imagenPara = s; $("#f-imagen").click(); }
 async function descargarFaltantes(manual) {
+  const sem = Math.floor(Date.now() / (7 * 864e5));                        // lo que no se encontró se vuelve a intentar cada semana
   const albumes = new Map(); for (const s of E.canciones) if (!albumes.has(s.alb)) albumes.set(s.alb, s);
   const tienen = new Set(await db.claves("portadas")), marcas = new Set(await db.claves("ajustes"));
-  const faltan = []; for (const [alb, s] of albumes) if (!tienen.has(alb) && (manual || !marcas.has("sinweb:" + alb))) faltan.push(s);
-  if (!faltan.length) { if (manual) avisar("Todas las canciones ya tienen portada.", 2500); return; }
-  let ok = 0;
-  for (let i = 0; i < faltan.length; i++) {
-    if (manual) avisar(`Buscando portadas ${i + 1} de ${faltan.length}…`, 0);
-    if (await portadaWeb(faltan[i], true)) ok++; else await db.poner("ajustes", true, "sinweb:" + faltan[i].alb).catch(() => {});
-  }
-  if (manual || ok) avisar(`Portadas nuevas: ${ok} de ${faltan.length}`, 3500);
+  const faltan = []; for (const [alb, s] of albumes) if (!tienen.has(alb) && (manual || !marcas.has(`sinweb:${alb}:${sem}`))) faltan.push(s);
+  if (!faltan.length) { if (manual) avisar("Todas las canciones ya tienen portada.", 2500); return 0; }
+  let k = 0, ok = 0, hechas = 0;
+  const obrero = async () => {                                             // 3 a la vez
+    while (k < faltan.length) {
+      const s = faltan[k++];
+      if (await portadaWeb(s, true)) ok++; else await db.poner("ajustes", true, `sinweb:${s.alb}:${sem}`).catch(() => {});
+      hechas++; if (manual || hechas % 6 === 0) avisar(`Buscando carátulas… ${hechas} de ${faltan.length}`, manual ? 0 : 1600);
+    }
+  };
+  await Promise.all([obrero(), obrero(), obrero()]);
+  if (manual || ok) avisar(`Carátulas nuevas: ${ok} de ${faltan.length}`, 3500);
+  return ok;
 }
+// automático, como Poweramp: mientras Onda está abierta va buscando las carátulas que faltan
+let autoOcupado = false, ultimaAuto = 0; const intentadasSesion = new Set();
+async function autoPortadas() {
+  if (!MOTOR || autoOcupado || E.aj.auto === false || !E.canciones.length || navigator.onLine === false) return;
+  autoOcupado = true; try { await descargarFaltantes(false); } catch (_) { /* se reintenta luego */ } finally { autoOcupado = false; ultimaAuto = Date.now(); }
+}
+setInterval(() => { if (!document.hidden && Date.now() - ultimaAuto > 120000) autoPortadas(); }, 30000);
+window.addEventListener("online", () => autoPortadas());
 
 // ── letras ──
 let letraAct = { id: null, lineas: [], idx: -2 };

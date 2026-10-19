@@ -272,3 +272,17 @@ html[data-fondo="portada"] .ambiente::after, html[data-fondo="imagen"] .ambiente
 .genero img { position: absolute; right: -6px; bottom: -8px; width: 64px; height: 64px; border-radius: 8px; object-fit: cover; rotate: 24deg; box-shadow: 0 4px 14px rgba(0,0,0,.45); }
 .genero b, .genero span { position: relative; z-index: 1; max-width: 70%; }
 .acciones-detalle { flex-wrap: wrap; }
+
+/* barra de tiempo animada: se engrosa con resorte al tocarla, la cabeza crece, brilla mientras suena y muestra el tiempo al arrastrar */
+.barra { position: relative; }
+#r-barra { height: 8px; border-radius: 99px; margin: 14px 0; background: linear-gradient(to right, var(--ac2, #fff) var(--p, 0%), rgba(255,255,255,.22) var(--p, 0%)); box-shadow: 0 0 0 rgba(0,0,0,0); transition: height .38s var(--rebote), box-shadow .6s ease, opacity .5s ease; touch-action: pan-y; }
+#r-barra:active, #r-barra.toca { height: 18px; }
+.barra.suena #r-barra { box-shadow: 0 0 16px color-mix(in srgb, var(--ac2, #fff) 38%, transparent); }
+.barra.pausada #r-barra { opacity: .6; }
+#r-barra::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.45); transform: scale(.85); transition: transform .35s var(--rebote); }
+#r-barra:active::-webkit-slider-thumb, #r-barra.toca::-webkit-slider-thumb { transform: scale(1.7); }
+#r-barra.salto { animation: salto .5s ease-out; }
+@keyframes salto { 0% { filter: brightness(1.9); } 100% { filter: none; } }
+.burbuja-t { position: absolute; top: -26px; left: var(--bx, 0%); transform: translateX(-50%) scale(.6); padding: 3px 9px; border-radius: 999px; background: #fff; color: #000; font-size: .75rem; font-weight: 700; font-variant-numeric: tabular-nums; opacity: 0; pointer-events: none; transition: transform .3s var(--rebote), opacity .2s ease; }
+.burbuja-t.ver { transform: translateX(-50%) scale(1); opacity: 1; }
+.mini-barra i { width: 100%; transform-origin: left center; transform: scaleX(0); background: var(--ac2, #fff); }
