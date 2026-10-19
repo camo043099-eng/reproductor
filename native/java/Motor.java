@@ -35,7 +35,8 @@ public final class Motor {
                         .build();
             }
         };
-        fabrica.setEnableAudioFloatOutput(true);
+        // Con salida flotante, Media3 NO pasa los FLAC de 24 bits por nuestro procesador (sin ecualizador, sin ondas, sin control de volumen). Sin ella pasan todos.
+        fabrica.setEnableAudioFloatOutput(false);
         jugador = new ExoPlayer.Builder(app, fabrica)
                 .setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), true)
                 .setHandleAudioBecomingNoisy(true)
