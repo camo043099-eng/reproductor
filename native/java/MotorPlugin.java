@@ -73,7 +73,7 @@ public class MotorPlugin extends Plugin {
     private int envFuerza = 0, gravesFuerza = 0;
     private int fallosAudio = 0;
     private int fundidoMs = 0; private boolean fadeSueno = false; private long ultimaEmision = 0;
-    private AudioManager.AudioDeviceCallback cbRuta = null;
+    private android.media.AudioDeviceCallback cbRuta = null;
     private boolean sinEfectos = false;
 
     // ───────── utilidades ─────────
@@ -150,7 +150,7 @@ public class MotorPlugin extends Plugin {
         ui(call, () -> {
             if (cbRuta == null) {
                 AudioManager am = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
-                cbRuta = new AudioManager.AudioDeviceCallback() {
+                cbRuta = new android.media.AudioDeviceCallback() {
                     @Override public void onAudioDevicesAdded(AudioDeviceInfo[] a) { anunciarRuta(); }
                     @Override public void onAudioDevicesRemoved(AudioDeviceInfo[] a) { anunciarRuta(); }
                 };
