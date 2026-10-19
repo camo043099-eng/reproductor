@@ -397,6 +397,15 @@ public class MotorPlugin extends Plugin {
     @PluginMethod public void repetir(PluginCall call) {
         ui(call, () -> { String m = call.getString("modo", "no"); Motor.jugador.setRepeatMode("uno".equals(m) ? Player.REPEAT_MODE_ONE : "todo".equals(m) ? Player.REPEAT_MODE_ALL : Player.REPEAT_MODE_OFF); call.resolve(); });
     }
+    @PluginMethod public void avanzado(PluginCall call) {
+        ui(call, () -> {
+            ExoPlayer p = Motor.jugador;
+            if (call.hasOption("silencio")) p.setSkipSilenceEnabled(call.getBoolean("silencio", false));
+            if (call.hasOption("ruido")) p.setHandleAudioBecomingNoisy(call.getBoolean("ruido", true));
+            if (call.hasOption("enfoque")) p.setAudioAttributes(new androidx.media3.common.AudioAttributes.Builder().setUsage(androidx.media3.common.C.USAGE_MEDIA).setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MUSIC).build(), call.getBoolean("enfoque", true));
+            call.resolve();
+        });
+    }
     @PluginMethod public void velocidad(PluginCall call) { ui(call, () -> { Motor.jugador.setPlaybackParameters(new PlaybackParameters(call.getFloat("v", 1f), 1f)); call.resolve(); }); }
     @PluginMethod public void insertar(PluginCall call) {
         ui(call, () -> { try { ExoPlayer p = Motor.jugador; p.addMediaItem(Math.min(call.getInt("indice", 0), p.getMediaItemCount()), item(call.getObject("item"))); call.resolve(); } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); } });

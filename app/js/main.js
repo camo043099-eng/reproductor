@@ -76,8 +76,13 @@ let tAviso;
 function avisar(t, ms = 2800) { const a = $("#aviso"); a.textContent = t; a.hidden = false; clearTimeout(tAviso); if (ms) tAviso = setTimeout(() => { a.hidden = true; }, ms); }
 
 // ── biblioteca ──
+const RUIDO = /\/(whatsapp[^/]*|recordings?|voice recorder|sound recorder|call recordings?|notifications?|ringtones?|alarms?)\//i;
+function filtradas(lista) {
+  const sis = E.aj.sistema !== false, min = +E.aj.minSeg || 0;
+  return lista.filter((s) => !(sis && RUIDO.test("/" + (s.carpeta || "") + "/")) && !(min && s.duracion && s.duracion < min));
+}
 async function cargarTodo() {
-  E.canciones = await db.todo("canciones"); E.listas = await db.todo("listas");
+  E.canciones = filtradas(await db.todo("canciones")); E.listas = await db.todo("listas");
   porId.clear(); E.version++; for (const s of E.canciones) porId.set(s.id, s);
 }
 function claveAlbum(t) { return normal((t.albumArtista || t.artista || "") + "|" + (t.album || "")); }
@@ -281,12 +286,18 @@ async function tocar(lista, i, azar = false) {
   await reproductor.cargarCola(lista, azar ? Math.floor(Math.random() * lista.length) : i, true);
   guardarSesion();
 }
+let ultimoId = null, dirCambio = 1;
+function animar(el, clase, ms = 1000) { el.classList.remove(clase); void el.offsetWidth; el.classList.add(clase); clearTimeout(el["_" + clase]); el["_" + clase] = setTimeout(() => el.classList.remove(clase), ms); }
 function actualizarMini() {
   const s = reproductor.actual; $("#mini").hidden = !s;
   document.body.style.paddingBottom = "";
   if (!s) return;
   $("#mini-titulo").textContent = s.titulo || s.nombre; $("#mini-artista").textContent = s.artista || "";
-  portadaUrl(s.alb).then((u) => { $("#mini-port").src = u || SIN; $("#r-port").src = u || SIN; tinte(s.alb, u); });
+  const nueva = s.id !== ultimoId, primera = ultimoId === null; ultimoId = s.id;
+  portadaUrl(s.alb).then((u) => {
+    $("#mini-port").src = u || SIN; $("#r-port").src = u || SIN; tinte(s.alb, u);
+    if (nueva && !primera) { const g = $(".portada-grande"); g.style.setProperty("--dir", dirCambio); animar(g, "voltea", 900); animar(g, "brilla", 1100); animar($("#mini-port"), "pop", 700); dirCambio = 1; }
+  });
   $("#r-titulo").textContent = s.titulo || s.nombre; $("#r-artista").textContent = s.artista || "Artista desconocido"; $("#r-album").textContent = [s.album, s.anio].filter(Boolean).join(" · ");
   const chips = [(s.bits >= 24 || s.sampleRate > 48000) && s.formato !== "MP3" && s.formato !== "AAC" ? "Hi-Res" : "", s.formato, s.bitrate && s.formato !== "FLAC" ? `${s.bitrate} kbps` : "", s.sampleRate ? `${+(s.sampleRate / 1000).toFixed(1)} kHz` : "", s.bits ? `${s.bits} bits` : "", s.canales === 1 ? "Mono" : s.canales === 2 ? "Estéreo" : s.canales ? `${s.canales} canales` : ""].filter(Boolean);
   $("#r-chips").innerHTML = chips.map((t) => `<span class="chip${t === "Hi-Res" ? " activo" : ""}">${esc(t)}</span>`).join("");
@@ -325,12 +336,29 @@ function actualizarTiempo() {
 }
 
 // ── sesión y ajustes guardados ──
-async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null }, "config").catch(() => {}); }
+async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento || "", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false } }, "config").catch(() => {}); }
 let tSes = 0;
 async function guardarSesion(fuerza) {
   const ahora = Date.now(); if (!fuerza && ahora - tSes < 4000) return; tSes = ahora;
   const s = reproductor.actual; if (!s) return;
   await db.poner("ajustes", { ids: reproductor.listaEnOrden().map((x) => x.id), pos: reproductor.pos, t: reproductor.tiempo, azar: reproductor.aleatorio, rep: reproductor.repetir }, "sesion").catch(() => {});
+}
+
+// ── ajustes avanzados ──
+const TOGGLES = [["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-plano", "plano", false], ["aj-vib", "vib", true], ["aj-chips", "chips", true]];
+const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", ""], ["aj-letra", "letraTam", "1"]];
+let tocadoEnfoque = false;
+function sincronizarAjustes() {
+  for (const [id, clave, def] of TOGGLES) $("#" + id).checked = E.aj[clave] === undefined ? def : !!E.aj[clave];
+  for (const [id, clave, def] of SELECTS) $("#" + id).value = E.aj[clave] ?? def;
+  aplicarAvanzados();
+}
+function aplicarAvanzados() {
+  const r = document.documentElement, a = E.aj;
+  r.classList.toggle("plano", !!a.plano); r.classList.toggle("sinchips", a.chips === false); window.__vibrar = a.vib !== false;
+  if (a.acento) r.style.setProperty("--ac2", a.acento); else r.style.removeProperty("--ac2");
+  r.style.setProperty("--lt", a.letraTam || "1");
+  if (MOTOR && reproductor) { const o = { silencio: !!a.silencio, ruido: a.ruido !== false }; if (tocadoEnfoque || a.enfoque === false) o.enfoque = a.enfoque !== false; reproductor.ponerAvanzado(o).catch(() => {}); }
 }
 
 // ── hojas ──
@@ -530,6 +558,9 @@ function enlazar() {
   $("#f-imagen").addEventListener("change", async (e) => { const f = e.target.files[0]; e.target.value = ""; if (!f || !imagenPara) return; const m = await miniatura(f); if (m) { await ponerPortada(imagenPara.alb, m); avisar("Portada cambiada", 1800); } else avisar("No pude leer esa imagen."); });
   $("#aj-salida").addEventListener("click", elegirSalida);
   $("#aj-portadas").addEventListener("click", () => descargarFaltantes(true));
+  for (const [id, clave, def] of TOGGLES) $("#" + id).addEventListener("change", async (e) => { E.aj[clave] = e.target.checked; if (clave === "enfoque") tocadoEnfoque = true; aplicarAvanzados(); guardarAjustes(); if (clave === "sistema") { await cargarTodo(); dibujar(); } });
+  for (const [id, clave] of SELECTS) $("#" + id).addEventListener("change", async (e) => { E.aj[clave] = e.target.value; aplicarAvanzados(); guardarAjustes(); if (clave === "minSeg") { await cargarTodo(); dibujar(); } });
+  $("#aj-reescanear").addEventListener("click", () => { cerrar("hoja-aj"); $("#b-agregar").click(); });
   $("#aj-auto").addEventListener("change", (e) => { E.aj.auto = e.target.checked; guardarAjustes(); });
   $("#r-lista").addEventListener("click", () => { if (R.actual) agregarALista(R.actual); });
   $("#r-cola").addEventListener("click", () => { dibujarCola(); abrir("hoja-cola"); });
@@ -574,14 +605,16 @@ function gestos() {
   const por = $(".portada-grande");
   deslizar(por, {
     acepta: (eje) => eje === "x",
-    empezar: () => { por.style.transition = "none"; },
-    mover: (dx) => { por.style.translate = `${dx * 0.7}px 0`; por.style.rotate = `${dx / 40}deg`; },
+    empezar: () => { por.style.transition = "none"; por.firstElementChild.style.transition = "none"; por.classList.add("arrastra"); },
+    mover: (dx) => { por.style.translate = `${dx * 0.7}px 0`; por.style.rotate = `${dx / 40}deg`; por.firstElementChild.style.transform = `perspective(800px) rotateY(${Math.max(-35, Math.min(35, dx / 6))}deg)`; por.style.setProperty("--gx", dx * 1.4); },
     soltar: (dx, dy, vx) => {
-      por.style.transition = ""; por.style.translate = ""; por.style.rotate = "";
-      if (dx < -70 || vx < -0.6) { vibra(); R.siguiente(); } else if (dx > 70 || vx > 0.6) { vibra(); R.anterior(); }
+      por.style.transition = ""; por.style.translate = ""; por.style.rotate = ""; reposoPortada();
+      if (dx < -70 || vx < -0.6) { vibra(); dirCambio = 1; R.siguiente(); } else if (dx > 70 || vx > 0.6) { vibra(); dirCambio = -1; R.anterior(); }
     },
-    cancelar: () => { por.style.transition = ""; por.style.translate = ""; por.style.rotate = ""; },
+    cancelar: () => { por.style.transition = ""; por.style.translate = ""; por.style.rotate = ""; reposoPortada(); },
   });
+  const reposoPortada = () => { por.classList.remove("arrastra"); por.firstElementChild.style.transition = ""; por.firstElementChild.style.transform = ""; por.style.removeProperty("--gx"); };
+  por.addEventListener("click", () => { vibra(6); animar(por, "pulso", 600); animar(por, "brilla", 1100); });
   // mini reproductor: a los lados cambia de canción, hacia arriba abre el reproductor
   const mini = $("#mini"), info = $("#mini-info") || $(".mini-info");
   deslizar(mini, {
@@ -637,9 +670,11 @@ async function iniciar() {
   if (cfg) {
     E.orden = cfg.orden || "titulo"; $("#orden").value = E.orden; reproductor.bandasDb = cfg.bandas?.length === BANDAS.length ? cfg.bandas : reproductor.bandasDb;
     reproductor.preampDb = cfg.pre || 0; reproductor.rgModo = cfg.rg || "pista"; reproductor.eqOn = cfg.eq !== false; reproductor.ponerVelocidad(cfg.vel || 1);
-    E.aj.viz = !!cfg.viz; $("#aj-viz").checked = E.aj.viz; E.aj.auto = cfg.auto !== false; $("#aj-auto").checked = E.aj.auto; E.aj.salida = cfg.salida || null;
+    E.aj.viz = !!cfg.viz; $("#aj-viz").checked = E.aj.viz; E.aj.auto = cfg.auto !== false; $("#aj-auto").checked = E.aj.auto; E.aj.salida = cfg.salida || null; Object.assign(E.aj, cfg.av || {});
   }
-  if (MOTOR) { if (cfg?.esp) { reproductor.ancho = cfg.esp.a || 0; reproductor.env = cfg.esp.e || 0; reproductor.graves = cfg.esp.g || 0; } document.querySelectorAll("#aj-viz, #aj-gap, #aj-persistir, #aj-borrar").forEach((e) => { (e.closest(".campo") || e).hidden = true; }); $("#aj-info").textContent = "Motor de audio nativo (ExoPlayer): cambio de canción sin pausa, ecualizador de 10 bandas de 32 bits y lectura directa de tus archivos."; $("#b-agregar").setAttribute("aria-label", "Actualizar biblioteca"); reproductor.aplicarTodo(); $("#aj-salida").hidden = false; $("#aj-salida-info").hidden = false; etiquetaSalida(); reproductor.ponerSalida(E.aj.salida).catch(() => {}); }
+  sincronizarAjustes();
+  if (cfg?.av && (cfg.av.sistema === false || +cfg.av.minSeg)) await cargarTodo();
+  if (MOTOR) { if (cfg?.esp) { reproductor.ancho = cfg.esp.a || 0; reproductor.env = cfg.esp.e || 0; reproductor.graves = cfg.esp.g || 0; } document.querySelectorAll("#aj-viz, #aj-gap, #aj-persistir, #aj-borrar").forEach((e) => { (e.closest(".campo") || e).hidden = true; }); $("#aj-info").textContent = "Motor de audio nativo (ExoPlayer): cambio de canción sin pausa, ecualizador de 10 bandas de 32 bits y lectura directa de tus archivos."; $("#b-agregar").setAttribute("aria-label", "Actualizar biblioteca"); reproductor.aplicarTodo(); document.querySelectorAll(".solo-nativo").forEach((e) => { e.hidden = false; }); $("#aj-salida").hidden = false; $("#aj-salida-info").hidden = false; etiquetaSalida(); reproductor.ponerSalida(E.aj.salida).catch(() => {}); }
   dibujar(); mostrarEspacio();
   if (MOTOR) {
     await iniciarNativo(false);
@@ -670,7 +705,7 @@ async function fusionar(nuevas) {
   }
   const quitar = E.canciones.filter((s) => !vistos.has(s.id)).map((s) => s.id);
   await db.lote("canciones", lista, quitar);
-  E.canciones = lista; E.version++; porId.clear(); for (const s of lista) porId.set(s.id, s);
+  E.canciones = filtradas(lista); E.version++; porId.clear(); for (const s of lista) porId.set(s.id, s);
   dibujar(); mostrarEspacio();
 }
 let escaneando = false;

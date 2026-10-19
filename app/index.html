@@ -124,13 +124,34 @@
 <section class="hoja" id="hoja-aj" hidden role="dialog" aria-label="Ajustes">
   <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span>Ajustes</span><span></span></div>
   <div class="ajustes">
+    <h3 class="sub solo-nativo" hidden>Sonido</h3>
+    <div class="campo solo-nativo" hidden><span>Saltar silencios</span><label class="interruptor"><input type="checkbox" id="aj-silencio"><span></span></label></div>
+    <p class="suave pequeno solo-nativo" hidden>Acorta los silencios largos dentro de las canciones.</p>
+    <div class="campo solo-nativo" hidden><span>Pausar al desconectar los audífonos</span><label class="interruptor"><input type="checkbox" id="aj-ruido" checked><span></span></label></div>
+    <div class="campo solo-nativo" hidden><span>Pausar cuando otra app reproduce audio</span><label class="interruptor"><input type="checkbox" id="aj-enfoque" checked><span></span></label></div>
+    <p class="suave pequeno solo-nativo" hidden>Si lo apagas, Onda sigue sonando junto con otras apps (videos, juegos…).</p>
+    <button class="boton" id="aj-salida" type="button" hidden>Salida de audio de Onda: Automática</button>
+    <p class="suave pequeno" id="aj-salida-info" hidden>Elige por dónde suena solo Onda. Por ejemplo, el parlante del teléfono mientras otras apps usan tus audífonos Bluetooth.</p>
     <div class="campo"><span>Visualizador de espectro</span><label class="interruptor"><input type="checkbox" id="aj-viz"><span></span></label></div>
     <p class="suave pequeno">Un dibujo de barras que se mueve con la música, solo mientras suena y el reproductor está abierto. Apagado por defecto.</p>
     <div class="campo"><span>Cambio de canción casi sin pausa</span><label class="interruptor"><input type="checkbox" id="aj-gap" checked disabled><span></span></label></div>
+
+    <h3 class="sub">Biblioteca</h3>
+    <div class="campo solo-nativo" hidden><span>Ocultar tonos, alarmas y notas de voz</span><label class="interruptor"><input type="checkbox" id="aj-sistema" checked><span></span></label></div>
+    <div class="campo solo-nativo" hidden><span>Ocultar audios cortos</span><select id="aj-min"><option value="0">No ocultar</option><option value="15">Menos de 15 s</option><option value="30">Menos de 30 s</option><option value="60">Menos de 1 min</option></select></div>
     <div class="campo"><span>Buscar portadas en internet solas</span><label class="interruptor"><input type="checkbox" id="aj-auto" checked><span></span></label></div>
     <button class="boton" id="aj-portadas" type="button">Buscar ahora las portadas que faltan</button>
-    <button class="boton" id="aj-salida" type="button" hidden>Salida de audio de Onda: Automática</button>
-    <p class="suave pequeno" id="aj-salida-info" hidden>Elige por dónde suena solo Onda. Por ejemplo, el parlante del teléfono mientras otras apps usan tus audífonos Bluetooth.</p>
+    <button class="boton solo-nativo" id="aj-reescanear" type="button" hidden>Volver a buscar música en el teléfono</button>
+
+    <h3 class="sub">Apariencia</h3>
+    <div class="campo"><span>Color de acento</span><select id="aj-acento"><option value="">Blanco azulado</option><option value="#1ed760">Verde</option><option value="#ff5d5d">Rojo</option><option value="#4da3ff">Azul</option><option value="#ff7ac8">Rosa</option><option value="#ffb44d">Naranja</option><option value="#b48cff">Morado</option></select></div>
+    <div class="campo"><span>Tamaño de la letra</span><select id="aj-letra"><option value="0.85">Pequeña</option><option value="1">Normal</option><option value="1.2">Grande</option></select></div>
+    <div class="campo"><span>Reducir transparencias</span><label class="interruptor"><input type="checkbox" id="aj-plano"><span></span></label></div>
+    <p class="suave pequeno">Cambia el efecto de vidrio por colores sólidos. Ayuda si la app se siente pesada.</p>
+    <div class="campo"><span>Vibración en los gestos</span><label class="interruptor"><input type="checkbox" id="aj-vib" checked><span></span></label></div>
+    <div class="campo"><span>Mostrar calidad (FLAC, kHz, bits)</span><label class="interruptor"><input type="checkbox" id="aj-chips" checked><span></span></label></div>
+
+    <h3 class="sub">Almacenamiento</h3>
     <div class="campo"><span>Almacenamiento</span><b id="aj-espacio">…</b></div>
     <button class="boton" id="aj-persistir" type="button">Pedir que el teléfono no borre mi música</button>
     <button class="boton peligro" id="aj-borrar" type="button">Borrar toda la biblioteca</button>

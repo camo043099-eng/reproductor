@@ -98,6 +98,7 @@ export class ReproductorNativo extends EventTarget {
       this._emitir("estado"); this._emitir("tiempo");
     } catch (_) { /* sin respuesta */ }
   }
+  ponerAvanzado(o) { return this.N.avanzado(o); }
   aplicarTodo() { this.ponerEspacial(); this._eq(); this.N.rg({ modo: this.rgModo }); this.N.velocidad({ v: this.velocidad }); this.N.repetir({ modo: this.repetir }); }
 
   dormir(minutos) {

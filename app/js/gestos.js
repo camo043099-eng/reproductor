@@ -1,6 +1,6 @@
 // Gestos táctiles sin librerías: arrastrar y soltar con resorte, usando eventos de puntero (sirven con dedo y con ratón).
 
-export const vibra = (ms = 12) => { try { navigator.vibrate?.(ms); } catch (_) { /* sin vibración */ } };
+export const vibra = (ms = 12) => { if (window.__vibrar === false) return; try { navigator.vibrate?.(ms); } catch (_) { /* sin vibración */ } };
 
 /**
  * deslizar(el, opciones)
