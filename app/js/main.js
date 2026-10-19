@@ -688,7 +688,7 @@ function vizEncender() {
   paso();
 }
 // ── carátula al ritmo (círculo que "salta" con los graves; solo mientras el reproductor está abierto y sonando) ──
-let ritRaf = 0, ritMedia = 0, ritImp = 0, ritUlt = 0, ritAros = [], ritBarras = new Float32Array(128), ritMax = new Float32Array(8).fill(0.08), ritLat = 0;
+let ritRaf = 0, ritMedia = 0, ritImp = 0, ritUlt = 0, ritAros = [], ritBarras = new Float32Array(56), ritMax = new Float32Array(8).fill(0.08), ritLat = 0;
 function nivelRitmo() {
   if (MOTOR) return reproductor.nivel((+E.aj.ritmoLat || 260) + (reproductor.ruta === "bluetooth" ? 170 : 0));
   if (!reproductor.espectro(buf)) return { b: 0, r: 0 };
@@ -705,7 +705,7 @@ function ritmoEncender() {
   const cv = $("#r-ondas"), g = cv.getContext("2d");
   const paso = (ahora) => {
     ritRaf = requestAnimationFrame(paso);
-    const dpr = Math.min(devicePixelRatio || 1, 1.5), W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
+    const dpr = Math.min(devicePixelRatio || 1, 1.25), W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
     if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
     g.clearRect(0, 0, W, H);
     el.classList.toggle("gira", !!reproductor.sonando);
@@ -724,11 +724,10 @@ function ritmoEncender() {
       const u = Math.abs(i / N - 0.5) * 2, bp = Math.min(7, u * 7.001), k0 = Math.floor(bp), k1 = Math.min(7, k0 + 1), f = bp - k0;
       const v0 = (X[k0] || 0) / ritMax[k0], v1 = (X[k1] || 0) / ritMax[k1], vb = Math.min(1, (v0 * (1 - f) + v1 * f)) ** 1.25, v = Math.max(vb, nivel * (0.25 + 0.5 * Math.random()) * (1 - u * 0.5));   // si no llegan las bandas, igual se mueve con el volumen
       ritBarras[i] += (v - ritBarras[i]) * (v > ritBarras[i] ? 0.6 : 0.14);
-      const a = (i / N) * Math.PI * 2 - Math.PI / 2, h = ritBarras[i] * R * 0.46 + 3 * dpr, c1 = Math.cos(a), s1 = Math.sin(a);
-      const col = `hsl(${(bp / 7) * 310 + ahora * 0.01} 100% ${58 + 14 * ritBarras[i]}% / ${0.55 + 0.45 * ritBarras[i]})`; g.strokeStyle = col; g.shadowColor = col; g.shadowBlur = 7 * dpr; g.lineWidth = 2.2 * dpr;
-      g.beginPath(); g.moveTo(cx + c1 * R * 1.06, cy + s1 * R * 1.06); g.lineTo(cx + c1 * (R * 1.06 + h), cy + s1 * (R * 1.06 + h)); g.stroke();
+      const a = (i / N) * Math.PI * 2 - Math.PI / 2, h = ritBarras[i] * R * 0.42 + 2 * dpr, c1 = Math.cos(a), s1 = Math.sin(a);
+      g.strokeStyle = `hsl(${(bp / 7) * 310} 92% 60% / ${0.45 + 0.5 * ritBarras[i]})`; g.lineWidth = 3.4 * dpr;
+      g.beginPath(); g.moveTo(cx + c1 * R * 1.07, cy + s1 * R * 1.07); g.lineTo(cx + c1 * (R * 1.07 + h), cy + s1 * (R * 1.07 + h)); g.stroke();
     }
-    g.shadowBlur = 0; g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 1.5 * dpr; g.beginPath(); g.arc(cx, cy, R * 1.035, 0, 7); g.stroke();   // aro fino blanco del círculo
     ritAros = ritAros.filter((o) => ahora - o.t < 1000);
     for (const o of ritAros) {
       const e = (ahora - o.t) / 1000, rr = R * (1.08 + e * 0.75);

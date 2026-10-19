@@ -138,7 +138,7 @@ public class MotorPlugin extends Plugin {
             ExoPlayer p = Motor.jugador;
             if (!ritmoOn || p == null || !p.isPlaying()) return;
             JSObject o = new JSObject(); o.put("b", EqProcesador.nivelBajo); o.put("r", EqProcesador.nivelTotal); com.getcapacitor.JSArray xs = new com.getcapacitor.JSArray(); for (float v : EqProcesador.bandas) xs.put(Double.valueOf(v)); o.put("x", xs); emitir("nivel", o);
-            h.postDelayed(this, 25);
+            h.postDelayed(this, 45);
         }
     };
     @PluginMethod public void ritmo(PluginCall call) {
