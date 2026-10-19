@@ -78,6 +78,7 @@ function pintar(c, items, f, envoltura) {
   if (items.length > N) requestAnimationFrame(paso);
   imagenes(c);
 }
+const nom = (s) => String((s && (s.titulo || s.nombre)) || "").replace(/_/g, " ").replace(/\s{2,}/g, " ").trim();   // solo para mostrar: los _ de nombres de archivo se ven como espacios
 const nombrePlaca = (s) => (s.album && !albumGenerico(s.album) ? s.album : (s.titulo || s.nombre));
 const imgHtml = (s, cls = "") => `<img class="${cls}" src="${placa(nombrePlaca(s))}" data-alb="${esc(s.alb || "")}" alt="" loading="lazy" decoding="async">`;
 
@@ -178,7 +179,7 @@ const conteoGeneros = () => { const g = new Map(); for (const s of E.canciones) 
 const coincide = (s, q) => !q || (s._b ||= normal([s.titulo, s.artista, s.album, s.nombre, s.genero, s.anio].join(" "))).includes(q);
 function filaCancion(s, i, extra = "") {
   const sonando = reproductor.actual?.id === s.id;
-  return `<li class="fila${sonando ? " sonando" : ""}" data-i="${i}" data-id="${esc(s.id)}" tabindex="0">${imgHtml(s)}<span class="info"><b>${esc(s.titulo || s.nombre)}</b><span>${esc(s.artista || "Artista desconocido")}${extra}</span></span><span class="dur">${fmt(s.duracion)}</span><button class="mas" type="button" data-mas aria-label="Más opciones">${I.mas3}</button></li>`;
+  return `<li class="fila${sonando ? " sonando" : ""}" data-i="${i}" data-id="${esc(s.id)}" tabindex="0">${imgHtml(s)}<span class="info"><b>${esc(nom(s))}</b><span>${esc(s.artista || "Artista desconocido")}${extra}</span></span><span class="dur">${fmt(s.duracion)}</span><button class="mas" type="button" data-mas aria-label="Más opciones">${I.mas3}</button></li>`;
 }
 function agrupar(clave) {
   const m = new Map();
@@ -224,7 +225,7 @@ function dibujarInicio() {
   if (ult.length) tiles.push(tile("lista", "__ult", ic(I.lista.replace("<svg", '<svg fill="none" stroke="currentColor" stroke-width="1.6"'), "#4da3ff"), "Escuchadas hace poco"));
   for (const a of (albsUlt.length ? albsUlt : albs)) { if (tiles.length >= 8) break; tiles.push(`<button class="tile" type="button" data-det="album" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.album || "Sin álbum")}</b></button>`); }
   const estante = (t, h) => h ? `<section class="estante"><h3>${t}</h3><div class="carril">${h}</div></section>` : "";
-  const cancion = (s, i, lista) => `<button class="tarjeta" type="button" data-lista="${lista}" data-i="${i}">${imgHtml(s)}<b>${esc(s.titulo || s.nombre)}</b><span>${esc(s.artista || "")}</span></button>`;
+  const cancion = (s, i, lista) => `<button class="tarjeta" type="button" data-lista="${lista}" data-i="${i}">${imgHtml(s)}<b>${esc(nom(s))}</b><span>${esc(s.artista || "")}</span></button>`;
   const albumTarjeta = (a, grande) => `<button class="tarjeta${grande ? " grande" : ""}" type="button" data-det="album" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.album || "Sin álbum")}</b><span>${esc(a.s.albumArtista || a.s.artista || "")}</span></button>`;
   const mix = (k, nombre, s, etiqueta) => `<button class="mix" type="button" data-det="lista" data-k="${esc(k)}" style="--h:${tono(nombre)}">${imgHtml(s)}<i>${etiqueta}</i><b>${esc(nombre)}</b></button>`;
   const paraTi = mh.map((m) => mix("__mix:" + m.id, m.nombre, porId.get(m.ids[0]), m.etiqueta)).join("");
@@ -350,22 +351,28 @@ async function tocar(lista, i, azar = false) {
 }
 let ultimoId = null, dirCambio = 1;
 function animar(el, clase, ms = 1000) { el.classList.remove(clase); void el.offsetWidth; el.classList.add(clase); clearTimeout(el["_" + clase]); el["_" + clase] = setTimeout(() => el.classList.remove(clase), ms); }
+// nombres largos: se ven en una línea y, solo si no caben, se deslizan UNA vez de derecha a izquierda al empezar la canción (sin movimiento continuo)
+function ponerLargo(el, texto) {
+  if (el.dataset.txt === texto && el.firstChild) return; el.dataset.txt = texto;
+  el.textContent = ""; const sp = document.createElement("span"); sp.className = "desl"; sp.textContent = texto; el.append(sp);
+  requestAnimationFrame(() => { const d = sp.scrollWidth - el.clientWidth; if (d > 4) { sp.style.setProperty("--dx", -d - 6 + "px"); sp.style.setProperty("--dur", Math.max(3, d / 32).toFixed(1) + "s"); sp.classList.add("va"); } });
+}
 function actualizarMini() {
   const s = reproductor.actual; $("#mini").hidden = !s;
   document.body.style.paddingBottom = "";
   if (!s) return;
-  $("#mini-titulo").textContent = s.titulo || s.nombre; $("#mini-artista").textContent = s.artista || "";
+  ponerLargo($("#mini-titulo"), nom(s)); $("#mini-artista").textContent = s.artista || "";
   const nueva = s.id !== ultimoId, primera = ultimoId === null; ultimoId = s.id;
   portadaUrl(s.alb).then((u) => {
     { const pl = placa(nombrePlaca(s)); $("#mini-port").src = u || pl; $("#r-port").src = u || pl; $("#r-buscar-port").hidden = !!u; } tinte(s.alb, u);
     if (MOTOR && !u && nueva && E.aj.auto !== false && !intentadasSesion.has(s.alb)) { intentadasSesion.add(s.alb); portadaWeb(s, true).catch(() => {}); }
     if (nueva && !primera) { const g = $(".portada-grande"); g.style.setProperty("--dir", dirCambio); animar(g, "voltea", 900); animar(g, "brilla", 1100); animar($("#mini-port"), "pop", 700); dirCambio = 1; }
   });
-  $("#r-titulo").textContent = s.titulo || s.nombre; $("#r-artista").textContent = s.artista || "Artista desconocido"; $("#r-album").textContent = [s.album, s.anio].filter(Boolean).join(" · ");
+  ponerLargo($("#r-titulo"), nom(s)); ponerLargo($("#r-artista"), s.artista || "Artista desconocido"); $("#r-album").textContent = [s.album, s.anio].filter(Boolean).join(" · ");
   const chips = [(s.bits >= 24 || s.sampleRate > 48000) && s.formato !== "MP3" && s.formato !== "AAC" ? "Hi-Res" : "", s.formato, s.bitrate && s.formato !== "FLAC" ? `${s.bitrate} kbps` : "", s.sampleRate ? `${+(s.sampleRate / 1000).toFixed(1)} kHz` : "", s.bits ? `${s.bits} bits` : "", s.canales === 1 ? "Mono" : s.canales === 2 ? "Estéreo" : s.canales ? `${s.canales} canales` : ""].filter(Boolean);
   $("#r-chips").innerHTML = chips.map((t) => `<span class="chip${t === "Hi-Res" ? " activo" : ""}">${esc(t)}</span>`).join("");
   const f = $("#r-fav"); f.setAttribute("aria-pressed", String(!!s.fav)); f.firstElementChild.style.fill = s.fav ? "currentColor" : "none"; f.style.color = s.fav ? "var(--ac2)" : "";
-  document.title = `${s.titulo || s.nombre} · Onda`;
+  document.title = `${nom(s)} · Onda`;
   document.querySelectorAll(".fila.sonando").forEach((el) => el.classList.remove("sonando"));
   document.querySelectorAll(`.fila[data-id="${CSS.escape(s.id)}"]`).forEach((el) => el.classList.add("sonando"));
   actualizarTiempo();
@@ -449,7 +456,7 @@ function perfilesSalida() {
   const p = (E.aj.perfiles ||= {}); if (E.aj.eqSalida && MOTOR && reproductor.ruta) p[reproductor.ruta] = { b: reproductor.bandasDb.slice(), p: reproductor.preampDb };
   return p;
 }
-async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", ritmo: E.aj.ritmo || "circulo", eqSalida: !!E.aj.eqSalida, perfiles: perfilesSalida() } }, "config").catch(() => {}); }
+async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", ritmo: E.aj.ritmo || "circulo", ritmoLat: E.aj.ritmoLat || "260", eqSalida: !!E.aj.eqSalida, perfiles: perfilesSalida() } }, "config").catch(() => {}); }
 let tSes = 0;
 async function guardarSesion(fuerza) {
   const ahora = Date.now(); if (!fuerza && ahora - tSes < 4000) return; tSes = ahora;
@@ -502,7 +509,7 @@ function abrirStats() {
   $("#stats-cuerpo").innerHTML = reps || HIST.tot ? `<div class="nums"><div class="num"><b>${tiempoLargo(HIST.d[diaDe()] || 0)}</b><span>Hoy</span></div><div class="num"><b>${tiempoLargo(sem)}</b><span>Últimos 7 días</span></div><div class="num"><b>${tiempoLargo(HIST.tot)}</b><span>Total escuchado</span></div><div class="num"><b>${reps}</b><span>Reproducciones</span></div></div>
     <h3 class="sub">Esta semana</h3><div class="barras">${dias.map((x) => `<div><i style="height:${Math.round((x.ms / max) * 100)}%"></i>${x.l}</div>`).join("")}</div>
     ${topA.length ? `<h3 class="sub">Artistas que más escuchas</h3><ol>${topA.map(([a, ms]) => `<li><span>${esc(a)}</span><span>${tiempoLargo(ms)}</span></li>`).join("")}</ol>` : ""}
-    ${topC.length ? `<h3 class="sub">Canciones favoritas del momento</h3><ol>${topC.map((s) => `<li><span>${esc(s.titulo || s.nombre)}</span><span>${HIST.m[claveC(s)].n}×</span></li>`).join("")}</ol>` : ""}` : `<div class="vacio">Todavía no hay actividad. Escucha música y aquí aparecerá tu tiempo, tus artistas y tus canciones más repetidas.</div>`;
+    ${topC.length ? `<h3 class="sub">Canciones favoritas del momento</h3><ol>${topC.map((s) => `<li><span>${esc(nom(s))}</span><span>${HIST.m[claveC(s)].n}×</span></li>`).join("")}</ol>` : ""}` : `<div class="vacio">Todavía no hay actividad. Escucha música y aquí aparecerá tu tiempo, tus artistas y tus canciones más repetidas.</div>`;
   abrir("hoja-stats");
 }
 
@@ -537,7 +544,7 @@ async function restaurarCopia(archivo) {
 
 // ── ajustes avanzados ──
 const TOGGLES = [["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-plano", "plano", false], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false]];
-const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-ritmo", "ritmo", "circulo"]];
+const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-ritmo", "ritmo", "circulo"], ["aj-ritmolat", "ritmoLat", "260"]];
 let tocadoEnfoque = false;
 function sincronizarAjustes() {
   for (const [id, clave, def] of TOGGLES) $("#" + id).checked = E.aj[clave] === undefined ? def : !!E.aj[clave];
@@ -624,7 +631,7 @@ function opcionesCancion(s, enLista) {
   op.push({ t: "Elegir carátula entre resultados…", f: () => setTimeout(() => abrirSelectorPortada(s), 0) }, { t: "Buscar portada en internet", f: () => portadaWeb(s) }, { t: "Elegir portada de mi galería", f: () => elegirImagen(s) }, { t: "Ver letra", f: () => { if (reproductor.actual?.id !== s.id) tocar([s], 0).then(abrirLetra); else abrirLetra(); } });
   if (enLista) op.push({ t: "Quitar de esta lista", f: async () => { enLista.ids = enLista.ids.filter((x) => x !== s.id); await db.poner("listas", enLista); dibujar(); } });
   if (!MOTOR) op.push({ t: "Borrar de la biblioteca", cls: "peligro", f: async () => { if (!confirm(`¿Borrar “${s.titulo || s.nombre}” de la app? El archivo original de tu teléfono no se toca.`)) return; await borrarCancion(s); } });
-  menu(s.titulo || s.nombre, op);
+  menu(nom(s), op);
 }
 async function borrarCancion(s) {
   await db.borrar("canciones", s.id); await db.borrar("archivos", s.id);
@@ -638,7 +645,7 @@ async function borrarCancion(s) {
 const listaDelDetalle = () => (E.detalle?.tipo === "lista" && E.detalle.k !== "__fav" ? E.listas.find((x) => x.id === E.detalle.k) : null);
 function dibujarCola() {
   const l = reproductor.listaEnOrden(), u = $("#cola-lista");
-  u.innerHTML = l.map((s, i) => `<li class="fila${i === reproductor.pos ? " sonando" : ""}" data-pos="${i}">${imgHtml(s)}<span class="info"><b>${esc(s.titulo || s.nombre)}</b><span>${esc(s.artista || "")}</span></span>${i === reproductor.pos ? "" : `<button class="mas" type="button" data-sube="${i}" aria-label="Subir">▲</button><button class="mas" type="button" data-baja="${i}" aria-label="Bajar">▼</button><button class="mas" type="button" data-quita="${i}" aria-label="Quitar">✕</button>`}</li>`).join("");
+  u.innerHTML = l.map((s, i) => `<li class="fila${i === reproductor.pos ? " sonando" : ""}" data-pos="${i}">${imgHtml(s)}<span class="info"><b>${esc(nom(s))}</b><span>${esc(s.artista || "")}</span></span>${i === reproductor.pos ? "" : `<button class="mas" type="button" data-sube="${i}" aria-label="Subir">▲</button><button class="mas" type="button" data-baja="${i}" aria-label="Bajar">▼</button><button class="mas" type="button" data-quita="${i}" aria-label="Quitar">✕</button>`}</li>`).join("");
   imagenes(u);
 }
 
@@ -683,7 +690,7 @@ function vizEncender() {
 // ── carátula al ritmo (círculo que "salta" con los graves; solo mientras el reproductor está abierto y sonando) ──
 let ritRaf = 0, ritMedia = 0, ritImp = 0, ritUlt = 0, ritAros = [], ritBarras = new Float32Array(56), ritLat = 0;
 function nivelRitmo() {
-  if (MOTOR) return reproductor.nivel();
+  if (MOTOR) return reproductor.nivel((+E.aj.ritmoLat || 260) + (reproductor.ruta === "bluetooth" ? 170 : 0));
   if (!reproductor.espectro(buf)) return { b: 0, r: 0 };
   const b = (buf[0] + buf[1] + buf[2]) / 765, r = buf.reduce((a, x, i) => (i < 40 ? a + x : a), 0) / (40 * 255);
   return { b: Math.min(1, b * 1.1), r };
@@ -740,7 +747,7 @@ async function cambiarSalida(s) {
   E.aj.salida = s; etiquetaSalida(); guardarAjustes();
   try { const r = await reproductor.ponerSalida(s); avisar(!s ? "Salida automática" : r.activa ? "Onda suena por: " + nombreSalida(s) : "Esa salida no está conectada ahora; usaré la automática.", 3000); } catch (_) { avisar("No pude cambiar la salida."); }
 }
-function abrirReproductor() { if (pila.includes("hoja-rep")) return; abrir("hoja-rep"); actualizarTiempo(); vizEncender(); ritmoEncender(); }
+function abrirReproductor() { if (pila.includes("hoja-rep")) return; abrir("hoja-rep"); actualizarTiempo(); vizEncender(); ritmoEncender(); { const s = reproductor.actual; if (s) { for (const [id, t] of [["#r-titulo", nom(s)], ["#r-artista", s.artista || "Artista desconocido"]]) { $(id).dataset.txt = ""; ponerLargo($(id), t); } } } }
 async function mostrarEspacio() {
   if (MOTOR) { const b = E.canciones.reduce((a, s) => a + (s.tam || 0), 0); $("#aj-espacio").textContent = `${E.canciones.length} canciones · ${(b / 1073741824).toFixed(2)} GB (no se copian)`; return; }
   const e = await db.espacio(), mb = (b) => (b / 1048576 >= 1024 ? (b / 1073741824).toFixed(2) + " GB" : Math.round(b / 1048576) + " MB");
@@ -1084,7 +1091,7 @@ window.addEventListener("online", () => autoPortadas());
 let letraAct = { id: null, lineas: [], idx: -2 };
 async function abrirLetra() { const s = reproductor.actual; if (!s) return; if (!pila.includes("hoja-letra")) abrir("hoja-letra"); await cargarLetra(s); }
 async function cargarLetra(s) {
-  const cuerpo = $("#letra-cuerpo"); $("#letra-titulo").textContent = s.titulo || s.nombre;
+  const cuerpo = $("#letra-cuerpo"); $("#letra-titulo").textContent = nom(s);
   letraAct = { id: s.id, lineas: [], idx: -2, textos: [], trad: null };
   cuerpo.className = "letra-cuerpo"; cuerpo.innerHTML = `<div class="vacio">Buscando la letra…</div>`;
   let L = await db.traer("ajustes", "letra2:" + s.id).catch(() => null), error = false;

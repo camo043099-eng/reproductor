@@ -19,7 +19,7 @@ export class ReproductorNativo extends EventTarget {
     on("cambio", (e) => { if (e.indice >= 0 && e.indice < this.lista.length) { this.pos = e.indice; this._pos = 0; this._dur = this.actual?.duracion || 0; this._emitir("cambio", this.actual); } });
     on("detalles", (e) => { const s = this.lista.find((x) => x.id === e.id); if (!s) return; if (e.sampleRate) s.sampleRate = e.sampleRate; if (e.bits) s.bits = e.bits; if (e.canales) s.canales = e.canales; if (e.bitrate) s.bitrate = e.bitrate; this._emitir("detalles", s); });
     on("error", (e) => this._emitir("error", { mensaje: e.mensaje }));
-    on("nivel", (e) => { (this._cola ||= []).push({ t: performance.now(), b: e.b, r: e.r }); if (this._cola.length > 40) this._cola.shift(); });
+    on("nivel", (e) => { (this._cola ||= []).push({ t: performance.now(), b: e.b, r: e.r }); if (this._cola.length > 80) this._cola.shift(); });
     on("ruta", (e) => { this.ruta = e.tipo; this._emitir("ruta", e.tipo); });
     on("letra", (e) => { this.letras[e.id] = e.texto; this._emitir("letra", e.id); });
     on("dormido", () => { this._dormirEn = 0; this._sonando = false; this._emitir("dormido"); this._emitir("estado"); });
@@ -38,7 +38,7 @@ export class ReproductorNativo extends EventTarget {
   espectro() { return false; }
   /** nivel de graves/total (0..1) enviado por el motor, con pequeño retraso para coincidir con lo que se oye */
   ponerRitmo(on) { this._ritmo = !!on; return this.N.ritmo({ on: !!on }); }
-  nivel() { const q = this._cola || [], t = performance.now() - 170; let v = null; while (q.length && q[0].t <= t) v = q.shift(); if (v) this._ult = v; return this._ult || { b: 0, r: 0 }; }
+  nivel(lat = 260) { const q = this._cola || [], t = performance.now() - lat; let v = null; while (q.length && q[0].t <= t) v = q.shift(); if (v) this._ult = v; return this._ult || { b: 0, r: 0 }; }
 
   /** Reemplaza la cola y empieza en `indice`. Con `sonar` falso solo la deja lista. */
   async cargarCola(canciones, indice = 0, sonar = true, posMs = 0) {

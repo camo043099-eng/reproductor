@@ -380,3 +380,11 @@ html[data-fondo="portada"] .hoja.completa, html[data-fondo="imagen"] .hoja.compl
 .pp span { font-weight: 600; font-size: .86rem; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .pp small { color: var(--tx2); font-size: .76rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pp-grid .vacio { grid-column: 1 / -1; }
 .completa .portada-grande.circulo { width: min(66vw, 40vh, 340px); margin-top: 26px; margin-bottom: 30px; }
+
+/* nombres largos en el reproductor: una sola línea, se deslizan una vez */
+.datos h2, .datos p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desl.va { display: inline-block; animation: deslizar var(--dur, 4s) ease-in-out 1.4s 1 both; }
+@keyframes deslizar { from { transform: translateX(0); } to { transform: translateX(var(--dx, 0)); } }
+@media (prefers-reduced-motion: reduce) { .desl.va { animation: none; display: inline; } }
+.mix b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.letra-cuerpo, #letra-titulo { overflow-wrap: anywhere; }
