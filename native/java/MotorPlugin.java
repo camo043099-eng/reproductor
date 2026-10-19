@@ -390,7 +390,7 @@ public class MotorPlugin extends Plugin {
     }
 
     // ───────── internet (portadas y letras): solo a servicios de la lista ─────────
-    private static final String[] PERMITIDOS = {"itunes.apple.com", "mzstatic.com", "api.deezer.com", "dzcdn.net", "lrclib.net", "musicbrainz.org", "coverartarchive.org", "archive.org", "music.163.com", "translate.googleapis.com", "api.lyrics.ovh"};
+    private static final String[] PERMITIDOS = {"itunes.apple.com", "mzstatic.com", "api.deezer.com", "dzcdn.net", "lrclib.net", "musicbrainz.org", "coverartarchive.org", "archive.org", "music.163.com", "translate.googleapis.com", "clients5.google.com", "api.mymemory.translated.net", "api.lyrics.ovh"};
     private static boolean permitido(String direccion) {
         try {
             URL u = new URL(direccion); if (!"https".equals(u.getProtocol())) return false; String host = u.getHost().toLowerCase(Locale.ROOT);
@@ -400,7 +400,7 @@ public class MotorPlugin extends Plugin {
     }
     private static byte[] bajar(String direccion, int max) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(direccion).openConnection();
-        c.setRequestProperty("User-Agent", "Onda/0.4 (reproductor personal; github.com/camo043099-eng/reproductor)"); if (direccion.contains("music.163.com")) c.setRequestProperty("Referer", "https://music.163.com/"); c.setConnectTimeout(8000); c.setReadTimeout(15000);
+        c.setRequestProperty("User-Agent", "Onda/0.4 (reproductor personal; github.com/camo043099-eng/reproductor)"); if (direccion.contains("music.163.com")) c.setRequestProperty("Referer", "https://music.163.com/"); if (direccion.contains("google")) c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36"); c.setConnectTimeout(8000); c.setReadTimeout(15000);
         int codigo = c.getResponseCode(); InputStream in = codigo < 400 ? c.getInputStream() : c.getErrorStream();
         ByteArrayOutputStream b = new ByteArrayOutputStream(); byte[] t = new byte[1 << 14]; int n;
         while (in != null && (n = in.read(t)) > 0) { b.write(t, 0, n); if (b.size() > max) throw new Exception("respuesta demasiado grande"); }

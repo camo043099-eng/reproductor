@@ -220,7 +220,7 @@ function dibujarInicio() {
   const mix = (k, nombre, s, etiqueta) => `<button class="mix" type="button" data-det="lista" data-k="${esc(k)}" style="--h:${tono(nombre)}">${imgHtml(s)}<i>${etiqueta}</i><b>${esc(nombre)}</b></button>`;
   const paraTi = mh.map((m) => mix("__mix:" + m.id, m.nombre, porId.get(m.ids[0]), m.etiqueta)).join("");
   const mixes = generos.map(([g]) => mix("__gen:" + g, "Mix " + g, E.canciones.find((s) => generosDe(s).includes(g)), "MIX")).concat(nuevas.length > 10 ? [mix("__olv", "Para redescubrir", nuevas[Math.floor(nuevas.length / 2)], "SIN ESCUCHAR")] : []).join("");
-  const fichas = [`<button class="chip mezcla" data-mezclar type="button">Mezclar todo</button>`, `<button class="chip" data-det="lista" data-k="__fav" type="button">Favoritas</button>`, `<button class="chip" data-estadisticas type="button">Tu actividad</button>`, `<button class="chip" data-portadas type="button">Descargar carátulas</button>`,
+  const fichas = [`<button class="chip mezcla" data-mezclar type="button">Mezclar todo</button>`, `<button class="chip" data-det="lista" data-k="__fav" type="button">Favoritas</button>`, `<button class="chip" data-estadisticas type="button">Tu actividad</button>`, `<button class="chip" data-personalizar type="button">Personalizar</button>`, `<button class="chip" data-portadas type="button">Descargar carátulas</button>`,
     ...generos.slice(0, 5).map(([g]) => `<button class="chip" data-det="lista" data-k="${esc("__gen:" + g)}" type="button">${esc(g)}</button>`),
     `<button class="chip" data-ir="canciones" type="button">Canciones</button>`, `<button class="chip" data-ir="albumes" type="button">Álbumes</button>`, `<button class="chip" data-ir="artistas" type="button">Artistas</button>`, `<button class="chip" data-ir="listas" type="button">Listas</button>`];
   c.innerHTML = `<div class="fichas">${fichas.join("")}</div>
@@ -721,6 +721,7 @@ function enlazar() {
     if (e.target.closest("[data-agregar]")) return MOTOR ? iniciarNativo(true) : $("#b-agregar").click();
     const ir = e.target.closest("[data-ir]"); if (ir) { E.vista = "biblioteca"; E.tab = ir.dataset.ir; E.detalle = null; dibujar(); animarCambio(); return; }
     if (e.target.closest("[data-estadisticas]")) return abrirStats();
+    if (e.target.closest("[data-personalizar]")) { mostrarEspacio(); abrir("hoja-aj"); setTimeout(() => { const t = $("#aj-apariencia"); if (t) t.scrollIntoView({ block: "start", behavior: "smooth" }); }, 380); return; }
     if (e.target.closest("[data-renovar-mixes]")) { mixesDeHoy(true).then(() => { avisar("Mixes renovados"); dibujar(); }); return; }
     if (e.target.closest("[data-portadas]")) return descargarFaltantes(true);
     if (e.target.closest("[data-portada-album]")) { const s0 = listaActual[0]; if (s0) portadaWeb(s0); return; }
@@ -1040,7 +1041,7 @@ async function alternarTraduccion() {
   if (!letraAct.trad) {
     avisar("Traduciendo…", 0);
     try { letraAct.trad = await traducir(texto, letraAct.textos, "es"); await db.poner("ajustes", letraAct.trad, "trad:" + s.id).catch(() => {}); avisar("Listo", 1200); }
-    catch (_) { tradLetra = false; avisar("No pude traducir. ¿Tienes internet?"); return; }
+    catch (e) { tradLetra = false; avisar("No pude traducir (" + String(e?.message || e).slice(0, 60) + "). ¿Tienes internet?", 4500); return; }
   }
   if (letraAct.id === s.id) { pintarLetra(); if (letraAct.sinc) actualizarLetra(true); }
 }

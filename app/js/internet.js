@@ -114,14 +114,35 @@ export async function buscarLetraCompleta(texto, s) {
 
 /** Traduce una lista de líneas con el traductor gratuito de Google; devuelve una lista del mismo largo */
 export async function traducir(texto, lineas, destino = "es") {
+  try { return await traducirGoogle(texto, lineas, destino, "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${destino}&dt=t&q="); }
+  catch (e1) {
+    try { return await traducirGoogle(texto, lineas, destino, "https://clients5.google.com/translate_a/single?client=dict-chrome-ex&sl=auto&tl=${destino}&dt=t&q="); }
+    catch (e2) { return await traducirMyMemory(texto, lineas, destino); }   // último recurso: otro servicio, línea por línea
+  }
+}
+async function traducirGoogle(texto, lineas, destino, base) {
   const out = []; let i = 0;
   while (i < lineas.length) {
     const trozo = []; let largo = 0;
     while (i < lineas.length && largo < 1400) { const t = lineas[i] && lineas[i].trim() ? lineas[i] : "·"; trozo.push(t); largo += encodeURIComponent(t).length + 3; i++; }
-    const j = await json(texto, `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${destino}&dt=t&q=${encodeURIComponent(trozo.join("\n"))}`);
-    const todo = ((j && j[0]) || []).map((x) => x[0] || "").join(""), partes = todo.split("\n");
+    const j = await json(texto, base.replace("${destino}", destino) + encodeURIComponent(trozo.join("\n")));
+    if (!j || !Array.isArray(j[0])) throw new Error("respuesta inesperada");
+    const todo = j[0].map((x) => x[0] || "").join(""), partes = todo.split("\n");
     for (let k = 0; k < trozo.length; k++) out.push(trozo[k] === "·" ? "" : partes.length === trozo.length ? partes[k].trim() : k === 0 ? todo : "");
   }
+  return out;
+}
+async function traducirMyMemory(texto, lineas, destino) {
+  const out = new Array(lineas.length).fill(""); let k = 0, ok = 0;
+  const obrero = async () => {
+    while (k < lineas.length) {
+      const i = k++, t = (lineas[i] || "").trim(); if (!t) continue;
+      const j = await json(texto, `https://api.mymemory.translated.net/get?langpair=autodetect|${destino}&q=${encodeURIComponent(t.slice(0, 450))}`).catch(() => null);
+      const r = j && j.responseData && j.responseData.translatedText; if (r && !/MYMEMORY WARNING|INVALID/i.test(r)) { out[i] = r; ok++; }
+    }
+  };
+  await Promise.all([obrero(), obrero(), obrero(), obrero()]);
+  if (!ok) throw new Error("ningún servicio de traducción respondió");
   return out;
 }
 

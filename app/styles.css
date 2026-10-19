@@ -340,3 +340,16 @@ html[data-fondo="portada"] .ambiente::after, html[data-fondo="imagen"] .ambiente
 @media (prefers-reduced-motion: reduce) { .ib.toque svg, #r-play.toque, .onda::after { animation: none !important; } }
 
 .nota-mix { margin: -4px 16px 8px; font-size: .82rem; opacity: .65; }
+
+/* ajustes: textos largos junto al interruptor sin saltar de línea, y selector de salida más legible */
+.campo { flex-wrap: nowrap; }
+.campo > span:first-child { flex: 1 1 0; min-width: 0; }
+.campo > select, .campo > input[type="range"] { flex: 0 1 auto; max-width: 55%; }
+.campo > input[type="range"] { flex: 1 0 100%; max-width: none; }
+.campo:has(> input[type="range"]) { flex-wrap: wrap; }
+.interruptor input:checked + span { background: var(--sw, var(--ac2, #34c759)); border-color: var(--sw, var(--ac2, #34c759)); }
+.hoja.corta { background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.03)), rgba(16,16,22,.94); }
+.opciones { gap: 0; }
+.opciones button { border-radius: 0; border-bottom: 1px solid rgba(255,255,255,.07); }
+.opciones button:last-child { border-bottom: 0; }
+.opciones button.activo::after { content: "✓"; float: right; }

@@ -26,3 +26,10 @@ test("portada: un álbum genérico y sin artista no se empareja por nombre parci
   const texto = async (u) => JSON.stringify(u.includes("entity=album") ? { results: [{ artistName: "Baby Lullaby Academy", collectionName: "Baby Sleep Music", artworkUrl100: "https://x/100x100bb.jpg" }] } : { results: [], data: [] });
   assert.equal(await buscarPortadaUrl(texto, { titulo: "Tenki no ko", artista: "", album: "Music", duracion: 408 }), null);
 });
+
+test("traducir: si Google falla usa MyMemory", async () => {
+  const { traducir } = await import("../app/js/internet.js");
+  const texto = async (u) => { if (u.includes("google")) throw new Error("http 429"); return JSON.stringify({ responseData: { translatedText: "hola " + decodeURIComponent(u.split("q=")[1]) } }); };
+  const r = await traducir(texto, ["love", "", "you"], "es");
+  assert.deepEqual(r, ["hola love", "", "hola you"]);
+});
