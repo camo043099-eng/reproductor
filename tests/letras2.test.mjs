@@ -33,3 +33,16 @@ test("traducir: si Google falla usa MyMemory", async () => {
   const r = await traducir(texto, ["love", "", "you"], "es");
   assert.deepEqual(r, ["hola love", "", "hola you"]);
 });
+
+test("candidatasPortada: junta iTunes y Deezer sin repetir", async () => {
+  const { candidatasPortada } = await import("../app/js/internet.js");
+  const texto = async (u) => {
+    if (u.includes("entity=song")) return JSON.stringify({ results: [{ artworkUrl100: "https://x/100x100bb.jpg", collectionName: "Disco A", artistName: "Ana" }] });
+    if (u.includes("entity=album")) return JSON.stringify({ results: [{ artworkUrl100: "https://y/100x100bb.jpg", collectionName: "Disco A", artistName: "Ana" }, { artworkUrl100: "https://z/100x100bb.jpg", collectionName: "Disco B", artistName: "Ana" }] });
+    return JSON.stringify({ data: [{ album: { cover_xl: "https://d/xl.jpg", cover_medium: "https://d/m.jpg", title: "Disco C" }, artist: { name: "Ana" } }] });
+  };
+  const r = await candidatasPortada(texto, "Ana Disco");
+  assert.deepEqual(r.map((c) => c.titulo), ["Disco A", "Disco C", "Disco B"]);
+  assert.ok(r[0].url.includes("1000x1000") && r[0].mini.includes("220x220"));
+  assert.deepEqual(await candidatasPortada(texto, "  "), []);
+});

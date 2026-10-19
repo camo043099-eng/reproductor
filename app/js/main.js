@@ -2,7 +2,7 @@ import { Reproductor, BANDAS, PRESETS } from "./player.js";
 import { leerEtiquetas } from "./tags.js";
 import * as db from "./db.js";
 import { ReproductorNativo } from "./nativo.js";
-import { buscarPortadaUrl, buscarLetraCompleta, traducir, parsearLRC, lineaActual, albumGenerico } from "./internet.js";
+import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, traducir, parsearLRC, lineaActual, albumGenerico } from "./internet.js";
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
@@ -47,6 +47,14 @@ async function portadaUrl(alb) {
   const b = await db.traer("portadas", alb).catch(() => null);
   const u = b ? URL.createObjectURL(b) : null; urlsPort.set(alb, u); return u;
 }
+// carátula "de relleno" generada para cada álbum o canción sin imagen: degradado de colores propio, olas y su inicial
+const _placas = new Map();
+function placa(t) {
+  t = String(t || "Onda").trim() || "Onda"; let p = _placas.get(t); if (p) return p;
+  let h = 0; for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) % 360; const h2 = (h + 55) % 360, ini = esc((t.match(/[\p{L}\p{N}]/u) || ["♪"])[0].toUpperCase());
+  p = "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${h} 62% 40%)"/><stop offset="1" stop-color="hsl(${h2} 66% 20%)"/></linearGradient></defs><rect width="100" height="100" fill="url(#g)"/><circle cx="76" cy="24" r="22" fill="hsl(${h2} 80% 60% / .22)"/><path d="M0 64 C20 50 32 80 52 64 S82 48 100 62 V100 H0Z" fill="hsl(${h2} 70% 55% / .38)"/><path d="M0 77 C22 65 36 90 56 77 S86 65 100 75 V100 H0Z" fill="hsl(${h} 75% 62% / .30)"/><text x="50" y="47" text-anchor="middle" font-size="36" font-weight="800" fill="rgba(255,255,255,.88)" font-family="sans-serif">${ini}</text></svg>`);
+  _placas.set(t, p); return p;
+}
 const SIN = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" fill="#17171d"/><path d="M19 32V15l14-3v17" fill="none" stroke="#6b6b7a" stroke-width="2.500"/><circle cx="16" cy="32" r="3.500" fill="#6b6b7a"/><circle cx="30" cy="29" r="3.500" fill="#6b6b7a"/></svg>');
 const vigia = "IntersectionObserver" in window ? new IntersectionObserver((es) => {
   for (const e of es) if (e.isIntersecting) { vigia.unobserve(e.target); hidratar(e.target); }
@@ -70,7 +78,8 @@ function pintar(c, items, f, envoltura) {
   if (items.length > N) requestAnimationFrame(paso);
   imagenes(c);
 }
-const imgHtml = (s, cls = "") => `<img class="${cls}" src="${SIN}" data-alb="${esc(s.alb || "")}" alt="" loading="lazy" decoding="async">`;
+const nombrePlaca = (s) => (s.album && !albumGenerico(s.album) ? s.album : (s.titulo || s.nombre));
+const imgHtml = (s, cls = "") => `<img class="${cls}" src="${placa(nombrePlaca(s))}" data-alb="${esc(s.alb || "")}" alt="" loading="lazy" decoding="async">`;
 
 // ── aviso ──
 let tAviso;
@@ -219,7 +228,7 @@ function dibujarInicio() {
   const albumTarjeta = (a, grande) => `<button class="tarjeta${grande ? " grande" : ""}" type="button" data-det="album" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.album || "Sin álbum")}</b><span>${esc(a.s.albumArtista || a.s.artista || "")}</span></button>`;
   const mix = (k, nombre, s, etiqueta) => `<button class="mix" type="button" data-det="lista" data-k="${esc(k)}" style="--h:${tono(nombre)}">${imgHtml(s)}<i>${etiqueta}</i><b>${esc(nombre)}</b></button>`;
   const paraTi = mh.map((m) => mix("__mix:" + m.id, m.nombre, porId.get(m.ids[0]), m.etiqueta)).join("");
-  const mixes = generos.map(([g]) => mix("__gen:" + g, "Mix " + g, E.canciones.find((s) => generosDe(s).includes(g)), "MIX")).concat(nuevas.length > 10 ? [mix("__olv", "Para redescubrir", nuevas[Math.floor(nuevas.length / 2)], "SIN ESCUCHAR")] : []).join("");
+  const mixes = generos.map(([g]) => mix("__gen:" + g, "Mix " + g, cancionDeGenero(g), "MIX")).concat(nuevas.length > 10 ? [mix("__olv", "Para redescubrir", nuevas[Math.floor(nuevas.length / 2)], "SIN ESCUCHAR")] : []).join("");
   const fichas = [`<button class="chip mezcla" data-mezclar type="button">Mezclar todo</button>`, `<button class="chip" data-det="lista" data-k="__fav" type="button">Favoritas</button>`, `<button class="chip" data-estadisticas type="button">Tu actividad</button>`, `<button class="chip" data-personalizar type="button">Personalizar</button>`, `<button class="chip" data-portadas type="button">Descargar carátulas</button>`,
     ...generos.slice(0, 5).map(([g]) => `<button class="chip" data-det="lista" data-k="${esc("__gen:" + g)}" type="button">${esc(g)}</button>`),
     `<button class="chip" data-ir="canciones" type="button">Canciones</button>`, `<button class="chip" data-ir="albumes" type="button">Álbumes</button>`, `<button class="chip" data-ir="artistas" type="button">Artistas</button>`, `<button class="chip" data-ir="listas" type="button">Listas</button>`];
@@ -237,12 +246,17 @@ function dibujarInicio() {
   $("#resumen").textContent = ""; imagenes(c);
   if (!mh.length && E.canciones.length) mixesDeHoy().then((m) => { if (m.mixes.length && E.vista === "inicio" && !E.detalle) dibujarInicio(); });
 }
+// canción de un género que sí tiene carátula real (si ninguna la tiene, se usa la de relleno)
+let conPortada = new Set(), conPortadaCargado = false;
+function refrescarConPortada(redibujar) { db.claves("portadas").then((k) => { const n = conPortada.size; conPortada = new Set(k); if (redibujar && (!conPortadaCargado || conPortada.size !== n)) { conPortadaCargado = true; if (E.vista === "buscar" && !E.q && !E.detalle) dibujarBuscar(); } conPortadaCargado = true; }).catch(() => {}); }
+const cancionDeGenero = (g) => { let primera = null; for (const s of E.canciones) if (generosDe(s).includes(g)) { if (conPortada.has(s.alb)) return s; primera ||= s; } return primera; };
 function dibujarBuscar() {
+  refrescarConPortada(true);
   const c = $("#contenido"), q = normal(E.q.trim());
   if (!q) {
     const g = conteoGeneros();
     const tonos = (t) => { let h = 0; for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; };
-    c.innerHTML = g.size ? `<h3 class="sub">Explorar todo</h3><div class="generos">${[...g].sort((a, b) => b[1] - a[1]).map(([t, n]) => `<button type="button" class="genero" data-det="lista" data-k="${esc("__gen:" + t)}" style="--h:${tonos(t)}">${imgHtml(E.canciones.find((s) => generosDe(s).includes(t)))}<b>${esc(t)}</b><span>${n} canciones</span></button>`).join("")}</div>` : `<div class="vacio">Escribe el nombre de una canción, un artista o un álbum.</div>`;
+    c.innerHTML = g.size ? `<h3 class="sub">Explorar todo</h3><div class="generos">${[...g].sort((a, b) => b[1] - a[1]).map(([t, n]) => `<button type="button" class="genero" data-det="lista" data-k="${esc("__gen:" + t)}" style="--h:${tonos(t)}">${imgHtml(cancionDeGenero(t))}<b>${esc(t)}</b><span>${n} canciones</span></button>`).join("")}</div>` : `<div class="vacio">Escribe el nombre de una canción, un artista o un álbum.</div>`;
     return;
   }
   listaActual = ordenar(E.canciones.filter((s) => coincide(s, q)));
@@ -343,7 +357,7 @@ function actualizarMini() {
   $("#mini-titulo").textContent = s.titulo || s.nombre; $("#mini-artista").textContent = s.artista || "";
   const nueva = s.id !== ultimoId, primera = ultimoId === null; ultimoId = s.id;
   portadaUrl(s.alb).then((u) => {
-    $("#mini-port").src = u || SIN; $("#r-port").src = u || SIN; tinte(s.alb, u);
+    { const pl = placa(nombrePlaca(s)); $("#mini-port").src = u || pl; $("#r-port").src = u || pl; $("#r-buscar-port").hidden = !!u; } tinte(s.alb, u);
     if (MOTOR && !u && nueva && E.aj.auto !== false && !intentadasSesion.has(s.alb)) { intentadasSesion.add(s.alb); portadaWeb(s, true).catch(() => {}); }
     if (nueva && !primera) { const g = $(".portada-grande"); g.style.setProperty("--dir", dirCambio); animar(g, "voltea", 900); animar(g, "brilla", 1100); animar($("#mini-port"), "pop", 700); dirCambio = 1; }
   });
@@ -607,7 +621,7 @@ function opcionesCancion(s, enLista) {
     { t: s.fav ? "Quitar de favoritas" : "Agregar a favoritas", f: () => alternarFav(s) },
     { t: "Agregar a una lista…", f: () => setTimeout(() => agregarALista(s), 0) },
   ];
-  op.push({ t: "Buscar portada en internet", f: () => portadaWeb(s) }, { t: "Elegir portada de mi galería", f: () => elegirImagen(s) }, { t: "Ver letra", f: () => { if (reproductor.actual?.id !== s.id) tocar([s], 0).then(abrirLetra); else abrirLetra(); } });
+  op.push({ t: "Elegir carátula entre resultados…", f: () => setTimeout(() => abrirSelectorPortada(s), 0) }, { t: "Buscar portada en internet", f: () => portadaWeb(s) }, { t: "Elegir portada de mi galería", f: () => elegirImagen(s) }, { t: "Ver letra", f: () => { if (reproductor.actual?.id !== s.id) tocar([s], 0).then(abrirLetra); else abrirLetra(); } });
   if (enLista) op.push({ t: "Quitar de esta lista", f: async () => { enLista.ids = enLista.ids.filter((x) => x !== s.id); await db.poner("listas", enLista); dibujar(); } });
   if (!MOTOR) op.push({ t: "Borrar de la biblioteca", cls: "peligro", f: async () => { if (!confirm(`¿Borrar “${s.titulo || s.nombre}” de la app? El archivo original de tu teléfono no se toca.`)) return; await borrarCancion(s); } });
   menu(s.titulo || s.nombre, op);
@@ -667,7 +681,7 @@ function vizEncender() {
   paso();
 }
 // ── carátula al ritmo (círculo que "salta" con los graves; solo mientras el reproductor está abierto y sonando) ──
-let ritRaf = 0, ritMedia = 0, ritImp = 0, ritUlt = 0;
+let ritRaf = 0, ritMedia = 0, ritImp = 0, ritUlt = 0, ritAros = [], ritBarras = new Float32Array(56), ritLat = 0;
 function nivelRitmo() {
   if (MOTOR) return reproductor.nivel();
   if (!reproductor.espectro(buf)) return { b: 0, r: 0 };
@@ -680,17 +694,37 @@ function ritmoEncender() {
   el.classList.toggle("circulo", on);
   if (MOTOR && reproductor.ponerRitmo) reproductor.ponerRitmo(on && pila.includes("hoja-rep")).catch(() => {});
   if (!on || ritRaf) return;
+  const cv = $("#r-ondas"), g = cv.getContext("2d");
   const paso = (ahora) => {
     ritRaf = requestAnimationFrame(paso);
-    if (!reproductor.sonando) { el.style.scale = ""; el.style.setProperty("--aro", 0); return; }
+    const dpr = Math.min(devicePixelRatio || 1, 1.5), W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    g.clearRect(0, 0, W, H);
+    if (!reproductor.sonando) { el.style.scale = ""; el.style.setProperty("--aro", 0); ritAros = []; return; }
     const n = nivelRitmo(); ritMedia += (n.b - ritMedia) * 0.06;
-    if (n.b > ritMedia * 1.3 + 0.03 && ahora - ritUlt > 170) { ritImp = Math.min(1, 0.55 + n.b); ritUlt = ahora; }
+    if (n.b > ritMedia * 1.3 + 0.03 && ahora - ritUlt > 170) { ritImp = Math.min(1, 0.55 + n.b); ritUlt = ahora; ritLat++; ritAros.push({ t: ahora, h: (ritLat * 47 + ahora * 0.01) % 360 }); if (ritAros.length > 7) ritAros.shift(); }
     ritImp *= 0.88;
     el.style.scale = (1 + 0.075 * ritImp + 0.025 * n.b).toFixed(4); el.style.setProperty("--aro", ritImp.toFixed(3));
+    // ondas de colores alrededor del círculo: anillos que salen en cada golpe + barras que cambian de color
+    const r = el.getBoundingClientRect(), cx = (r.left + r.width / 2) * dpr, cy = (r.top + r.height / 2) * dpr, R = (r.width / 2 / (1 + 0.075 * ritImp + 0.025 * n.b)) * dpr;
+    g.lineCap = "round";
+    const N = ritBarras.length, nivel = Math.max(n.r * 0.9, ritImp * 0.85, n.b);
+    for (let i = 0; i < N; i++) {
+      ritBarras[i] += ((Math.random() * 0.7 + 0.3) * nivel - ritBarras[i]) * (nivel > ritBarras[i] ? 0.55 : 0.12);
+      const a = (i / N) * Math.PI * 2 - Math.PI / 2, h = ritBarras[i] * R * 0.34 + 2 * dpr, c1 = Math.cos(a), s1 = Math.sin(a);
+      g.strokeStyle = `hsl(${(i * 360 / N + ahora * 0.03) % 360} 90% 62% / ${0.35 + 0.5 * nivel})`; g.lineWidth = 3.2 * dpr;
+      g.beginPath(); g.moveTo(cx + c1 * R * 1.07, cy + s1 * R * 1.07); g.lineTo(cx + c1 * (R * 1.07 + h), cy + s1 * (R * 1.07 + h)); g.stroke();
+    }
+    ritAros = ritAros.filter((o) => ahora - o.t < 1000);
+    for (const o of ritAros) {
+      const e = (ahora - o.t) / 1000, rr = R * (1.08 + e * 0.75);
+      g.strokeStyle = `hsl(${o.h} 95% 62% / ${(1 - e) * 0.28})`; g.lineWidth = (9 * (1 - e) + 2) * dpr; g.beginPath(); g.arc(cx, cy, rr, 0, 7); g.stroke();
+      g.strokeStyle = `hsl(${o.h} 95% 70% / ${(1 - e) * 0.75})`; g.lineWidth = (2.5 * (1 - e) + 0.8) * dpr; g.beginPath(); g.arc(cx, cy, rr, 0, 7); g.stroke();
+    }
   };
   ritRaf = requestAnimationFrame(paso);
 }
-function ritmoApagar() { cancelAnimationFrame(ritRaf); ritRaf = 0; ritImp = 0; const el = document.querySelector("#hoja-rep .portada-grande"); if (el) { el.style.scale = ""; el.style.setProperty("--aro", 0); } if (MOTOR && reproductor.ponerRitmo) reproductor.ponerRitmo(false).catch(() => {}); }
+function ritmoApagar() { cancelAnimationFrame(ritRaf); ritRaf = 0; ritImp = 0; ritAros = []; { const cv = $("#r-ondas"); if (cv) cv.getContext("2d").clearRect(0, 0, cv.width, cv.height); } const el = document.querySelector("#hoja-rep .portada-grande"); if (el) { el.style.scale = ""; el.style.setProperty("--aro", 0); } if (MOTOR && reproductor.ponerRitmo) reproductor.ponerRitmo(false).catch(() => {}); }
 function vizApagar() { cancelAnimationFrame(vizRaf); vizRaf = 0; $("#r-viz").hidden = true; }
 
 const NOMBRES_SALIDA = { 2: "Parlante del teléfono", 3: "Audífonos con cable", 4: "Audífonos con cable", 8: "Bluetooth", 9: "HDMI", 11: "USB", 22: "USB", 26: "Bluetooth", 27: "Bluetooth" };
@@ -746,6 +780,9 @@ function enlazar() {
   $("#contenido").addEventListener("click", async (e) => {
     if (e.target.closest("[data-agregar]")) return MOTOR ? iniciarNativo(true) : $("#b-agregar").click();
     const ir = e.target.closest("[data-ir]"); if (ir) { E.vista = "biblioteca"; E.tab = ir.dataset.ir; E.detalle = null; dibujar(); animarCambio(); return; }
+    if (e.target.closest("#r-buscar-port")) { if (reproductor.actual) abrirSelectorPortada(reproductor.actual); return; }
+    { const pp = e.target.closest("#pp-grid .pp"); if (pp) return usarCandidata(candidatas[+pp.dataset.i]); }
+    if (e.target.closest("#pp-galeria")) { if (portadaDe) { cerrar("hoja-portada"); elegirImagen(portadaDe); } return; }
     if (e.target.closest("[data-estadisticas]")) return abrirStats();
     if (e.target.closest("[data-personalizar]")) { mostrarEspacio(); abrir("hoja-aj"); setTimeout(() => { const t = $("#aj-apariencia"); if (t) t.scrollIntoView({ block: "start", behavior: "smooth" }); }, 380); return; }
     if (e.target.closest("[data-renovar-mixes]")) { mixesDeHoy(true).then(() => { avisar("Mixes renovados"); dibujar(); }); return; }
@@ -790,6 +827,7 @@ function enlazar() {
   $("#f-copia").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) restaurarCopia(f); });
   $("#aj-hist-borrar").addEventListener("click", async () => { if (!confirm("¿Borrar todo tu historial de reproducción?")) return; HIST = { m: {}, d: {}, tot: 0 }; await db.poner("ajustes", HIST, "hist"); dibujar(); avisar("Historial borrado"); });
   $("#aj-fondo").addEventListener("change", (e) => { if (e.target.value === "imagen" && !fondoUsuario) $("#f-fondo").click(); });
+  $("#pp-form").addEventListener("submit", (e) => { e.preventDefault(); buscarCandidatas(); });
   $("#aj-fondo-img").addEventListener("click", () => $("#f-fondo").click());
   $("#f-fondo").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) elegirFondo(f); });
   $("#aj-intro").addEventListener("click", () => { cerrar("hoja-aj"); setTimeout(() => mostrarIntro(true), 350); });
@@ -975,9 +1013,31 @@ const texto = async (url) => {
   const r = await fetch(url); if (!r.ok) throw new Error("http " + r.status); return r.text();
 };
 async function ponerPortada(alb, blob) {
-  await db.poner("portadas", blob, alb); urlsPort.delete(alb);
+  await db.poner("portadas", blob, alb); conPortada.add(alb); urlsPort.delete(alb);
   imgsDe(alb).forEach(hidratar);
   if (reproductor.actual?.alb === alb) actualizarMini();
+}
+// ── elegir la carátula a mano entre resultados de internet (como Poweramp) ──
+let portadaDe = null, candidatas = [];
+function abrirSelectorPortada(s) {
+  portadaDe = s; $("#pp-q").value = `${s.albumArtista || s.artista || ""} ${albumGenerico(s.album) ? (s.titulo || s.nombre) : s.album}`.replace(/\s+/g, " ").trim();
+  abrir("hoja-portada"); buscarCandidatas();
+}
+async function buscarCandidatas() {
+  const g = $("#pp-grid"), q = $("#pp-q").value.trim(); if (!q) return; g.innerHTML = `<div class="vacio">Buscando…</div>`;
+  let r = []; try { r = await candidatasPortada(texto, q); } catch (_) { /* sin internet */ }
+  candidatas = r;
+  g.innerHTML = r.length ? r.map((c, i) => `<button type="button" class="pp" data-i="${i}"><img src="${esc(c.mini)}" alt="" loading="lazy"><span>${esc(c.titulo || "")}</span><small>${esc(c.artista || "")}</small></button>`).join("") : `<div class="vacio">No encontré resultados. Cambia el texto de búsqueda o elige una imagen de tu galería.</div>`;
+}
+async function usarCandidata(c) {
+  const s = portadaDe; if (!s) return; avisar("Descargando carátula…", 0);
+  try { await guardarPortadaUrl(s, c.url); cerrar("hoja-portada"); avisar("Carátula cambiada", 1800); } catch (_) { avisar("No pude descargar esa carátula. Prueba otra.", 4000); }
+}
+async function guardarPortadaUrl(s, url) {
+  let blob;
+  if (MOTOR) { const r = await MOTOR.descargar({ url, albumId: s.albumId || s.alb }); blob = await (await fetch(window.Capacitor.convertFileSrc(r.ruta))).blob(); }
+  else blob = await miniatura(await (await fetch(url)).blob());
+  await ponerPortada(s.alb, blob); await db.borrar("ajustes", "sinportada:" + s.alb).catch(() => {});
 }
 async function portadaWeb(s, callado) {
   if (!callado) avisar("Buscando portada…", 0);

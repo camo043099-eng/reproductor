@@ -62,8 +62,10 @@
 
 <!-- reproductor completo -->
 <section class="hoja completa" id="hoja-rep" hidden aria-label="Reproduciendo" role="dialog">
+  <canvas id="r-ondas" aria-hidden="true"></canvas>
   <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span class="suave">Reproduciendo</span><button class="ib" id="r-cola" aria-label="Cola"></button></div>
   <div class="portada-grande"><img id="r-port" alt=""><canvas id="r-viz" width="320" height="80" hidden></canvas></div>
+  <button class="chip" id="r-buscar-port" type="button" hidden style="align-self:center;margin:-6px 0 8px">Buscar carátula en internet</button>
   <div class="datos"><h2 id="r-titulo"></h2><p id="r-artista"></p><p class="suave" id="r-album"></p></div>
   <div class="chips" id="r-chips"></div>
   <div class="barra" id="r-barra-c"><span class="burbuja-t" id="r-burbuja" hidden>0:00</span><input id="r-barra" type="range" min="0" max="1000" value="0" aria-label="Posición"><div class="tiempos"><span id="r-t1">0:00</span><span id="r-t2">0:00</span></div></div>
@@ -127,6 +129,13 @@
 </section>
 
 <!-- agregar a lista / opciones -->
+<section class="hoja" id="hoja-portada" hidden role="dialog" aria-label="Elegir carátula">
+  <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span>Elegir carátula</span><span></span></div>
+  <form class="pp-buscar" id="pp-form"><input id="pp-q" type="search" placeholder="Artista y canción o álbum" autocomplete="off"><button class="boton" type="submit">Buscar</button></form>
+  <div class="pp-grid" id="pp-grid"></div>
+  <button class="boton" id="pp-galeria" type="button" style="margin:14px 0">Elegir de mi galería</button>
+</section>
+
 <section class="hoja corta" id="hoja-menu" hidden role="dialog" aria-label="Opciones">
   <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span id="menu-titulo">Opciones</span><span></span></div>
   <div class="opciones" id="menu-op"></div>

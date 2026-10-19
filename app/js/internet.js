@@ -162,3 +162,21 @@ export function lineaActual(lineas, seg) {
   while (lo <= hi) { const m = (lo + hi) >> 1; if (lineas[m].t <= seg) { r = m; lo = m + 1; } else hi = m - 1; }
   return r;
 }
+
+/** varias carátulas posibles (para elegir a mano): iTunes (canción y álbum) y Deezer */
+export async function candidatasPortada(texto, consulta) {
+  const q = encodeURIComponent(String(consulta || "").trim()); if (!q) return [];
+  const grande = (u) => String(u || "").replace(/\/\d+x\d+(bb)?\.(jpg|png)/, "/1000x1000bb.jpg"), chica = (u) => String(u || "").replace(/\/\d+x\d+(bb)?\.(jpg|png)/, "/220x220bb.jpg");
+  const listas = await Promise.all([
+    json(texto, `https://itunes.apple.com/search?media=music&entity=song&limit=14&term=${q}`).then((j) => (j.results || []).filter((r) => r.artworkUrl100).map((r) => ({ url: grande(r.artworkUrl100), mini: chica(r.artworkUrl100), titulo: r.collectionName || r.trackName, artista: r.artistName }))).catch(() => []),
+    json(texto, `https://itunes.apple.com/search?media=music&entity=album&limit=10&term=${q}`).then((j) => (j.results || []).filter((r) => r.artworkUrl100).map((r) => ({ url: grande(r.artworkUrl100), mini: chica(r.artworkUrl100), titulo: r.collectionName, artista: r.artistName }))).catch(() => []),
+    json(texto, `https://api.deezer.com/search?q=${q}`).then((j) => (j.data || []).filter((r) => r.album && (r.album.cover_xl || r.album.cover_big)).map((r) => ({ url: r.album.cover_xl || r.album.cover_big, mini: r.album.cover_medium || r.album.cover, titulo: r.album.title, artista: r.artist && r.artist.name }))).catch(() => []),
+  ]);
+  const vistos = new Set(), out = [];
+  for (let i = 0; out.length < 18; i++) {                                                  // intercala las tres fuentes
+    let hubo = false;
+    for (const l of listas) if (l[i]) { hubo = true; const c = l[i], k = norm((c.titulo || "") + "|" + (c.artista || "")); if (!vistos.has(k)) { vistos.add(k); out.push(c); } }
+    if (!hubo) break;
+  }
+  return out;
+}
