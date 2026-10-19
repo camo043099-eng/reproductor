@@ -379,7 +379,7 @@ html[data-fondo="portada"] .hoja.completa, html[data-fondo="imagen"] .hoja.compl
 .pp img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; background: #222; }
 .pp span { font-weight: 600; font-size: .86rem; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .pp small { color: var(--tx2); font-size: .76rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pp-grid .vacio { grid-column: 1 / -1; }
-.completa .portada-grande.circulo { width: min(66vw, 40vh, 340px); margin-top: 26px; margin-bottom: 30px; }
+.completa .portada-grande.circulo { width: min(58vw, 36vh, 300px); margin-top: 34px; margin-bottom: 38px; }
 
 /* nombres largos en el reproductor: una sola línea, se deslizan una vez */
 .datos h2, .datos p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
