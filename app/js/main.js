@@ -19,7 +19,7 @@ const I = {
   volver: svg('<path d="M15 5l-7 7 7 7"/>'), mas3: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.800"/><circle cx="12" cy="12" r="1.800"/><circle cx="12" cy="19" r="1.800"/></svg>',
 };
 const ponerIconos = () => {
-  const m = { "#b-buscar": I.buscar, "#b-agregar": I.mas, "#b-ajustes": I.ajustes, "#mini-sig": I.sig, "#r-cola": I.cola, "#r-azar": I.azar, "#r-ant": I.ant, "#r-sig": I.sig, "#r-rep": I.rep, "#r-fav": I.fav, "#r-eq": I.eq, "#r-sueno": I.luna, "#r-lista": I.lista };
+  const m = { "#b-agregar": I.mas, "#b-ajustes": I.ajustes, "#mini-sig": I.sig, "#r-cola": I.cola, "#r-azar": I.azar, "#r-ant": I.ant, "#r-sig": I.sig, "#r-rep": I.rep, "#r-fav": I.fav, "#r-eq": I.eq, "#r-sueno": I.luna, "#r-lista": I.lista };
   for (const [k, v] of Object.entries(m)) $(k).innerHTML = v;
   document.querySelectorAll("[data-cerrar]").forEach((b) => { b.innerHTML = I.abajo; });
 };
@@ -30,7 +30,7 @@ const colador = new Intl.Collator("es", { sensitivity: "base", numeric: true });
 const normal = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 // ── estado ──
-const E = { canciones: [], listas: [], tab: "canciones", orden: "titulo", q: "", detalle: null, aj: {} };
+const E = { vista: "inicio", canciones: [], listas: [], tab: "canciones", orden: "titulo", q: "", detalle: null, aj: {} };
 const porId = new Map();
 const urlsPort = new Map();                                              // clave de álbum → URL o null
 let reproductor;
@@ -119,7 +119,7 @@ function ordenar(arr) {
   const f = { titulo: (a, b) => c(a.titulo || a.nombre, b.titulo || b.nombre), artista: (a, b) => c(a.artista, b.artista) || c(a.album, b.album) || (a.disco - b.disco) || (a.pista - b.pista), album: (a, b) => c(a.album, b.album) || (a.disco - b.disco) || (a.pista - b.pista), reciente: (a, b) => b.fecha - a.fecha }[k];
   return arr.slice().sort(f);
 }
-const coincide = (s, q) => !q || normal([s.titulo, s.artista, s.album, s.nombre].join(" ")).includes(q);
+const coincide = (s, q) => !q || normal([s.titulo, s.artista, s.album, s.nombre, s.genero, s.anio].join(" ")).includes(q);
 function filaCancion(s, i, extra = "") {
   const sonando = reproductor.actual?.id === s.id;
   return `<li class="fila${sonando ? " sonando" : ""}" data-i="${i}" data-id="${esc(s.id)}" tabindex="0">${imgHtml(s)}<span class="info"><b>${esc(s.titulo || s.nombre)}</b><span>${esc(s.artista || "Artista desconocido")}${extra}</span></span><span class="dur">${fmt(s.duracion)}</span><button class="mas" type="button" data-mas aria-label="Más opciones">${I.mas3}</button></li>`;
@@ -133,8 +133,50 @@ function vacio() {
   return `<div class="vacio"><p><b>Tu biblioteca está vacía</b></p><p>Agrega canciones o una carpeta de música desde tu teléfono. Los archivos se copian dentro de la app y funcionan sin internet.</p><button class="boton primario" data-agregar type="button">Agregar música</button></div>`;
 }
 let listaActual = [];                                                      // canciones mostradas, para tocar y seguir en la cola
+const saludo = () => { const h = new Date().getHours(); return h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches"; };
+const IN = { inicio: svg('<path d="M4 11l8-7 8 7v9a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1z"/>'), buscar: I.buscar, biblioteca: svg('<path d="M5 4v16M10 4v16M15 5l4 14"/>') };
 function dibujar() {
-  const c = $("#contenido"), q = normal(E.q.trim()), d = E.detalle;
+  const v = E.vista;
+  $("#titulo-vista").textContent = v === "inicio" ? saludo() : v === "buscar" ? "Buscar" : "Tu biblioteca";
+  $("#buscador").hidden = v !== "buscar"; $("#pestanas").hidden = v !== "biblioteca"; $("#barra-orden").hidden = true;
+  document.querySelectorAll("#nav button").forEach((b) => { const a = b.dataset.v === v; a ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"); b.firstElementChild.innerHTML = IN[b.dataset.v]; });
+  if (v !== "biblioteca" && !E.canciones.length) { $("#contenido").innerHTML = vacio(); return; }
+  if (v === "inicio") return dibujarInicio(); if (v === "buscar") return dibujarBuscar(); dibujarBiblioteca();
+}
+let listasInicio = { fav: [], rec: [] };
+function dibujarInicio() {
+  const c = $("#contenido"), rec = [...E.canciones].sort((a, b) => b.fecha - a.fecha), fav = E.canciones.filter((s) => s.fav);
+  const albs = [...agrupar((s) => s.alb)].map(([k, v]) => ({ k, s: v[0], n: v.length, f: Math.max(...v.map((x) => x.fecha)) })).sort((a, b) => b.f - a.f);
+  const arts = [...agrupar((s) => normal(s.albumArtista || s.artista))].map(([k, v]) => ({ k, s: v[0], n: v.length })).sort((a, b) => b.n - a.n).slice(0, 12);
+  listasInicio = { fav: fav.slice(0, 20), rec: rec.slice(0, 20) };
+  const tiles = [`<button class="tile" type="button" data-det="lista" data-k="__fav"><span class="sinport fav">${I.fav.replace("<svg", '<svg fill="currentColor"')}</span><b>Favoritas</b></button>`,
+    ...albs.slice(0, 5).map((a) => `<button class="tile" type="button" data-det="album" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.album || "Sin álbum")}</b></button>`)];
+  const estante = (t, h) => h ? `<section class="estante"><h3>${t}</h3><div class="carril">${h}</div></section>` : "";
+  c.innerHTML = `<div class="fichas"><button class="chip" data-ir="canciones" type="button">Canciones</button><button class="chip" data-ir="albumes" type="button">Álbumes</button><button class="chip" data-ir="artistas" type="button">Artistas</button><button class="chip" data-ir="listas" type="button">Listas</button></div>
+  <div class="tiles">${tiles.join("")}</div>
+  <div class="acciones-detalle"><button class="boton primario" type="button" data-mezclar>Mezclar toda mi música</button></div>
+  ${estante("Agregado recientemente", albs.slice(0, 12).map((a) => `<button class="tarjeta" type="button" data-det="album" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.album || "Sin álbum")}</b><span>${esc(a.s.albumArtista || a.s.artista || "")}</span></button>`).join(""))}
+  ${estante("Tus favoritas", listasInicio.fav.map((s, i) => `<button class="tarjeta" type="button" data-lista="fav" data-i="${i}">${imgHtml(s)}<b>${esc(s.titulo || s.nombre)}</b><span>${esc(s.artista || "")}</span></button>`).join(""))}
+  ${estante("Canciones nuevas", listasInicio.rec.map((s, i) => `<button class="tarjeta" type="button" data-lista="rec" data-i="${i}">${imgHtml(s)}<b>${esc(s.titulo || s.nombre)}</b><span>${esc(s.artista || "")}</span></button>`).join(""))}
+  ${estante("Artistas", arts.map((a) => `<button class="tarjeta redonda" type="button" data-det="artista" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.albumArtista || a.s.artista || "Desconocido")}</b><span>${a.n} canciones</span></button>`).join(""))}`;
+  $("#resumen").textContent = ""; imagenes(c);
+}
+function dibujarBuscar() {
+  const c = $("#contenido"), q = normal(E.q.trim());
+  if (!q) {
+    const g = new Map(); for (const s of E.canciones) if (s.genero) g.set(s.genero, (g.get(s.genero) || 0) + 1);
+    const tonos = (t) => { let h = 0; for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; };
+    c.innerHTML = g.size ? `<h3 class="sub">Explorar todo</h3><div class="generos">${[...g].sort((a, b) => b[1] - a[1]).map(([t, n]) => `<button type="button" class="genero" data-q="${esc(t)}" style="--h:${tonos(t)}"><b>${esc(t)}</b><span>${n}</span></button>`).join("")}</div>` : `<div class="vacio">Escribe el nombre de una canción, un artista o un álbum.</div>`;
+    return;
+  }
+  listaActual = ordenar(E.canciones.filter((s) => coincide(s, q)));
+  const albs = [...agrupar((s) => s.alb)].filter(([, v]) => v.some((s) => coincide(s, q))).slice(0, 10);
+  c.innerHTML = (albs.length ? `<section class="estante"><h3>Álbumes</h3><div class="carril">${albs.map(([k, v]) => `<button class="tarjeta" type="button" data-det="album" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].album || "Sin álbum")}</b><span>${esc(v[0].albumArtista || v[0].artista || "")}</span></button>`).join("")}</div></section>` : "") +
+    (listaActual.length ? `<h3 class="sub">Canciones</h3><ul class="lista">${listaActual.map((s, i) => filaCancion(s, i)).join("")}</ul>` : `<div class="vacio">Nada coincide con “${esc(E.q)}”.</div>`);
+  imagenes(c);
+}
+function dibujarBiblioteca() {
+  const c = $("#contenido"), q = "", d = E.detalle;
   $("#barra-orden").hidden = !(E.tab === "canciones" && !d);
   document.querySelectorAll("#pestanas button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.t === E.tab)));
   if (!E.canciones.length) { c.innerHTML = vacio(); $("#resumen").textContent = ""; return; }
@@ -188,7 +230,7 @@ function actualizarMini() {
   document.body.style.paddingBottom = "";
   if (!s) return;
   $("#mini-titulo").textContent = s.titulo || s.nombre; $("#mini-artista").textContent = s.artista || "";
-  portadaUrl(s.alb).then((u) => { $("#mini-port").src = u || SIN; $("#r-port").src = u || SIN; });
+  portadaUrl(s.alb).then((u) => { $("#mini-port").src = u || SIN; $("#r-port").src = u || SIN; tinte(s.alb, u); });
   $("#r-titulo").textContent = s.titulo || s.nombre; $("#r-artista").textContent = s.artista || "Artista desconocido"; $("#r-album").textContent = [s.album, s.anio].filter(Boolean).join(" · ");
   const chips = [s.formato, s.sampleRate ? `${+(s.sampleRate / 1000).toFixed(1)} kHz` : "", s.bits ? `${s.bits} bits` : "", s.canales === 1 ? "Mono" : s.canales === 2 ? "Estéreo" : s.canales ? `${s.canales} canales` : ""].filter(Boolean);
   $("#r-chips").innerHTML = chips.map((t) => `<span class="chip">${esc(t)}</span>`).join("");
@@ -198,14 +240,30 @@ function actualizarMini() {
   actualizarTiempo();
 }
 function actualizarEstado() {
-  const p = reproductor.sonando;
+  const p = reproductor.sonando; $(".portada-grande").classList.toggle("pausada", !p);
   $("#mini-play").innerHTML = p ? I.pausa : I.play; $("#r-play").innerHTML = p ? I.pausa : I.play;
+}
+const tintes = new Map();
+async function tinte(alb, url) {
+  let col = tintes.get(alb);
+  if (!col) {
+    col = "#3a3f7a";
+    if (url) try {
+      const im = new Image(); im.src = url; await im.decode(); const c = document.createElement("canvas"); c.width = c.height = 12; const g = c.getContext("2d"); g.drawImage(im, 0, 0, 12, 12);
+      const d = g.getImageData(0, 0, 12, 12).data; let r = 0, gr = 0, b = 0, w = 0;
+      for (let i = 0; i < d.length; i += 4) { const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]), sat = (mx - mn) / (mx || 1), k = 0.05 + sat * sat; r += d[i] * k; gr += d[i + 1] * k; b += d[i + 2] * k; w += k; }
+      r /= w; gr /= w; b /= w; const m = Math.max(r, gr, b) || 1, f = 150 / m;                       // brillo medio: el vidrio se ve mejor
+      col = `rgb(${Math.round(Math.min(255, r * f))},${Math.round(Math.min(255, gr * f))},${Math.round(Math.min(255, b * f))})`;
+    } catch (_) { /* sin color */ }
+    tintes.set(alb, col);
+  }
+  document.documentElement.style.setProperty("--t", col);
 }
 let arrastrando = false;
 function actualizarTiempo() {
   const t = reproductor.tiempo, d = reproductor.duracion;
   $("#mini-prog").style.width = d ? `${Math.min(100, (t / d) * 100)}%` : "0";
-  if (!arrastrando) { $("#r-barra").value = d ? Math.round((t / d) * 1000) : 0; $("#r-t1").textContent = fmt(t); }
+  if (!arrastrando) { $("#r-barra").value = d ? Math.round((t / d) * 1000) : 0; $("#r-barra").style.setProperty("--p", (d ? (t / d) * 100 : 0) + "%"); $("#r-t1").textContent = fmt(t); }
   $("#r-t2").textContent = fmt(d);
 }
 
@@ -220,9 +278,12 @@ async function guardarSesion(fuerza) {
 
 // ── hojas ──
 const pila = []; let ignorarPop = 0;
-function abrir(id) { const h = $("#" + id); h.hidden = false; pila.push(id); if (h.classList.contains("corta")) $("#fondo").hidden = false; history.pushState({ hoja: id }, ""); h.focus?.(); }
+function abrir(id) {
+  const h = $("#" + id); clearTimeout(h._t); h.hidden = false; void h.offsetWidth; h.classList.add("ver"); pila.push(id);
+  if (h.classList.contains("corta")) $("#fondo").hidden = false; history.pushState({ hoja: id }, ""); h.focus?.();
+}
 function cerrar(id, desdeHistorial) {
-  const k = pila.lastIndexOf(id); if (k < 0) return; pila.splice(k, 1); $("#" + id).hidden = true;
+  const k = pila.lastIndexOf(id); if (k < 0) return; pila.splice(k, 1); { const h = $("#" + id); h.classList.remove("ver"); clearTimeout(h._t); h._t = setTimeout(() => { h.hidden = true; }, 420); }
   if (!pila.some((x) => $("#" + x).classList.contains("corta"))) $("#fondo").hidden = true;
   if (!desdeHistorial) { ignorarPop++; history.back(); }
   if (id === "hoja-rep") vizApagar();
@@ -332,10 +393,7 @@ function enlazar() {
   R.addEventListener("dormido", () => avisar("Temporizador: música apagada. Buenas noches."));
   R.addEventListener("sueno", () => { if (pila.includes("hoja-sueno")) dibujarSueno(); });
 
-  $("#b-buscar").addEventListener("click", () => {
-    const b = $("#buscador"), ab = b.hidden; b.hidden = !ab; $("#b-buscar").setAttribute("aria-expanded", String(ab));
-    if (ab) $("#q").focus(); else { $("#q").value = ""; E.q = ""; dibujar(); }
-  });
+  $("#nav").addEventListener("click", (e) => { const b = e.target.closest("button[data-v]"); if (!b) return; E.vista = b.dataset.v; E.detalle = null; dibujar(); window.scrollTo(0, 0); if (E.vista === "buscar") $("#q").focus(); });
   $("#q").addEventListener("input", (e) => { E.q = e.target.value; dibujar(); });
   $("#b-agregar").addEventListener("click", () => menu("Agregar música", [
     { t: "Elegir canciones", f: () => $("#f-audio").click() }, { t: "Elegir una carpeta completa", f: elegirCarpeta }]));
@@ -346,7 +404,11 @@ function enlazar() {
 
   $("#contenido").addEventListener("click", async (e) => {
     if (e.target.closest("[data-agregar]")) return $("#b-agregar").click();
-    const det = e.target.closest("[data-det]"); if (det) { E.detalle = { tipo: det.dataset.det, k: det.dataset.k }; history.pushState({ det: 1 }, ""); dibujar(); $("#contenido").scrollIntoView(); return; }
+    const ir = e.target.closest("[data-ir]"); if (ir) { E.vista = "biblioteca"; E.tab = ir.dataset.ir; E.detalle = null; dibujar(); return; }
+    if (e.target.closest("[data-mezclar]")) return tocar(ordenar(E.canciones), 0, true);
+    const gq = e.target.closest("[data-q]"); if (gq) { E.q = gq.dataset.q; $("#q").value = E.q; dibujar(); return; }
+    const cl = e.target.closest("[data-lista]"); if (cl) return tocar(listasInicio[cl.dataset.lista], +cl.dataset.i);
+    const det = e.target.closest("[data-det]"); if (det) { E.vista = "biblioteca"; E.tab = det.dataset.det === "artista" ? "artistas" : det.dataset.det === "album" ? "albumes" : "listas"; E.detalle = { tipo: det.dataset.det, k: det.dataset.k }; history.pushState({ det: 1 }, ""); dibujar(); $("#contenido").scrollIntoView(); return; }
     if (e.target.closest("[data-volver]")) return history.back();
     if (e.target.closest("[data-nueva-lista]")) { await nuevaLista(); return; }
     if (e.target.closest("[data-borrar-lista]")) { const l = E.listas.find((x) => x.id === E.detalle.k); if (l && confirm(`¿Borrar la lista “${l.nombre}”?`)) { await db.borrar("listas", l.id); E.listas = E.listas.filter((x) => x !== l); E.detalle = null; dibujar(); } return; }

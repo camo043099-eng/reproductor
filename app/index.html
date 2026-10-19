@@ -12,16 +12,16 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<div class="ambiente" id="ambiente" aria-hidden="true"></div>
 <div class="app" id="app">
   <header class="cabeza">
-    <h1>Onda</h1>
+    <h1 id="titulo-vista">Onda</h1>
     <div class="cabeza-botones">
-      <button class="ib" id="b-buscar" type="button" aria-label="Buscar" aria-expanded="false"></button>
       <button class="ib" id="b-agregar" type="button" aria-label="Agregar música"></button>
       <button class="ib" id="b-ajustes" type="button" aria-label="Ajustes"></button>
     </div>
   </header>
-  <div class="buscador" id="buscador" hidden><input id="q" type="search" placeholder="Buscar canción, artista o álbum" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+  <div class="buscador" id="buscador" hidden><input id="q" type="search" placeholder="¿Qué quieres escuchar?" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
   <nav class="pestanas" id="pestanas" role="tablist" aria-label="Biblioteca">
     <button role="tab" data-t="canciones" aria-selected="true">Canciones</button>
     <button role="tab" data-t="albumes" aria-selected="false">Álbumes</button>
@@ -35,6 +35,12 @@
   <main class="contenido" id="contenido" tabindex="-1"></main>
   <div class="aviso" id="aviso" role="status" aria-live="polite" hidden></div>
 </div>
+
+<nav class="nav" id="nav" aria-label="Secciones">
+  <button type="button" data-v="inicio" aria-current="page"><i></i><span>Inicio</span></button>
+  <button type="button" data-v="buscar"><i></i><span>Buscar</span></button>
+  <button type="button" data-v="biblioteca"><i></i><span>Biblioteca</span></button>
+</nav>
 
 <!-- mini reproductor -->
 <div class="mini" id="mini" hidden>
