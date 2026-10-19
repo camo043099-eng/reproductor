@@ -508,3 +508,4 @@ html #eq-bandas.b31 .banda { flex: 0 0 38px; }
 .eq-fila .tipo { padding: 8px 4px; border-radius: 10px; background: rgba(255,255,255,.1); font-size: .72rem; font-weight: 700; }
 .eq-fila .quitar { padding: 8px 0; border-radius: 10px; background: rgba(255,255,255,.08); }
 .eq-fila-t { display: grid; grid-template-columns: 64px 1fr 1fr 1fr 34px; gap: 6px; font-size: .68rem; color: var(--tx2); text-align: center; padding-top: 4px; }
+.pts { display: block; width: 4px; height: 21px; margin: 0 auto; background: radial-gradient(circle at 50% 50%, currentColor 1.8px, transparent 2.3px) 0 0 / 4px 7px repeat-y; }

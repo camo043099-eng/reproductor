@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.35";
+const VERSION = "0.9.36";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -66,17 +66,19 @@ function imagenes(raiz) { raiz.querySelectorAll("img[data-alb]:not([data-obs])")
 const imgsDe = (alb) => document.querySelectorAll(`img[data-alb="${CSS.escape(alb)}"]`);
 
 // pinta listas largas por tandas: lo primero aparece al instante y el resto llega entre cuadros, sin congelar la pantalla
-let tokenPintado = 0, forzarPintado = () => {};
+let tokenPintado = 0, forzarPintado = () => {}, vistaLista = { completa: true };
 function pintar(c, items, f, envoltura) {
-  const mi = ++tokenPintado, N = 40; forzarPintado = () => {};
+  const mi = ++tokenPintado, N = 30; forzarPintado = () => {}; let lote = 40; const vl = vistaLista = { completa: items.length <= N };
   c.innerHTML = envoltura(items.slice(0, N).map(f).join(""));
   const cont = c.querySelector("[data-tandas]"); let i = N;
   const paso = () => {
     if (mi !== tokenPintado || !cont.isConnected || i >= items.length) return;
-    const fin = Math.min(items.length, i + 60); let h = ""; for (let k = i; k < fin; k++) h += f(items[k], k);
-    const t = document.createElement("template"); t.innerHTML = h; imagenes(t.content); cont.appendChild(t.content); i = fin; requestAnimationFrame(paso);
+    const t0 = performance.now(), fin = Math.min(items.length, i + lote); let h = ""; for (let k = i; k < fin; k++) h += f(items[k], k);
+    const t = document.createElement("template"); t.innerHTML = h; imagenes(t.content); cont.appendChild(t.content); i = fin;
+    const dt = performance.now() - t0; lote = dt > 9 ? Math.max(8, lote >> 1) : dt < 4 ? Math.min(120, lote + 12) : lote;      // cada tanda cabe en ~un cuadro: la pantalla no se congela
+    if (i >= items.length) vl.completa = true; else requestAnimationFrame(paso);
   };
-  forzarPintado = () => { if (mi !== tokenPintado || i >= items.length) return; let h = ""; for (let k = i; k < items.length; k++) h += f(items[k], k); const t = document.createElement("template"); t.innerHTML = h; imagenes(t.content); cont.appendChild(t.content); i = items.length; };
+  forzarPintado = () => { if (mi !== tokenPintado || i >= items.length) return; let h = ""; for (let k = i; k < items.length; k++) h += f(items[k], k); const t = document.createElement("template"); t.innerHTML = h; imagenes(t.content); cont.appendChild(t.content); i = items.length; vl.completa = true; };
   if (items.length > N) requestAnimationFrame(paso);
   imagenes(c);
 }
@@ -195,7 +197,7 @@ const conteoGeneros = () => { const g = new Map(); for (const s of E.canciones) 
 const coincide = (s, q) => !q || (s._b ||= normal([s.titulo, s.artista, s.album, s.nombre, s.genero, s.anio].join(" "))).includes(q);
 function filaCancion(s, i, extra = "") {
   const sonando = reproductor.actual?.id === s.id;
-  return `<li class="fila${sonando ? " sonando" : ""}" data-i="${i}" data-id="${esc(s.id)}" tabindex="0">${imgHtml(s)}<span class="info"><b>${esc(nom(s))}</b><span>${esc(s.artista || "Artista desconocido")}${extra}</span></span><span class="dur">${fmt(s.duracion)}</span><button class="mas" type="button" data-mas aria-label="Más opciones">${I.mas3}</button></li>`;
+  return `<li class="fila${sonando ? " sonando" : ""}" data-i="${i}" data-id="${esc(s.id)}" tabindex="0">${imgHtml(s)}<span class="info"><b>${esc(nom(s))}</b><span>${esc(s.artista || "Artista desconocido")}${extra}</span></span><span class="dur">${fmt(s.duracion)}</span><button class="mas" type="button" data-mas aria-label="Más opciones"><i class="pts"></i></button></li>`;
 }
 function agrupar(clave) {
   const m = new Map();
@@ -210,8 +212,26 @@ let listaActual = [];                                                      // ca
 const saludo = () => { const h = new Date().getHours(); return h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches"; };
 const IN = { inicio: svg('<path d="M4 11l8-7 8 7v9a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1z"/>'), buscar: I.buscar, biblioteca: svg('<path d="M5 4v16M10 4v16M15 5l4 14"/>') };
 function animarCambio() { const c = $("#contenido"); c.classList.remove("entra"); void c.offsetWidth; c.classList.add("entra"); }
+// Caché de vistas: al salir de Canciones/Álbumes/Artistas/Carpetas la lista ya dibujada se guarda (no se destruye) y al volver aparece al instante, en el mismo lugar.
+const vistasCache = new Map(); let vistaActual = null;
+function guardarVistaActual() {
+  const v = vistaActual; vistaActual = null; if (!v || !v.completa.completa || v.version !== E.version) return;
+  const c = $("#contenido"); if (!c.firstElementChild || c.dataset.vista !== v.clave) return;
+  const frag = document.createDocumentFragment(); while (c.firstChild) frag.appendChild(c.firstChild);
+  vistasCache.delete(v.clave); vistasCache.set(v.clave, { frag, lista: v.lista, resumen: $("#resumen").textContent, scroll: window.scrollY, indice: v.indice, version: v.version });
+  while (vistasCache.size > 3) vistasCache.delete(vistasCache.keys().next().value);
+}
+function restaurarVista(clave) {
+  const h = vistasCache.get(clave); if (!h || h.version !== E.version) { vistasCache.delete(clave); return false; }
+  vistasCache.delete(clave); const c = $("#contenido"); c.replaceChildren(h.frag); c.dataset.vista = clave; listaActual = h.lista; $("#resumen").textContent = h.resumen;
+  c.querySelectorAll(".fila.sonando").forEach((x) => x.classList.remove("sonando")); { const id = reproductor.actual?.id; if (id) { const f = c.querySelector(`.fila[data-id="${CSS.escape(id)}"]`); f?.classList.add("sonando"); } }
+  c.querySelectorAll('img[data-alb]').forEach((i) => { if (i.src.startsWith("data:") && conPortada.has(i.dataset.alb)) hidratar(i); });   // carátulas que llegaron mientras la lista estaba guardada
+  vistaActual = { clave, version: E.version, completa: { completa: true }, lista: listaActual, indice: h.indice };
+  if (h.indice) montarIndice(h.indice.items, h.indice.texto); requestAnimationFrame(() => window.scrollTo(0, h.scroll)); return true;
+}
+function marcarVista(clave, indice) { $("#contenido").dataset.vista = clave; vistaActual = { clave, version: E.version, completa: vistaLista, lista: listaActual, indice }; }
 function dibujar() {
-  tokenPintado++;
+  guardarVistaActual(); delete $("#contenido").dataset.vista; tokenPintado++;
   const v = E.vista;
   $("#titulo-vista").textContent = v === "inicio" ? saludo() : v === "buscar" ? "Buscar" : "Tu biblioteca";
   $("#buscador").hidden = !(v === "buscar" || (v === "biblioteca" && !E.detalle)); $("#q").placeholder = v === "buscar" ? "¿Qué quieres escuchar?" : "Buscar en tu biblioteca…"; $("#indice").hidden = true; $("#pestanas").hidden = v !== "biblioteca"; $("#barra-orden").hidden = true;
@@ -289,7 +309,9 @@ function dibujarBuscar() {
   pintar(c, listaActual, (s, i) => filaCancion(s, i), (h) => cabeza + `<ul class="lista" data-tandas>${h}</ul>`);
 }
 // barra de letras A–Z para saltar rápido en listas largas
+let indiceUlt = null;
 function montarIndice(items, texto) {
+  indiceUlt = { items, texto };
   const ind = $("#indice"), c = $("#contenido");
   const letra = (t) => { const ch = normal(String(t || "").trim()).charAt(0).toUpperCase(); return /[A-Z]/.test(ch) ? ch : "#"; };
   if (items.length < 25) { ind.hidden = true; return; }
@@ -313,6 +335,9 @@ function dibujarBiblioteca() {
   document.querySelectorAll("#pestanas button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.t === E.tab)));
   if (!E.canciones.length) { c.innerHTML = vacio(); $("#resumen").textContent = ""; return; }
   if (d) return dibujarDetalle(c, d);
+  const cl = !q && (E.tab === "canciones" || E.tab === "albumes" || E.tab === "artistas" || E.tab === "carpetas") ? "bib:" + E.tab + ":" + E.orden : null;
+  if (cl && restaurarVista(cl)) return;
+  indiceUlt = null;
   if (E.tab === "canciones") {
     listaActual = q ? ordenadas().filter((s) => coincide(s, q)) : ordenadas();
     const dur = listaActual.reduce((a, s) => a + (s.duracion || 0), 0);
@@ -339,7 +364,7 @@ function dibujarBiblioteca() {
     c.innerHTML = `<div class="acciones-detalle"><button class="boton" type="button" data-nueva-lista>Nueva lista</button></div><div class="rejilla">${filas.join("")}</div>`;
     $("#resumen").textContent = "";
   }
-  imagenes(c);
+  imagenes(c); if (cl) marcarVista(cl, indiceUlt);
 }
 const nombreCarpeta = (k) => { const t = String(k || "").replace(/\/+$/, "").split("/"); return t[t.length - 1] || "Raíz"; };
 function cancionesDe(d) {
@@ -788,8 +813,8 @@ async function borrarCancion(s) {
 // ── cola ──
 const listaDelDetalle = () => (E.detalle?.tipo === "lista" && E.detalle.k !== "__fav" ? E.listas.find((x) => x.id === E.detalle.k) : null);
 function dibujarCola() {
-  const l = reproductor.listaEnOrden(), u = $("#cola-lista");
-  u.innerHTML = l.map((s, i) => `<li class="fila${i === reproductor.pos ? " sonando" : ""}" data-pos="${i}">${imgHtml(s)}<span class="info"><b>${esc(nom(s))}</b><span>${esc(s.artista || "")}</span></span>${i === reproductor.pos ? "" : `<button class="mas" type="button" data-sube="${i}" aria-label="Subir">▲</button><button class="mas" type="button" data-baja="${i}" aria-label="Bajar">▼</button><button class="mas" type="button" data-quita="${i}" aria-label="Quitar">✕</button>`}</li>`).join("");
+  const lt = reproductor.listaEnOrden(), u = $("#cola-lista"), ini = Math.max(0, Math.min(reproductor.pos - 15, lt.length - 260)), l = lt.slice(ini, ini + 260);   // solo la ventana cercana: una cola de miles no se dibuja entera
+  u.innerHTML = (ini ? `<li class="suave pequeno" style="padding:8px">${ini} canciones anteriores en la cola</li>` : "") + l.map((s, j) => { const i = ini + j; return `<li class="fila${i === reproductor.pos ? " sonando" : ""}" data-pos="${i}">${imgHtml(s)}<span class="info"><b>${esc(nom(s))}</b><span>${esc(s.artista || "")}</span></span>${i === reproductor.pos ? "" : `<button class="mas" type="button" data-sube="${i}" aria-label="Subir">▲</button><button class="mas" type="button" data-baja="${i}" aria-label="Bajar">▼</button><button class="mas" type="button" data-quita="${i}" aria-label="Quitar">✕</button>`}</li>`; }).join("") + (ini + l.length < lt.length ? `<li class="suave pequeno" style="padding:8px">${lt.length - ini - l.length} canciones más en la cola</li>` : "");
   imagenes(u);
 }
 
@@ -888,7 +913,7 @@ function ritmoEncender() {
     if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
     g.clearRect(0, 0, W, H);
     el.classList.toggle("gira", !!reproductor.sonando);
-    if (!reproductor.sonando) { el.style.scale = ""; el.style.setProperty("--aro", 0); ritAros = []; return; }
+    if (!reproductor.sonando) { el.style.scale = ""; el.style.setProperty("--aro", 0); ritAros = []; cancelAnimationFrame(ritRaf); ritRaf = 0; return; }   // en pausa no se dibuja nada: cero trabajo
     const n0 = nivelRitmo(); ritMaxB = Math.max(ritMaxB * 0.995, n0.b, 0.03); ritMaxR = Math.max(ritMaxR * 0.995, n0.r, 0.03);
     const n = { b: Math.min(1, n0.b / ritMaxB), r: Math.min(1, n0.r / ritMaxR), x: n0.x }; ritMedia += (n.b - ritMedia) * 0.06;
     if (n.b > ritMedia * 1.25 + 0.012 && ahora - ritUlt > 170) { ritImp = Math.min(1, 0.55 + n.b); ritUlt = ahora; ritLat++; ritAros.push({ t: ahora, h: (ritMatiz + ((ritLat % 5) - 2) * 18 + 360) % 360 }); if (ritAros.length > 7) ritAros.shift(); }
@@ -969,10 +994,10 @@ async function mostrarEspacio() {
 function enlazar() {
   const R = reproductor;
   R.addEventListener("cambio", () => { reiniciarConteo(); actualizarMini(); if (pila.includes("hoja-cola")) dibujarCola(); });
-  R.addEventListener("estado", () => { actualizarEstado(); guardarSesion(true); guardarHist(); });
+  R.addEventListener("estado", () => { actualizarEstado(); if (reproductor.sonando && !ritRaf && pila.includes("hoja-rep")) ritmoEncender(); guardarSesion(true); guardarHist(); });
   R.addEventListener("tiempo", () => { actualizarTiempo(); guardarSesion(); contarTiempo(); });
   R.addEventListener("duracion", (e) => { const s = porId.get(e.detail.id); if (s && Math.abs((s.duracion || 0) - e.detail.duracion) > 1) { s.duracion = e.detail.duracion; db.poner("canciones", s); } });
-  R.addEventListener("cola", dibujarCola);
+  R.addEventListener("cola", () => { if (pila.includes("hoja-cola")) dibujarCola(); });
   R.addEventListener("detalles", () => actualizarMini());
   R.addEventListener("tiempo", () => actualizarLetra());
   R.addEventListener("cambio", () => { if (pila.includes("hoja-letra") && R.actual) cargarLetra(R.actual); });
