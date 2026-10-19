@@ -27,7 +27,12 @@ jobs:
       - run: npx cap sync android
       - name: Compilar APK de prueba
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug --no-daemon 2>&1 | tee ../gradle.log || {
+            grep -E "error:|AAPT|What went wrong|Execution failed|symbol:|location:|\.java:[0-9]+" ../gradle.log | head -25 | while IFS= read -r l; do echo "::error::${l:0:300}"; done
+            exit 1
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: Onda-apk
