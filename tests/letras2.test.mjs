@@ -1,7 +1,7 @@
 import test from "node:test"; import assert from "node:assert/strict";
 import { traducir, buscarLetraCompleta } from "../app/js/internet.js";
 test("traducir mantiene el largo y deja vacías las líneas vacías", async () => {
-  const texto = async (u) => { const q = decodeURIComponent(new URL(u).searchParams.get("q")); return JSON.stringify([q.split("\n").map((l) => ["ES:" + l, l])]); };
+  const texto = async (u) => { const q = decodeURIComponent(new URL(u).searchParams.get("q")); return JSON.stringify([q.split("\n").map((l, i, a) => ["ES:" + l + (i < a.length - 1 ? "\n" : ""), l])]); };
   assert.deepEqual(await traducir(texto, ["hola", "", "adiós"]), ["ES:hola", "", "ES:adiós"]);
 });
 test("si LRCLIB no sincroniza, usa NetEase", async () => {
