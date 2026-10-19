@@ -233,3 +233,25 @@ html.sinchips #r-chips { display: none !important; }
 .rejilla > .tarjeta:nth-child(13) { animation-delay: 494ms; }
 .rejilla > .tarjeta:nth-child(14) { animation-delay: 532ms; }
 @media (prefers-reduced-motion: reduce) { .rejilla > .tarjeta, .portada-grande.voltea img, .portada-grande.pulso, #mini-port.pop, .portada-grande.brilla::after { animation: none !important; } }
+
+/* inicio estilo Spotify / YouTube Music */
+.fichas .chip { flex: 0 0 auto; }
+.fichas .chip.mezcla { background: #fff; color: #000; font-weight: 700; }
+.carril .tarjeta.grande { flex-basis: 176px; }
+.mix { position: relative; flex: 0 0 152px; aspect-ratio: 1; border-radius: 16px; overflow: hidden; text-align: left; scroll-snap-align: start; background: hsl(var(--h, 220) 50% 26%); }
+.mix img { width: 100%; height: 100%; object-fit: cover; opacity: .7; display: block; }
+.mix b { position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 10px 10px; font-size: 1.05rem; font-weight: 800; background: linear-gradient(transparent, hsla(var(--h, 220), 55%, 16%, .96)); }
+.mix i { position: absolute; top: 8px; left: 8px; font-style: normal; font-size: .62rem; font-weight: 800; letter-spacing: .08em; padding: 3px 8px; border-radius: 999px; background: rgba(0,0,0,.5); }
+.stats { padding: 4px 8px 40px; }
+.stats .nums { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stats .num { padding: 14px; border-radius: 18px; background: var(--sup2); }
+.stats .num b { display: block; font-size: 1.5rem; font-weight: 800; }
+.stats .num span { font-size: .8rem; color: var(--tx2); }
+.stats .barras { display: flex; align-items: flex-end; gap: 8px; height: 120px; margin: 8px 0 4px; }
+.stats .barras div { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; gap: 4px; font-size: .7rem; color: var(--tx2); }
+.stats .barras i { display: block; width: 100%; border-radius: 8px 8px 4px 4px; background: var(--ac2); min-height: 3px; transform-origin: bottom; animation: crece .7s var(--muelle) both; }
+@keyframes crece { from { transform: scaleY(0); } to { transform: none; } }
+.stats ol { list-style: none; margin: 0; padding: 0; }
+.stats li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--linea); }
+.stats li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stats li span:last-child { color: var(--tx2); flex: 0 0 auto; }

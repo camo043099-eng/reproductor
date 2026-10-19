@@ -397,6 +397,20 @@ public class MotorPlugin extends Plugin {
     @PluginMethod public void repetir(PluginCall call) {
         ui(call, () -> { String m = call.getString("modo", "no"); Motor.jugador.setRepeatMode("uno".equals(m) ? Player.REPEAT_MODE_ONE : "todo".equals(m) ? Player.REPEAT_MODE_ALL : Player.REPEAT_MODE_OFF); call.resolve(); });
     }
+    @PluginMethod public void guardarArchivo(PluginCall call) {
+        new Thread(() -> {
+            try {
+                if (Build.VERSION.SDK_INT < 29) { call.reject("Necesita Android 10 o más"); return; }
+                String nombre = call.getString("nombre", "onda-copia.json").replaceAll("[^A-Za-z0-9._-]", "_"), texto = call.getString("texto", "");
+                android.content.ContentValues v = new android.content.ContentValues();
+                v.put(MediaStore.Downloads.DISPLAY_NAME, nombre); v.put(MediaStore.Downloads.MIME_TYPE, "application/json"); v.put(MediaStore.Downloads.RELATIVE_PATH, "Download/Onda");
+                Uri u = getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+                if (u == null) throw new Exception("no se pudo crear el archivo");
+                try (java.io.OutputStream o = getContext().getContentResolver().openOutputStream(u)) { o.write(texto.getBytes("UTF-8")); }
+                JSObject r = new JSObject(); r.put("ruta", "Descargas/Onda/" + nombre); call.resolve(r);
+            } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+        }).start();
+    }
     @PluginMethod public void avanzado(PluginCall call) {
         ui(call, () -> {
             ExoPlayer p = Motor.jugador;

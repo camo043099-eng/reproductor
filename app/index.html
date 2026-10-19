@@ -83,6 +83,12 @@
   <div class="letra-cuerpo" id="letra-cuerpo"></div>
 </section>
 
+<!-- estadísticas -->
+<section class="hoja" id="hoja-stats" hidden role="dialog" aria-label="Tu actividad">
+  <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span>Tu actividad</span><span></span></div>
+  <div class="stats" id="stats-cuerpo"></div>
+</section>
+
 <!-- cola -->
 <section class="hoja" id="hoja-cola" hidden role="dialog" aria-label="Cola">
   <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span>Cola de reproducción</span><span></span></div>
@@ -151,6 +157,12 @@
     <div class="campo"><span>Vibración en los gestos</span><label class="interruptor"><input type="checkbox" id="aj-vib" checked><span></span></label></div>
     <div class="campo"><span>Mostrar calidad (FLAC, kHz, bits)</span><label class="interruptor"><input type="checkbox" id="aj-chips" checked><span></span></label></div>
 
+    <h3 class="sub">Tus datos</h3>
+    <button class="boton" id="aj-copia" type="button">Guardar copia de seguridad</button>
+    <button class="boton" id="aj-restaurar" type="button">Restaurar una copia</button>
+    <p class="suave pequeno">La copia guarda tus favoritas, listas, historial de reproducción y ajustes en un archivo (carpeta Descargas/Onda). Sirve para pasarlos a otro teléfono o después de reinstalar.</p>
+    <button class="boton peligro" id="aj-hist-borrar" type="button">Borrar mi historial de reproducción</button>
+
     <h3 class="sub">Almacenamiento</h3>
     <div class="campo"><span>Almacenamiento</span><b id="aj-espacio">…</b></div>
     <button class="boton" id="aj-persistir" type="button">Pedir que el teléfono no borre mi música</button>
@@ -159,6 +171,7 @@
   </div>
 </section>
 
+<input type="file" id="f-copia" accept=".json,application/json" hidden>
 <input type="file" id="f-imagen" accept="image/*" hidden>
 <input type="file" id="f-audio" accept="audio/*,.flac,.mp3,.m4a,.aac,.ogg,.opus,.wav,.alac,.aiff" multiple hidden>
 <input type="file" id="f-carpeta" webkitdirectory multiple hidden>

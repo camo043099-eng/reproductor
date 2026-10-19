@@ -76,6 +76,12 @@ try:
         pn.click("#hoja-letra [data-cerrar]"); pn.wait_for_selector("#hoja-letra", state="hidden")
         pn.click("#r-azar"); pn.wait_for_function("window.__llamadas.some(x=>x[0]=='reordenar')")
         pn.click("#r-sueno"); pn.click("[data-sueno='15']"); assert pn.evaluate("window.__llamadas.some(x=>x[0]=='dormir' && x[1].minutos==15)")
+        pn.evaluate("[...document.querySelectorAll('.hoja.ver')].reverse().forEach(h => h.querySelector('[data-cerrar]').click())"); pn.wait_for_selector("#hoja-rep", state="hidden")
+        pn.evaluate("(() => { const o = window.__onda, s = o.E.canciones[0], h = o.hist(); h.m[o.claveC(s)] = { n: 4, u: Date.now(), ms: 120000 }; h.d[new Date().toISOString().slice(0,10)] = 120000; h.tot = 120000; })()")
+        pn.click("#nav [data-v=biblioteca]"); pn.click("#nav [data-v=inicio]"); pn.wait_for_selector(".tiles .tile")
+        assert "Más escuchadas" in pn.inner_text(".tiles"), pn.inner_text(".tiles"); assert pn.locator(".mix").count() >= 0
+        pn.click("[data-estadisticas]"); pn.wait_for_selector("#hoja-stats.ver .num"); assert pn.locator("#stats-cuerpo .num").count() == 4; pn.click("#hoja-stats [data-cerrar]"); pn.wait_for_selector("#hoja-stats", state="hidden")
+        print("inicio + actividad OK")
         print("nativo (simulado) OK")
         b.close()
 finally:

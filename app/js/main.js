@@ -176,21 +176,41 @@ function dibujar() {
   if (v !== "biblioteca" && !E.canciones.length) { $("#contenido").innerHTML = vacio(); return; }
   if (v === "inicio") return dibujarInicio(); if (v === "buscar") return dibujarBuscar(); dibujarBiblioteca();
 }
-let listasInicio = { fav: [], rec: [] };
+let listasInicio = { fav: [], rec: [], ult: [], mas: [] };
 function dibujarInicio() {
   const c = $("#contenido"), rec = [...E.canciones].sort((a, b) => b.fecha - a.fecha), fav = E.canciones.filter((s) => s.fav);
+  const ult = ultimasEscuchadas(), mas = masEscuchadas(), nuevas = sinEscuchar();
   const albs = [...agrupar((s) => s.alb)].map(([k, v]) => ({ k, s: v[0], n: v.length, f: Math.max(...v.map((x) => x.fecha)) })).sort((a, b) => b.f - a.f);
+  const alb = (s) => albs.find((a) => a.k === s.alb);
+  const albsUlt = []; for (const s of ult) { const a = alb(s); if (a && !albsUlt.includes(a)) albsUlt.push(a); if (albsUlt.length >= 12) break; }
   const arts = [...agrupar((s) => normal(s.albumArtista || s.artista))].map(([k, v]) => ({ k, s: v[0], n: v.length })).sort((a, b) => b.n - a.n).slice(0, 12);
-  listasInicio = { fav: fav.slice(0, 20), rec: rec.slice(0, 20) };
-  const tiles = [`<button class="tile" type="button" data-det="lista" data-k="__fav"><span class="sinport fav">${I.fav.replace("<svg", '<svg fill="currentColor"')}</span><b>Favoritas</b></button>`,
-    ...albs.slice(0, 5).map((a) => `<button class="tile" type="button" data-det="album" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.album || "Sin álbum")}</b></button>`)];
+  const gen = new Map(); for (const s of E.canciones) if (s.genero) gen.set(s.genero, (gen.get(s.genero) || 0) + 1);
+  const generos = [...gen].filter(([, n]) => n >= 3).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  listasInicio = { fav: fav.slice(0, 20), rec: rec.slice(0, 20), ult: ult.slice(0, 20), mas: mas.slice(0, 20) };
+  const tono = (t) => { let h = 0; for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; };
+  const tile = (d, k, ico, t) => `<button class="tile" type="button" data-det="${d}" data-k="${esc(k)}">${ico}<b>${esc(t)}</b></button>`;
+  const ic = (svg, col) => `<span class="sinport fav" style="color:${col}">${svg}</span>`;
+  const tiles = [tile("lista", "__fav", ic(I.fav.replace("<svg", '<svg fill="currentColor"'), "var(--ac2)"), "Favoritas")];
+  if (mas.length) tiles.push(tile("lista", "__mas", ic(I.fav.replace("<svg", '<svg fill="currentColor"'), "#ffb44d"), "Más escuchadas"));
+  if (ult.length) tiles.push(tile("lista", "__ult", ic(I.lista.replace("<svg", '<svg fill="none" stroke="currentColor" stroke-width="1.6"'), "#4da3ff"), "Escuchadas hace poco"));
+  for (const a of (albsUlt.length ? albsUlt : albs)) { if (tiles.length >= 8) break; tiles.push(`<button class="tile" type="button" data-det="album" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.album || "Sin álbum")}</b></button>`); }
   const estante = (t, h) => h ? `<section class="estante"><h3>${t}</h3><div class="carril">${h}</div></section>` : "";
-  c.innerHTML = `<div class="fichas"><button class="chip" data-ir="canciones" type="button">Canciones</button><button class="chip" data-ir="albumes" type="button">Álbumes</button><button class="chip" data-ir="artistas" type="button">Artistas</button><button class="chip" data-ir="listas" type="button">Listas</button></div>
+  const cancion = (s, i, lista) => `<button class="tarjeta" type="button" data-lista="${lista}" data-i="${i}">${imgHtml(s)}<b>${esc(s.titulo || s.nombre)}</b><span>${esc(s.artista || "")}</span></button>`;
+  const albumTarjeta = (a, grande) => `<button class="tarjeta${grande ? " grande" : ""}" type="button" data-det="album" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.album || "Sin álbum")}</b><span>${esc(a.s.albumArtista || a.s.artista || "")}</span></button>`;
+  const mix = (k, nombre, s, etiqueta) => `<button class="mix" type="button" data-det="lista" data-k="${esc(k)}" style="--h:${tono(nombre)}">${imgHtml(s)}<i>${etiqueta}</i><b>${esc(nombre)}</b></button>`;
+  const mixes = generos.map(([g]) => mix("__gen:" + g, "Mix " + g, E.canciones.find((s) => s.genero === g), "MIX")).concat(nuevas.length > 10 ? [mix("__olv", "Para redescubrir", nuevas[Math.floor(nuevas.length / 2)], "SIN ESCUCHAR")] : []).join("");
+  const fichas = [`<button class="chip mezcla" data-mezclar type="button">Mezclar todo</button>`, `<button class="chip" data-det="lista" data-k="__fav" type="button">Favoritas</button>`, `<button class="chip" data-estadisticas type="button">Tu actividad</button>`,
+    ...generos.slice(0, 5).map(([g]) => `<button class="chip" data-det="lista" data-k="${esc("__gen:" + g)}" type="button">${esc(g)}</button>`),
+    `<button class="chip" data-ir="canciones" type="button">Canciones</button>`, `<button class="chip" data-ir="albumes" type="button">Álbumes</button>`, `<button class="chip" data-ir="artistas" type="button">Artistas</button>`, `<button class="chip" data-ir="listas" type="button">Listas</button>`];
+  c.innerHTML = `<div class="fichas">${fichas.join("")}</div>
   <div class="tiles">${tiles.join("")}</div>
-  <div class="acciones-detalle"><button class="boton primario" type="button" data-mezclar>Mezclar toda mi música</button></div>
-  ${estante("Agregado recientemente", albs.slice(0, 12).map((a) => `<button class="tarjeta" type="button" data-det="album" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.album || "Sin álbum")}</b><span>${esc(a.s.albumArtista || a.s.artista || "")}</span></button>`).join(""))}
-  ${estante("Tus favoritas", listasInicio.fav.map((s, i) => `<button class="tarjeta" type="button" data-lista="fav" data-i="${i}">${imgHtml(s)}<b>${esc(s.titulo || s.nombre)}</b><span>${esc(s.artista || "")}</span></button>`).join(""))}
-  ${estante("Canciones nuevas", listasInicio.rec.map((s, i) => `<button class="tarjeta" type="button" data-lista="rec" data-i="${i}">${imgHtml(s)}<b>${esc(s.titulo || s.nombre)}</b><span>${esc(s.artista || "")}</span></button>`).join(""))}
+  ${estante("Vuelve a tu música", albsUlt.slice(0, 10).map((a) => albumTarjeta(a, true)).join(""))}
+  ${estante("Tus mixes", mixes)}
+  ${estante("Escuchadas hace poco", listasInicio.ult.map((s, i) => cancion(s, i, "ult")).join(""))}
+  ${estante("Más escuchadas", listasInicio.mas.map((s, i) => cancion(s, i, "mas")).join(""))}
+  ${estante("Agregado recientemente", albs.slice(0, 12).map((a) => albumTarjeta(a)).join(""))}
+  ${estante("Tus favoritas", listasInicio.fav.map((s, i) => cancion(s, i, "fav")).join(""))}
+  ${estante("Canciones nuevas", listasInicio.rec.map((s, i) => cancion(s, i, "rec")).join(""))}
   ${estante("Artistas", arts.map((a) => `<button class="tarjeta redonda" type="button" data-det="artista" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.albumArtista || a.s.artista || "Desconocido")}</b><span>${a.n} canciones</span></button>`).join(""))}`;
   $("#resumen").textContent = ""; imagenes(c);
 }
@@ -264,12 +284,16 @@ function cancionesDe(d) {
   if (d.tipo === "album") return ordenar(E.canciones.filter((s) => s.alb === d.k)).sort((a, b) => (a.disco - b.disco) || (a.pista - b.pista) || colador.compare(a.titulo, b.titulo));
   if (d.tipo === "artista") return E.canciones.filter((s) => normal(s.albumArtista || s.artista) === d.k).sort((a, b) => colador.compare(a.album, b.album) || (a.disco - b.disco) || (a.pista - b.pista));
   if (d.k === "__fav") return E.canciones.filter((s) => s.fav);
+  if (d.k === "__mas") return masEscuchadas();
+  if (d.k === "__ult") return ultimasEscuchadas();
+  if (d.k === "__olv") return sinEscuchar();
+  if (d.k.startsWith("__gen:")) { const g = d.k.slice(6); return E.canciones.filter((s) => s.genero === g); }
   const l = E.listas.find((x) => x.id === d.k); return l ? l.ids.map((id) => porId.get(id)).filter(Boolean) : [];
 }
 function dibujarDetalle(c, d) {
   listaActual = cancionesDe(d);
-  const l = d.tipo === "lista" && d.k !== "__fav" ? E.listas.find((x) => x.id === d.k) : null;
-  const titulo = d.tipo === "carpeta" ? nombreCarpeta(d.k) : d.tipo === "album" ? (listaActual[0]?.album || "Álbum") : d.tipo === "artista" ? (listaActual[0]?.albumArtista || listaActual[0]?.artista || "Artista") : l ? l.nombre : "Favoritas";
+  const l = d.tipo === "lista" && !d.k.startsWith("__") ? E.listas.find((x) => x.id === d.k) : null;
+  const titulo = d.tipo === "carpeta" ? nombreCarpeta(d.k) : d.tipo === "album" ? (listaActual[0]?.album || "Álbum") : d.tipo === "artista" ? (listaActual[0]?.albumArtista || listaActual[0]?.artista || "Artista") : l ? l.nombre : ({ __fav: "Favoritas", __mas: "Más escuchadas", __ult: "Escuchadas hace poco", __olv: "Para redescubrir" }[d.k] || (d.k.startsWith("__gen:") ? "Mix " + d.k.slice(6) : "Favoritas"));
   $("#resumen").textContent = "";
   c.innerHTML = `<div class="cabecera-detalle"><button class="ib" type="button" data-volver aria-label="Volver">${I.volver}</button><h2>${esc(titulo)}</h2>${l ? `<button class="ib" type="button" data-borrar-lista aria-label="Borrar lista">${I.mas3}</button>` : ""}</div>
   <div class="acciones-detalle"><button class="boton primario" type="button" data-tocar-todo>Reproducir</button><button class="boton" type="button" data-tocar-azar>Aleatorio</button></div>
@@ -342,6 +366,68 @@ async function guardarSesion(fuerza) {
   const ahora = Date.now(); if (!fuerza && ahora - tSes < 4000) return; tSes = ahora;
   const s = reproductor.actual; if (!s) return;
   await db.poner("ajustes", { ids: reproductor.listaEnOrden().map((x) => x.id), pos: reproductor.pos, t: reproductor.tiempo, azar: reproductor.aleatorio, rep: reproductor.repetir }, "sesion").catch(() => {});
+}
+
+// ── historial de reproducción ──
+let HIST = { m: {}, d: {}, tot: 0 };
+const claveC = (s) => normal((s.artista || "") + "|" + (s.titulo || s.nombre || ""));
+let _pc = { v: -1, m: new Map() };
+function porClave() { if (_pc.v !== E.version) { _pc = { v: E.version, m: new Map(E.canciones.map((s) => [claveC(s), s])) }; } return _pc.m; }
+const diaDe = (off = 0) => { const d = new Date(Date.now() - off * 864e5); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+let ultimoT = -1, deEsta = 0, contada = false, tGuardaH = 0;
+function contarTiempo() {
+  const s = reproductor.actual; if (!s) return; const t = reproductor.tiempo, d = t - ultimoT; ultimoT = t;
+  if (!reproductor.sonando || !(d > 0 && d < 2.5)) return;
+  const k = claveC(s), e = (HIST.m[k] ||= { n: 0, u: 0, ms: 0 }), ms = d * 1000, dia = diaDe();
+  e.ms += ms; HIST.tot += ms; HIST.d[dia] = (HIST.d[dia] || 0) + ms; deEsta += ms;
+  if (!contada && deEsta >= Math.min(30000, (reproductor.duracion || 60) * 500)) { contada = true; e.n++; e.u = Date.now(); }
+  if (Date.now() - tGuardaH > 20000) guardarHist();
+}
+function guardarHist() { tGuardaH = Date.now(); db.poner("ajustes", HIST, "hist").catch(() => {}); }
+function reiniciarConteo() { ultimoT = -1; deEsta = 0; contada = false; }
+const masEscuchadas = () => { const m = porClave(); return Object.entries(HIST.m).filter(([k, e]) => e.n > 0 && m.has(k)).sort((a, b) => b[1].n - a[1].n || b[1].ms - a[1].ms).map(([k]) => m.get(k)); };
+const ultimasEscuchadas = () => { const m = porClave(); return Object.entries(HIST.m).filter(([k, e]) => e.u > 0 && m.has(k)).sort((a, b) => b[1].u - a[1].u).map(([k]) => m.get(k)); };
+const sinEscuchar = () => E.canciones.filter((s) => !(HIST.m[claveC(s)]?.n > 0));
+const tiempoLargo = (ms) => { const m = Math.round(ms / 60000); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`; };
+function abrirStats() {
+  const dias = [...Array(7)].map((_, i) => 6 - i).map((o) => ({ ms: HIST.d[diaDe(o)] || 0, l: "DLMXJVS"[new Date(Date.now() - o * 864e5).getDay()] }));
+  const max = Math.max(1, ...dias.map((x) => x.ms)), sem = dias.reduce((a, x) => a + x.ms, 0), reps = Object.values(HIST.m).reduce((a, e) => a + e.n, 0);
+  const m = porClave(), art = new Map(); for (const [k, e] of Object.entries(HIST.m)) { const s = m.get(k); if (s) { const a = s.albumArtista || s.artista || "Desconocido"; art.set(a, (art.get(a) || 0) + e.ms); } }
+  const topA = [...art].sort((a, b) => b[1] - a[1]).slice(0, 5), topC = masEscuchadas().slice(0, 5);
+  $("#stats-cuerpo").innerHTML = reps || HIST.tot ? `<div class="nums"><div class="num"><b>${tiempoLargo(HIST.d[diaDe()] || 0)}</b><span>Hoy</span></div><div class="num"><b>${tiempoLargo(sem)}</b><span>Últimos 7 días</span></div><div class="num"><b>${tiempoLargo(HIST.tot)}</b><span>Total escuchado</span></div><div class="num"><b>${reps}</b><span>Reproducciones</span></div></div>
+    <h3 class="sub">Esta semana</h3><div class="barras">${dias.map((x) => `<div><i style="height:${Math.round((x.ms / max) * 100)}%"></i>${x.l}</div>`).join("")}</div>
+    ${topA.length ? `<h3 class="sub">Artistas que más escuchas</h3><ol>${topA.map(([a, ms]) => `<li><span>${esc(a)}</span><span>${tiempoLargo(ms)}</span></li>`).join("")}</ol>` : ""}
+    ${topC.length ? `<h3 class="sub">Canciones favoritas del momento</h3><ol>${topC.map((s) => `<li><span>${esc(s.titulo || s.nombre)}</span><span>${HIST.m[claveC(s)].n}×</span></li>`).join("")}</ol>` : ""}` : `<div class="vacio">Todavía no hay actividad. Escucha música y aquí aparecerá tu tiempo, tus artistas y tus canciones más repetidas.</div>`;
+  abrir("hoja-stats");
+}
+
+// ── copia de seguridad ──
+async function guardarCopia() {
+  const cfg = await db.traer("ajustes", "config").catch(() => null);
+  const claves = (ids) => ids.map((id) => porId.get(id)).filter(Boolean).map(claveC);
+  const datos = { app: "onda", v: 1, fecha: new Date().toISOString(), fav: E.canciones.filter((s) => s.fav).map(claveC), listas: E.listas.map((l) => ({ nombre: l.nombre, claves: claves(l.ids) })), hist: HIST, cfg: cfg ? { orden: cfg.orden, av: cfg.av, vel: cfg.vel, rg: cfg.rg, bandas: cfg.bandas, pre: cfg.pre, eq: cfg.eq, esp: cfg.esp, auto: cfg.auto } : null };
+  const nombre = `onda-copia-${diaDe()}.json`, texto = JSON.stringify(datos);
+  try {
+    if (MOTOR) { const r = await MOTOR.guardarArchivo({ nombre, texto }); avisar(`Copia guardada en ${r.ruta}`, 5000); }
+    else { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([texto], { type: "application/json" })); a.download = nombre; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); avisar("Copia descargada"); }
+  } catch (e) { avisar("No pude guardar la copia: " + (e?.message || e)); }
+}
+async function restaurarCopia(archivo) {
+  try {
+    const d = JSON.parse(await archivo.text()); if (d.app !== "onda") throw new Error("este archivo no es una copia de Onda");
+    const m = porClave(); let favs = 0, listas = 0;
+    for (const k of d.fav || []) { const s = m.get(k); if (s && !s.fav) { s.fav = true; await db.poner("canciones", s); favs++; } }
+    for (const l of d.listas || []) {
+      const ids = (l.claves || []).map((k) => m.get(k)?.id).filter(Boolean); if (!ids.length) continue;
+      let x = E.listas.find((y) => y.nombre === l.nombre);
+      if (!x) { x = { id: "l" + Date.now().toString(36) + listas, nombre: l.nombre, ids: [] }; E.listas.push(x); listas++; }
+      for (const id of ids) if (!x.ids.includes(id)) x.ids.push(id); await db.poner("listas", x);
+    }
+    const h = d.hist || {}; for (const [k, e] of Object.entries(h.m || {})) { const a = (HIST.m[k] ||= { n: 0, u: 0, ms: 0 }); a.n = Math.max(a.n, e.n || 0); a.u = Math.max(a.u, e.u || 0); a.ms = Math.max(a.ms, e.ms || 0); }
+    for (const [k, v] of Object.entries(h.d || {})) HIST.d[k] = Math.max(HIST.d[k] || 0, v); HIST.tot = Math.max(HIST.tot, h.tot || 0); guardarHist();
+    if (d.cfg) { const act = (await db.traer("ajustes", "config").catch(() => null)) || {}; await db.poner("ajustes", { ...act, ...d.cfg }, "config"); }
+    dibujar(); avisar(`Copia restaurada: ${favs} favoritas, ${listas} listas nuevas. Los ajustes se aplican al reiniciar Onda.`, 6000);
+  } catch (e) { avisar("No pude restaurar: " + (e?.message || e)); }
 }
 
 // ── ajustes avanzados ──
@@ -502,9 +588,9 @@ async function mostrarEspacio() {
 // ── eventos de la interfaz ──
 function enlazar() {
   const R = reproductor;
-  R.addEventListener("cambio", () => { actualizarMini(); if (pila.includes("hoja-cola")) dibujarCola(); });
-  R.addEventListener("estado", () => { actualizarEstado(); guardarSesion(true); });
-  R.addEventListener("tiempo", () => { actualizarTiempo(); guardarSesion(); });
+  R.addEventListener("cambio", () => { reiniciarConteo(); actualizarMini(); if (pila.includes("hoja-cola")) dibujarCola(); });
+  R.addEventListener("estado", () => { actualizarEstado(); guardarSesion(true); guardarHist(); });
+  R.addEventListener("tiempo", () => { actualizarTiempo(); guardarSesion(); contarTiempo(); });
   R.addEventListener("duracion", (e) => { const s = porId.get(e.detail.id); if (s && Math.abs((s.duracion || 0) - e.detail.duracion) > 1) { s.duracion = e.detail.duracion; db.poner("canciones", s); } });
   R.addEventListener("cola", dibujarCola);
   R.addEventListener("detalles", () => actualizarMini());
@@ -526,6 +612,7 @@ function enlazar() {
   $("#contenido").addEventListener("click", async (e) => {
     if (e.target.closest("[data-agregar]")) return MOTOR ? iniciarNativo(true) : $("#b-agregar").click();
     const ir = e.target.closest("[data-ir]"); if (ir) { E.vista = "biblioteca"; E.tab = ir.dataset.ir; E.detalle = null; dibujar(); animarCambio(); return; }
+    if (e.target.closest("[data-estadisticas]")) return abrirStats();
     if (e.target.closest("[data-mezclar]")) return tocar(ordenar(E.canciones), 0, true);
     const gq = e.target.closest("[data-q]"); if (gq) { E.q = gq.dataset.q; $("#q").value = E.q; dibujar(); return; }
     const cl = e.target.closest("[data-lista]"); if (cl) return tocar(listasInicio[cl.dataset.lista], +cl.dataset.i);
@@ -560,6 +647,10 @@ function enlazar() {
   $("#aj-portadas").addEventListener("click", () => descargarFaltantes(true));
   for (const [id, clave, def] of TOGGLES) $("#" + id).addEventListener("change", async (e) => { E.aj[clave] = e.target.checked; if (clave === "enfoque") tocadoEnfoque = true; aplicarAvanzados(); guardarAjustes(); if (clave === "sistema") { await cargarTodo(); dibujar(); } });
   for (const [id, clave] of SELECTS) $("#" + id).addEventListener("change", async (e) => { E.aj[clave] = e.target.value; aplicarAvanzados(); guardarAjustes(); if (clave === "minSeg") { await cargarTodo(); dibujar(); } });
+  $("#aj-copia").addEventListener("click", guardarCopia);
+  $("#aj-restaurar").addEventListener("click", () => $("#f-copia").click());
+  $("#f-copia").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) restaurarCopia(f); });
+  $("#aj-hist-borrar").addEventListener("click", async () => { if (!confirm("¿Borrar todo tu historial de reproducción?")) return; HIST = { m: {}, d: {}, tot: 0 }; await db.poner("ajustes", HIST, "hist"); dibujar(); avisar("Historial borrado"); });
   $("#aj-reescanear").addEventListener("click", () => { cerrar("hoja-aj"); $("#b-agregar").click(); });
   $("#aj-auto").addEventListener("change", (e) => { E.aj.auto = e.target.checked; guardarAjustes(); });
   $("#r-lista").addEventListener("click", () => { if (R.actual) agregarALista(R.actual); });
@@ -594,7 +685,7 @@ function enlazar() {
     R.pausa(); for (const a of ["canciones", "archivos", "portadas", "listas"]) await db.vaciar(a);
     E.canciones = []; E.listas = []; porId.clear(); urlsPort.clear(); E.detalle = null; $("#mini").hidden = true; cerrar("hoja-aj"); dibujar(); mostrarEspacio();
   });
-  document.addEventListener("visibilitychange", () => { if (document.hidden) guardarSesion(true); else { reproductor.resincronizar?.(); if (MOTOR && E.aj.salida) reproductor.ponerSalida(E.aj.salida).catch(() => {}); } });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) { guardarSesion(true); guardarHist(); } else { reproductor.resincronizar?.(); if (MOTOR && E.aj.salida) reproductor.ponerSalida(E.aj.salida).catch(() => {}); } });
   gestos();
 }
 function gestos() {
@@ -663,7 +754,7 @@ function gestos() {
 async function iniciar() {
   history.replaceState({ raiz: 1 }, ""); history.pushState({ s: 1 }, "");   // así el gesto de atrás no cierra la app de golpe
   reproductor = MOTOR ? new ReproductorNativo(MOTOR) : new Reproductor({ obtenerBlob: (id) => db.traer("archivos", id), obtenerPortada: async (s) => (s.alb ? db.traer("portadas", s.alb) : null) });
-  window.__onda = { reproductor, E, db };                                    // para pruebas
+  window.__onda = { reproductor, E, db, hist: () => HIST, claveC };                                    // para pruebas
   reproductor.instalarControlesSistema(); armarEq(); enlazar();
   await cargarTodo();
   const cfg = await db.traer("ajustes", "config").catch(() => null);
@@ -673,6 +764,7 @@ async function iniciar() {
     E.aj.viz = !!cfg.viz; $("#aj-viz").checked = E.aj.viz; E.aj.auto = cfg.auto !== false; $("#aj-auto").checked = E.aj.auto; E.aj.salida = cfg.salida || null; Object.assign(E.aj, cfg.av || {});
   }
   sincronizarAjustes();
+  HIST = (await db.traer("ajustes", "hist").catch(() => null)) || { m: {}, d: {}, tot: 0 };
   if (cfg?.av && (cfg.av.sistema === false || +cfg.av.minSeg)) await cargarTodo();
   if (MOTOR) { if (cfg?.esp) { reproductor.ancho = cfg.esp.a || 0; reproductor.env = cfg.esp.e || 0; reproductor.graves = cfg.esp.g || 0; } document.querySelectorAll("#aj-viz, #aj-gap, #aj-persistir, #aj-borrar").forEach((e) => { (e.closest(".campo") || e).hidden = true; }); $("#aj-info").textContent = "Motor de audio nativo (ExoPlayer): cambio de canción sin pausa, ecualizador de 10 bandas de 32 bits y lectura directa de tus archivos."; $("#b-agregar").setAttribute("aria-label", "Actualizar biblioteca"); reproductor.aplicarTodo(); document.querySelectorAll(".solo-nativo").forEach((e) => { e.hidden = false; }); $("#aj-salida").hidden = false; $("#aj-salida-info").hidden = false; etiquetaSalida(); reproductor.ponerSalida(E.aj.salida).catch(() => {}); }
   dibujar(); mostrarEspacio();
