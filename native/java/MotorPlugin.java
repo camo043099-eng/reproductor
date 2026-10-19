@@ -196,7 +196,7 @@ public class MotorPlugin extends Plugin {
         if (g != null && !"off".equals(modoRg)) {
             double pista = g[0], album = g[1];
             double v = "album".equals(modoRg) ? (Double.isNaN(album) ? pista : album) : (Double.isNaN(pista) ? album : pista);
-            if (!Double.isNaN(v)) db = Math.min(v, 3);                        // sin conocer el pico, nunca sube más de +3 dB
+            if (!Double.isNaN(v)) db = Math.min(v, 0);                        // sin conocer el pico, nunca sube el volumen (solo lo baja): evita bajos que saturan
         }
         Motor.eq.nucleo.ponerGananciaDb(db + preampDb);
     }

@@ -376,7 +376,7 @@ function actualizarMini() {
   document.body.style.paddingBottom = "";
   if (!s) return;
   ponerLargo($("#mini-titulo"), nom(s)); $("#mini-artista").textContent = s.artista || "";
-  const nueva = s.id !== ultimoId, primera = ultimoId === null; ultimoId = s.id;
+  const nueva = s.id !== ultimoId, primera = ultimoId === null; ultimoId = s.id; if (nueva) ritmoReiniciar();
   portadaUrl(s.alb).then((u) => {
     { const pl = placa(nombrePlaca(s)); $("#mini-port").src = u || pl; $("#r-port").src = u || pl; $("#r-buscar-port").hidden = !!u; } tinte(s.alb, u);
     if (MOTOR && !u && nueva && E.aj.auto !== false && !intentadasSesion.has(s.alb)) { intentadasSesion.add(s.alb); portadaWeb(s, true).catch(() => {}); }
@@ -730,7 +730,8 @@ function ritmoEncender() {
     g.clearRect(0, 0, W, H);
     el.classList.toggle("gira", !!reproductor.sonando);
     if (!reproductor.sonando) { el.style.scale = ""; el.style.setProperty("--aro", 0); ritAros = []; return; }
-    const n = nivelRitmo(); ritMedia += (n.b - ritMedia) * 0.06;
+    const n0 = nivelRitmo(); ritMaxB = Math.max(ritMaxB * 0.995, n0.b, 0.03); ritMaxR = Math.max(ritMaxR * 0.995, n0.r, 0.03);
+    const n = { b: Math.min(1, n0.b / ritMaxB), r: Math.min(1, n0.r / ritMaxR), x: n0.x }; ritMedia += (n.b - ritMedia) * 0.06;
     if (n.b > ritMedia * 1.25 + 0.012 && ahora - ritUlt > 170) { ritImp = Math.min(1, 0.55 + n.b); ritUlt = ahora; ritLat++; ritAros.push({ t: ahora, h: (ritMatiz + ((ritLat % 5) - 2) * 18 + 360) % 360 }); if (ritAros.length > 7) ritAros.shift(); }
     ritImp *= 0.88;
     el.style.scale = (1 + 0.075 * ritImp + 0.025 * n.b).toFixed(4); el.style.setProperty("--aro", ritImp.toFixed(3));
@@ -744,7 +745,7 @@ function ritmoEncender() {
     const colBanda = (k) => `hsl(${(ritMatiz + (k / 7 - 0.5) * 110 + 360) % 360} 85% ${56 + k * 1.5}%`;
     for (let i = 0; i < N; i++) {
       const u = Math.abs(i / N - 0.5) * 2, bp = Math.min(7, u * 7.001), k0 = Math.floor(bp), k1 = Math.min(7, k0 + 1), f = bp - k0;
-      const v0 = (X[k0] || 0) / ritMax[k0], v1 = (X[k1] || 0) / ritMax[k1], vb = Math.min(1, (v0 * (1 - f) + v1 * f)) ** 1.2, v = Math.max(vb, nivel * (0.2 + 0.4 * Math.random()) * (1 - u * 0.5));
+      const v0 = (X[k0] || 0) / ritMax[k0], v1 = (X[k1] || 0) / ritMax[k1], vb = Math.min(1, (v0 * (1 - f) + v1 * f)) ** 1.2, v = X.length && (X[0] || X[3] || X[6]) ? vb : Math.max(vb, nivel * (0.2 + 0.4 * Math.random()) * (1 - u * 0.5));
       ritBarras[i] += (v - ritBarras[i]) * (v > ritBarras[i] ? 0.6 : 0.14);
     }
     const R1 = R * 1.06;
@@ -779,6 +780,9 @@ function ritmoEncender() {
   };
   ritRaf = requestAnimationFrame(paso);
 }
+// al cambiar de canción: se olvida todo lo anterior para que las ondas no queden "pegadas" con el nivel de la canción pasada
+let ritMaxB = 0.05, ritMaxR = 0.05;
+function ritmoReiniciar() { ritBarras.fill(0); ritMax.fill(0.05); ritMedia = 0; ritImp = 0; ritAros = []; ritMaxB = 0.05; ritMaxR = 0.05; if (MOTOR && reproductor.reiniciarNivel) reproductor.reiniciarNivel(); }
 function ritmoApagar() { cancelAnimationFrame(ritRaf); ritRaf = 0; ritImp = 0; ritAros = []; { const cv = $("#r-ondas"); if (cv) cv.getContext("2d").clearRect(0, 0, cv.width, cv.height); } const el = document.querySelector("#hoja-rep .portada-grande"); if (el) { el.style.scale = ""; el.style.setProperty("--aro", 0); } if (MOTOR && reproductor.ponerRitmo) reproductor.ponerRitmo(false).catch(() => {}); }
 function vizApagar() { cancelAnimationFrame(vizRaf); vizRaf = 0; $("#r-viz").hidden = true; }
 

@@ -51,7 +51,7 @@ public final class EqProcesador extends BaseAudioProcessor {
         nucleo.procesar(tmp, n);
         { int C = Math.max(1, inputAudioFormat.channelCount); double sb = 0, st = 0; int fr = n / C; double[] eb = new double[8];
           for (int f = 0; f < fr; f++) { double m = 0; for (int c = 0; c < C; c++) m += tmp[f * C + c]; m /= C; lp += (m - lp) * lpK; sb += lp * lp; st += m * m; double prev = 0; for (int i = 0; i < 7; i++) { lb[i] += (m - lb[i]) * kb[i]; double b = lb[i] - prev; eb[i] += b * b; prev = lb[i]; } double b7 = m - prev; eb[7] += b7 * b7; }
-          if (fr > 0) { for (int i = 0; i < 8; i++) bandas[i] = (float) Math.min(1, Math.sqrt(eb[i] / fr) * (2.5 + i * 0.9)); nivelBajo = (float) Math.min(1, Math.sqrt(sb / fr) * 3.2); nivelTotal = (float) Math.min(1, Math.sqrt(st / fr) * 2.2); } }
+          if (fr > 0) { for (int i = 0; i < 8; i++) bandas[i] = (float) Math.min(4, Math.sqrt(eb[i] / fr) * (1.6 + i * 0.6)); nivelBajo = (float) Math.min(4, Math.sqrt(sb / fr) * 2.0); nivelTotal = (float) Math.min(4, Math.sqrt(st / fr) * 1.6); } }
         if (salida16) {
             ByteBuffer out = replaceOutputBuffer(n * 2);
             for (int i = 0; i < n; i++) { float v = tmp[i] * 32767f; out.putShort((short) Math.max(-32768, Math.min(32767, Math.round(v)))); }
