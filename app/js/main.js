@@ -6,7 +6,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.29";
+const VERSION = "0.9.30";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -640,7 +640,7 @@ async function abrirInfoAudio() {
     h += fila("Velocidad de reproducción", (+reproductor.velocidad || 1).toFixed(2).replace(/\.?0+$/, "") + "×") + fila("Ganancia aplicada", `${inf.gananciaDb >= 0 ? "+" : ""}${(+inf.gananciaDb).toFixed(1)} dB`) + fila("ReplayGain", reproductor.rgModo === "off" ? "apagado" : reproductor.rgModo === "album" ? "por álbum" : "por canción") + fila("Fundido entre canciones", inf.fundidoMs ? inf.fundidoMs / 1000 + " s" : "sin fundido");
     h += `<p class="suave pequeno">${inf.procesando ? "El procesador de Onda está activo: ecualizador, ondas y ajuste de volumen funcionan en esta canción." : "Esta canción no está pasando por el procesador de Onda (ecualizador y ondas no actúan). Si activaste Hi-Res puro, es lo esperado."}</p>`;
   } else h += `<p class="suave pequeno">En la versión web el audio lo procesa el navegador. La información detallada está en la app instalada.</p>`;
-  h += fila("Salida de sonido", nombreSalidaTipo(reproductor.ruta));
+  h += fila("Salida de sonido", nombreSalidaTipo(reproductor.ruta)) + (inf && inf.cortes != null ? fila("Cortes de audio (desde que abriste la app)", String(inf.cortes)) + fila("Saltos de posición", String(inf.saltos)) : "");
   c.innerHTML = h; if (!pila.includes("hoja-info")) abrir("hoja-info");
 }
 const nombreSalidaTipo = (r) => ({ altavoz: "Parlante del teléfono", bluetooth: "Bluetooth", cable: "Audífonos con cable", usb: "USB / DAC" }[r] || "Automática");

@@ -164,7 +164,7 @@ public class MotorPlugin extends Plugin {
         o.put("procesando", activo); o.put("entrada", EqProcesador.entradaTxt); o.put("hz", EqProcesador.entradaHz); o.put("canales", EqProcesador.entradaCanales);
         o.put("salida", EqProcesador.salida16 ? "PCM 16 bits" : "PCM flotante 32 bits"); o.put("gananciaDb", gananciaAplicadaDb);
         o.put("hiResPuro", getContext().getSharedPreferences("onda_motor", Context.MODE_PRIVATE).getBoolean("hires", false));
-        o.put("fundidoMs", fundidoMs); o.put("modoRg", modoRg);
+        o.put("cortes", Motor.cortes); o.put("saltos", Motor.saltos); o.put("fundidoMs", fundidoMs); o.put("modoRg", modoRg);
         call.resolve(o);
     }
     private static float curva(float x) { x = Math.max(0f, Math.min(1f, x)); return x * x * (3f - 2f * x); }   // suavizado (smoothstep)

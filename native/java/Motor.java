@@ -19,6 +19,7 @@ import androidx.media3.session.MediaSession;
 public final class Motor {
     public static ExoPlayer jugador;
     public static MediaSession sesion;
+    public static volatile int cortes = 0, saltos = 0;                // cortes de audio (el sonido se quedó sin datos) y saltos de posición desde que abrió la app
     public static EqProcesador eq;
 
     public static synchronized void iniciar(Context ctx) {
@@ -46,6 +47,12 @@ public final class Motor {
                 .setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_LOCAL)
                 .build();
+        jugador.addAnalyticsListener(new androidx.media3.exoplayer.analytics.AnalyticsListener() {
+            @Override public void onAudioUnderrun(androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime t, int tam, long ms, long desde) { cortes++; }
+        });
+        jugador.addListener(new androidx.media3.common.Player.Listener() {
+            @Override public void onPositionDiscontinuity(androidx.media3.common.Player.PositionInfo antes, androidx.media3.common.Player.PositionInfo ahora, int motivo) { if (motivo == androidx.media3.common.Player.DISCONTINUITY_REASON_INTERNAL || motivo == androidx.media3.common.Player.DISCONTINUITY_REASON_SKIP) saltos++; }
+        });
         PendingIntent abrir = PendingIntent.getActivity(app, 0, new Intent(app, MainActivity.class), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         sesion = new MediaSession.Builder(app, jugador).setId("onda").setSessionActivity(abrir).build();
     }
