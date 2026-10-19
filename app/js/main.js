@@ -609,6 +609,12 @@ function atras(porHistorial) {
 window.addEventListener("popstate", () => { if (ignorarPop > 0) { ignorarPop--; return; } atras(true); });
 { const A = plug("App"); if (A?.addListener) A.addListener("backButton", () => atras(false)); }
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-cerrar]"); if (b) cerrar(b.closest(".hoja").id); });
+// carátula por internet: estos botones están fuera de #contenido (en el reproductor y en su hoja), por eso se escuchan en todo el documento
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#r-buscar-port")) { if (reproductor.actual) abrirSelectorPortada(reproductor.actual); return; }
+  const pp = e.target.closest("#pp-grid .pp"); if (pp) { usarCandidata(candidatas[+pp.dataset.i]); return; }
+  if (e.target.closest("#pp-galeria")) { if (portadaDe) { cerrar("hoja-portada"); elegirImagen(portadaDe); } }
+});
 $("#fondo").addEventListener("click", () => { for (let i = pila.length - 1; i >= 0; i--) if ($("#" + pila[i]).classList.contains("corta")) { cerrar(pila[i]); break; } });
 
 function menu(titulo, opciones) {
@@ -839,9 +845,6 @@ function enlazar() {
   $("#contenido").addEventListener("click", async (e) => {
     if (e.target.closest("[data-agregar]")) return MOTOR ? iniciarNativo(true) : $("#b-agregar").click();
     const ir = e.target.closest("[data-ir]"); if (ir) { E.vista = "biblioteca"; E.tab = ir.dataset.ir; E.detalle = null; dibujar(); animarCambio(); return; }
-    if (e.target.closest("#r-buscar-port")) { if (reproductor.actual) abrirSelectorPortada(reproductor.actual); return; }
-    { const pp = e.target.closest("#pp-grid .pp"); if (pp) return usarCandidata(candidatas[+pp.dataset.i]); }
-    if (e.target.closest("#pp-galeria")) { if (portadaDe) { cerrar("hoja-portada"); elegirImagen(portadaDe); } return; }
     if (e.target.closest("[data-estadisticas]")) return abrirStats();
     if (e.target.closest("[data-personalizar]")) { mostrarEspacio(); abrir("hoja-aj"); setTimeout(() => { const t = $("#aj-apariencia"); if (t) t.scrollIntoView({ block: "start", behavior: "smooth" }); }, 380); return; }
     if (e.target.closest("[data-renovar-mixes]")) { mixesDeHoy(true).then(() => { avisar("Mixes renovados"); dibujar(); }); return; }
