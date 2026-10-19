@@ -10,6 +10,20 @@ nuevo = """public class MainActivity extends BridgeActivity {
         registerPlugin(CarpetaPlugin.class);
         registerPlugin(MotorPlugin.class);
         super.onCreate(b);
+        fondoOscuro();
+    }
+    // al volver de otra app el sistema puede mostrar un instante el fondo de la ventana: que sea negro y no blanco
+    private void fondoOscuro() {
+        try {
+            getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.BLACK));
+            getWindow().getDecorView().setBackgroundColor(android.graphics.Color.BLACK);
+            if (getBridge() != null && getBridge().getWebView() != null) getBridge().getWebView().setBackgroundColor(android.graphics.Color.BLACK);
+        } catch (Throwable e) { /* no es crítico */ }
+    }
+    @Override
+    public void onResume() {
+        super.onResume();
+        fondoOscuro();
     }
 }"""
 s = s.replace("public class MainActivity extends BridgeActivity {}", nuevo)
@@ -63,3 +77,13 @@ for n in ("ic_launcher.xml", "ic_launcher_round.xml"):
     open(res + "/mipmap-anydpi-v26/" + n, "w").write(adaptativo)
 # el fondo de la ventana de arranque (Android 12+) en el mismo color del icono
 print("icono de Onda instalado")
+
+
+# 5) Fondo de ventana negro (evita el destello blanco al volver a la app desde otra)
+est = base + "res/values/styles.xml"
+if os.path.exists(est):
+    q = open(est).read()
+    if "windowBackground" not in q:
+        q = re.sub(r'(<style name="AppTheme\.NoActionBar"[^>]*>)', r'\1\n        <item name="android:windowBackground">#000000</item>', q, count=1)
+    assert "windowBackground" in q, q
+    open(est, "w").write(q)
