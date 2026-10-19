@@ -4,7 +4,7 @@
 import { BANDAS, PRESETS } from "./player.js";
 
 const barajar = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-const dato = (s) => ({ id: s.id, uri: s.uri, titulo: s.titulo || s.nombre || "", artista: s.artista || "", album: s.album || "", albumId: s.albumId || "" });
+const dato = (s) => ({ id: s.id, uri: s.uri, titulo: s.titulo || s.nombre || "", artista: s.artista || "", album: s.album || "", albumId: s.portadaId || s.albumId || "" });
 
 export class ReproductorNativo extends EventTarget {
   constructor(N) {

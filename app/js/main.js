@@ -99,8 +99,22 @@ function filtradas(lista) {
   const sis = E.aj.sistema !== false, min = +E.aj.minSeg || 0;
   return lista.filter((s) => !(sis && RUIDO.test("/" + (s.carpeta || "") + "/")) && !(min && s.duracion && s.duracion < min));
 }
+const hashCorto = (t) => { let h = 2166136261; for (const c of String(t)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+// nombre del archivo de carátula en el teléfono: el id del álbum, salvo en álbumes genéricos ("Music"), donde cada canción tiene el suyo
+const idPortada = (s) => (albumGenerico(s.album) ? "g" + hashCorto(s.alb || claveAlbum(s)) : (s.albumId || s.alb));
+// canciones guardadas con la clave antigua del álbum "Music": se les da su clave propia y se descarta la carátula compartida
+async function migrarClaves(todas) {
+  if (!MOTOR) return todas;
+  const cambios = [], viejas = new Set();
+  for (const s of todas) { const nk = claveAlbum(s), pid = idPortada({ ...s, alb: nk }); if (s.alb !== nk || (albumGenerico(s.album) && s.portadaId !== pid)) { if (s.alb !== nk) viejas.add(s.alb); s.alb = nk; s.portadaId = pid; cambios.push(s); } else if (!s.portadaId) s.portadaId = pid; }   // solo se guardan las que cambian
+  if (cambios.length) {
+    await db.lote("canciones", cambios, []).catch(() => {});
+    const usadas = new Set(todas.map((s) => s.alb)); for (const k of viejas) if (!usadas.has(k)) { await db.borrar("portadas", k).catch(() => {}); urlsPort.delete(k); }
+  }
+  return todas;
+}
 async function cargarTodo() {
-  E.canciones = filtradas(await db.todo("canciones")); E.listas = await db.todo("listas");
+  E.canciones = filtradas(await migrarClaves(await db.todo("canciones"))); E.listas = await db.todo("listas");
   porId.clear(); E.version++; for (const s of E.canciones) porId.set(s.id, s);
 }
 // los álbumes con nombre genérico ("Music", "Download"…) no son un álbum real: cada canción lleva su propia carátula
@@ -1026,7 +1040,7 @@ const FORMATOS = { "audio/flac": "FLAC", "audio/x-flac": "FLAC", "audio/mpeg": "
 async function fusionar(nuevas) {
   const viejas = new Map(E.canciones.map((s) => [s.id, s])), vistos = new Set(), lista = [];
   for (const c of nuevas) {
-    vistos.add(c.id); const campos = { ...c, alb: claveAlbum(c), formato: FORMATOS[c.mime] || (String(c.nombre).split(".").pop() || "").toUpperCase() };
+    vistos.add(c.id); const campos = { ...c, alb: claveAlbum(c), portadaId: idPortada({ ...c, alb: claveAlbum(c) }), formato: FORMATOS[c.mime] || (String(c.nombre).split(".").pop() || "").toUpperCase() };
     const v = viejas.get(c.id);
     if (v) { Object.assign(v, campos); lista.push(v); } else lista.push({ fav: false, ...campos });
   }
@@ -1076,7 +1090,7 @@ async function usarCandidata(c) {
 }
 async function guardarPortadaUrl(s, url) {
   let blob;
-  if (MOTOR) { const r = await MOTOR.descargar({ url, albumId: s.albumId || s.alb }); blob = await (await fetch(window.Capacitor.convertFileSrc(r.ruta))).blob(); }
+  if (MOTOR) { const r = await MOTOR.descargar({ url, albumId: s.portadaId || s.albumId || s.alb }); blob = await (await fetch(window.Capacitor.convertFileSrc(r.ruta))).blob(); }
   else blob = await miniatura(await (await fetch(url)).blob());
   await ponerPortada(s.alb, blob); await db.borrar("ajustes", "sinportada:" + s.alb).catch(() => {});
 }
@@ -1086,7 +1100,7 @@ async function portadaWeb(s, callado) {
     const url = await buscarPortadaUrl(texto, s);
     if (!url) { if (!callado) avisar(`No encontré la portada de “${s.album || s.titulo}”. Puedes elegir una de tu galería.`, 5000); return false; }
     let blob;
-    if (MOTOR) { const r = await MOTOR.descargar({ url, albumId: s.albumId || s.alb }); blob = await (await fetch(window.Capacitor.convertFileSrc(r.ruta))).blob(); }
+    if (MOTOR) { const r = await MOTOR.descargar({ url, albumId: s.portadaId || s.albumId || s.alb }); blob = await (await fetch(window.Capacitor.convertFileSrc(r.ruta))).blob(); }
     else blob = await miniatura(await (await fetch(url)).blob());
     await ponerPortada(s.alb, blob); await db.borrar("ajustes", "sinportada:" + s.alb).catch(() => {});
     if (!callado) avisar("Portada lista", 1800); return true;
@@ -1189,7 +1203,7 @@ async function portadasNativas() {
     while (k < pendientes.length) {
       const [alb, s] = pendientes[k++];
       try {
-        const r = await MOTOR.portada({ albumId: s.albumId, uri: s.uri });
+        const r = await MOTOR.portada({ albumId: s.portadaId || s.albumId, uri: s.uri });
         if (!r.ruta) { await db.poner("ajustes", true, "sinportada:" + alb); continue; }
         const b = await (await fetch(window.Capacitor.convertFileSrc(r.ruta))).blob();
         await db.poner("portadas", b, alb); urlsPort.delete(alb);
