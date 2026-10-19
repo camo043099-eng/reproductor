@@ -366,7 +366,7 @@ html[data-fondo="portada"] .ambiente::after, html[data-fondo="imagen"] .ambiente
 
 /* con fondo de carátula o imagen propia, las hojas dejan ver el fondo (antes eran negras y lo tapaban) */
 html[data-fondo="portada"] .hoja:not(.corta), html[data-fondo="imagen"] .hoja:not(.corta) {
-  background: linear-gradient(color-mix(in srgb, var(--t) 38%, rgba(0,0,0,.5)), rgba(0,0,0,.80)); }
+  background: linear-gradient(color-mix(in srgb, var(--t) 38%, rgba(0,0,0,.5)), rgba(0,0,0,.72)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 html[data-fondo="portada"] .hoja.completa, html[data-fondo="imagen"] .hoja.completa, html[data-fondo="portada"] .hoja.letra, html[data-fondo="imagen"] .hoja.letra {
   background: linear-gradient(color-mix(in srgb, var(--t) 55%, rgba(0,0,0,.35)), rgba(0,0,0,.55)); }
 
@@ -407,5 +407,6 @@ html[data-fondo="portada"] .hoja.completa, html[data-fondo="imagen"] .hoja.compl
 
 /* rendimiento: capas propias para lo que se anima y nada de desenfoques en pantallas completas */
 .completa .portada-grande.cd > img, .completa .portada-grande.cd > .cd-brillo { will-change: transform; }
-.hoja:not(.corta) { -webkit-backdrop-filter: none; backdrop-filter: none; }
 #r-ondas { contain: strict; }
+
+html.sinblur *, html.sinblur *::before, html.sinblur *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }

@@ -456,7 +456,7 @@ function perfilesSalida() {
   const p = (E.aj.perfiles ||= {}); if (E.aj.eqSalida && MOTOR && reproductor.ruta) p[reproductor.ruta] = { b: reproductor.bandasDb.slice(), p: reproductor.preampDb };
   return p;
 }
-async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", ritmo: E.aj.ritmo || "cd", ritmoLat: E.aj.ritmoLat || "260", eqSalida: !!E.aj.eqSalida, perfiles: perfilesSalida() } }, "config").catch(() => {}); }
+async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", ritmo: E.aj.ritmo || "cd", ritmoLat: E.aj.ritmoLat || "260", ritmoEst: E.aj.ritmoEst || "onda", blur: E.aj.blur !== false, eqSalida: !!E.aj.eqSalida, perfiles: perfilesSalida() } }, "config").catch(() => {}); }
 let tSes = 0;
 async function guardarSesion(fuerza) {
   const ahora = Date.now(); if (!fuerza && ahora - tSes < 4000) return; tSes = ahora;
@@ -543,8 +543,8 @@ async function restaurarCopia(archivo) {
 }
 
 // ── ajustes avanzados ──
-const TOGGLES = [["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-plano", "plano", false], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false]];
-const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-ritmo", "ritmo", "cd"], ["aj-ritmolat", "ritmoLat", "260"]];
+const TOGGLES = [["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-plano", "plano", false], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false], ["aj-blur", "blur", true]];
+const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-ritmo", "ritmo", "cd"], ["aj-ritmolat", "ritmoLat", "260"], ["aj-ritmoest", "ritmoEst", "onda"]];
 let tocadoEnfoque = false;
 function sincronizarAjustes() {
   for (const [id, clave, def] of TOGGLES) $("#" + id).checked = E.aj[clave] === undefined ? def : !!E.aj[clave];
@@ -553,7 +553,7 @@ function sincronizarAjustes() {
 }
 function aplicarAvanzados() {
   const r = document.documentElement, a = E.aj;
-  r.classList.toggle("plano", !!a.plano); r.classList.toggle("sinchips", a.chips === false); window.__vibrar = a.vib !== false;
+  r.classList.toggle("plano", !!a.plano); r.classList.toggle("sinblur", a.blur === false); r.classList.toggle("sinchips", a.chips === false); window.__vibrar = a.vib !== false;
   aplicarColores(); $("#aj-fondo-img").hidden = a.fondo !== "imagen";
   r.style.setProperty("--lt", a.letraTam || "1");
   if (typeof ritmoEncender === "function" && reproductor) { ritmoApagar(); if (pila.includes("hoja-rep")) ritmoEncender(); else { const e2 = document.querySelector("#hoja-rep .portada-grande"); if (e2) { e2.classList.toggle("circulo", a.ritmo !== "off"); e2.classList.toggle("cd", (a.ritmo || "cd") === "cd"); } } }
@@ -688,7 +688,13 @@ function vizEncender() {
   paso();
 }
 // ── carátula al ritmo (círculo que "salta" con los graves; solo mientras el reproductor está abierto y sonando) ──
-let ritRaf = 0, ritMedia = 0, ritImp = 0, ritUlt = 0, ritAros = [], ritBarras = new Float32Array(56), ritMax = new Float32Array(8).fill(0.08), ritLat = 0;
+let ritRaf = 0, ritMedia = 0, ritImp = 0, ritUlt = 0, ritAros = [], ritBarras = new Float32Array(128), ritMax = new Float32Array(8).fill(0.05), ritLat = 0, ritMatiz = 215;
+// tono (0–360) del color de la carátula, para que las ondas combinen con ella
+function matizDeAcento() {
+  const v = (getComputedStyle(document.documentElement).getPropertyValue("--ac2") || "").trim(); let m = /hsl\(\s*(\d+)/.exec(v); if (m) return +m[1];
+  m = /^#([0-9a-f]{6})$/i.exec(v); if (m) { const n = parseInt(m[1], 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255, mx = Math.max(r, g, b), d = mx - Math.min(r, g, b); if (!d) return 215; const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return Math.round((h * 60 + 360) % 360); }
+  return 215;
+}
 function nivelRitmo() {
   if (MOTOR) return reproductor.nivel((+E.aj.ritmoLat || 260) + (reproductor.ruta === "bluetooth" ? 170 : 0));
   if (!reproductor.espectro(buf)) return { b: 0, r: 0 };
@@ -711,22 +717,44 @@ function ritmoEncender() {
     el.classList.toggle("gira", !!reproductor.sonando);
     if (!reproductor.sonando) { el.style.scale = ""; el.style.setProperty("--aro", 0); ritAros = []; return; }
     const n = nivelRitmo(); ritMedia += (n.b - ritMedia) * 0.06;
-    if (n.b > ritMedia * 1.3 + 0.03 && ahora - ritUlt > 170) { ritImp = Math.min(1, 0.55 + n.b); ritUlt = ahora; ritLat++; ritAros.push({ t: ahora, h: (ritLat * 47 + ahora * 0.01) % 360 }); if (ritAros.length > 7) ritAros.shift(); }
+    if (n.b > ritMedia * 1.25 + 0.012 && ahora - ritUlt > 170) { ritImp = Math.min(1, 0.55 + n.b); ritUlt = ahora; ritLat++; ritAros.push({ t: ahora, h: (ritMatiz + ((ritLat % 5) - 2) * 18 + 360) % 360 }); if (ritAros.length > 7) ritAros.shift(); }
     ritImp *= 0.88;
     el.style.scale = (1 + 0.075 * ritImp + 0.025 * n.b).toFixed(4); el.style.setProperty("--aro", ritImp.toFixed(3));
     // ondas de colores alrededor del círculo: anillos que salen en cada golpe + barras que cambian de color
     const r = el.getBoundingClientRect(), o = cv.getBoundingClientRect(), cx = (r.left - o.left + r.width / 2) * dpr, cy = (r.top - o.top + r.height / 2) * dpr, R = (r.width / 2 / (1 + 0.075 * ritImp + 0.025 * n.b)) * dpr;
     g.lineCap = "round";
-    // 8 bandas de frecuencia (graves abajo, agudos arriba, simétricas): cada una con su color y su propia altura
+    // 8 bandas de frecuencia (graves abajo, agudos arriba, simétricas). Los colores salen del tono de la carátula.
     const N = ritBarras.length, X = n.x || [], nivel = Math.max(n.r * 0.9, ritImp * 0.85, n.b);
-    for (let k = 0; k < 8; k++) ritMax[k] = Math.max(ritMax[k] * 0.996, X[k] || 0, 0.06);
+    for (let k = 0; k < 8; k++) ritMax[k] = Math.max(ritMax[k] * 0.992, X[k] || 0, 0.02);
+    ritMatiz = matizDeAcento();
+    const colBanda = (k) => `hsl(${(ritMatiz + (k / 7 - 0.5) * 110 + 360) % 360} 85% ${56 + k * 1.5}%`;
     for (let i = 0; i < N; i++) {
       const u = Math.abs(i / N - 0.5) * 2, bp = Math.min(7, u * 7.001), k0 = Math.floor(bp), k1 = Math.min(7, k0 + 1), f = bp - k0;
-      const v0 = (X[k0] || 0) / ritMax[k0], v1 = (X[k1] || 0) / ritMax[k1], vb = Math.min(1, (v0 * (1 - f) + v1 * f)) ** 1.25, v = Math.max(vb, nivel * (0.25 + 0.5 * Math.random()) * (1 - u * 0.5));   // si no llegan las bandas, igual se mueve con el volumen
+      const v0 = (X[k0] || 0) / ritMax[k0], v1 = (X[k1] || 0) / ritMax[k1], vb = Math.min(1, (v0 * (1 - f) + v1 * f)) ** 1.2, v = Math.max(vb, nivel * (0.2 + 0.4 * Math.random()) * (1 - u * 0.5));
       ritBarras[i] += (v - ritBarras[i]) * (v > ritBarras[i] ? 0.6 : 0.14);
-      const a = (i / N) * Math.PI * 2 - Math.PI / 2, h = ritBarras[i] * R * 0.42 + 2 * dpr, c1 = Math.cos(a), s1 = Math.sin(a);
-      g.strokeStyle = `hsl(${(bp / 7) * 310} 92% 60% / ${0.45 + 0.5 * ritBarras[i]})`; g.lineWidth = 3.4 * dpr;
-      g.beginPath(); g.moveTo(cx + c1 * R * 1.07, cy + s1 * R * 1.07); g.lineTo(cx + c1 * (R * 1.07 + h), cy + s1 * (R * 1.07 + h)); g.stroke();
+    }
+    const R1 = R * 1.06;
+    if ((E.aj.ritmoEst || "onda") === "barras") {
+      g.lineCap = "round"; g.lineWidth = 2 * dpr;
+      for (let k = 0; k < 8; k++) {                                       // un trazo por banda (agrupa las barras de cada color)
+        g.strokeStyle = colBanda(k) + " / .9)"; g.beginPath();
+        for (let i = 0; i < N; i++) {
+          const u = Math.abs(i / N - 0.5) * 2; if (Math.min(7, Math.round(u * 7)) !== k) continue;
+          const a = (i / N) * Math.PI * 2 - Math.PI / 2, h = ritBarras[i] * R * 0.5 + 2 * dpr, c1 = Math.cos(a), s1 = Math.sin(a);
+          g.moveTo(cx + c1 * R1, cy + s1 * R1); g.lineTo(cx + c1 * (R1 + h), cy + s1 * (R1 + h));
+        }
+        g.stroke();
+      }
+    } else {                                                               // una sola onda suave que rodea al disco
+      const sm = new Float32Array(N); for (let i = 0; i < N; i++) { let t = 0; for (let d = -2; d <= 2; d++) t += ritBarras[(i + d + N) % N] * (3 - Math.abs(d)); sm[i] = t / 15; }
+      const gr = g.createConicGradient ? g.createConicGradient(-Math.PI / 2, cx, cy) : null;
+      if (gr) for (let q = 0; q <= 16; q++) { const u = Math.abs(q / 16 - 0.5) * 2; gr.addColorStop(q / 16, colBanda(Math.min(7, Math.round(u * 7))) + " / .85)"); }
+      g.beginPath();
+      for (let i = 0; i <= N; i++) { const j = i % N, a = (j / N) * Math.PI * 2 - Math.PI / 2, rr = R1 + sm[j] * R * 0.5 + 2 * dpr; const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr; i ? g.lineTo(x, y) : g.moveTo(x, y); }
+      g.closePath(); g.arc(cx, cy, R1, 0, Math.PI * 2, true);
+      g.fillStyle = gr || colBanda(3) + " / .7)"; g.globalAlpha = 0.5; g.fill("evenodd"); g.globalAlpha = 1;
+      g.beginPath(); for (let i = 0; i <= N; i++) { const j = i % N, a = (j / N) * Math.PI * 2 - Math.PI / 2, rr = R1 + sm[j] * R * 0.5 + 2 * dpr; const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr; i ? g.lineTo(x, y) : g.moveTo(x, y); }
+      g.strokeStyle = gr || colBanda(3) + " / .9)"; g.lineWidth = 2 * dpr; g.stroke();
     }
     ritAros = ritAros.filter((o) => ahora - o.t < 1000);
     for (const o of ritAros) {
