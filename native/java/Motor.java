@@ -24,6 +24,7 @@ public final class Motor {
         if (jugador != null) return;
         Context app = ctx.getApplicationContext();
         eq = new EqProcesador();
+        EqProcesador.salida16 = app.getSharedPreferences("onda_motor", Context.MODE_PRIVATE).getBoolean("salida16", false);
         DefaultRenderersFactory fabrica = new DefaultRenderersFactory(app) {
             @Override
             protected AudioSink buildAudioSink(Context c, boolean enableFloatOutput, boolean enableAudioTrackPlaybackParams) {

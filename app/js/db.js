@@ -31,6 +31,7 @@ export const poner = (a, valor, clave) => tx(a, "readwrite", (s) => (clave === u
 export const traer = (a, clave) => tx(a, "readonly", (s) => s.get(clave));
 export const todo = (a) => tx(a, "readonly", (s) => s.getAll());
 export const borrar = (a, clave) => tx(a, "readwrite", (s) => s.delete(clave));
+export const claves = (a) => tx(a, "readonly", (s) => s.getAllKeys());
 export const vaciar = (a) => tx(a, "readwrite", (s) => s.clear());
 
 /** id estable por archivo: mismo nombre, tamaño y fecha = misma canción (evita duplicados al volver a importar). */

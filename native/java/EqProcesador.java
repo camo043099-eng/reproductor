@@ -11,6 +11,8 @@ import java.nio.ByteOrder;
 @UnstableApi
 public final class EqProcesador extends BaseAudioProcessor {
     public final NucleoEq nucleo = new NucleoEq();
+    /** si el teléfono no acepta audio de 32 bits, se entrega de 16 bits (se activa solo tras un fallo) */
+    public static volatile boolean salida16 = false;
     private int enc = C.ENCODING_PCM_16BIT;
     private float[] tmp = new float[0];
 
@@ -19,7 +21,7 @@ public final class EqProcesador extends BaseAudioProcessor {
         enc = in.encoding;
         if (enc != C.ENCODING_PCM_16BIT && enc != C.ENCODING_PCM_24BIT && enc != C.ENCODING_PCM_32BIT && enc != C.ENCODING_PCM_FLOAT) throw new UnhandledAudioFormatException(in);
         nucleo.configurar(in.sampleRate, in.channelCount);
-        return new AudioFormat(in.sampleRate, in.channelCount, C.ENCODING_PCM_FLOAT);
+        return new AudioFormat(in.sampleRate, in.channelCount, salida16 ? C.ENCODING_PCM_16BIT : C.ENCODING_PCM_FLOAT);
     }
 
     @Override
@@ -40,9 +42,15 @@ public final class EqProcesador extends BaseAudioProcessor {
         }
         input.position(input.position() + n * bytes);
         nucleo.procesar(tmp, n);
-        ByteBuffer out = replaceOutputBuffer(n * 4);
-        for (int i = 0; i < n; i++) out.putFloat(tmp[i]);
-        out.flip();
+        if (salida16) {
+            ByteBuffer out = replaceOutputBuffer(n * 2);
+            for (int i = 0; i < n; i++) { float v = tmp[i] * 32767f; out.putShort((short) Math.max(-32768, Math.min(32767, Math.round(v)))); }
+            out.flip();
+        } else {
+            ByteBuffer out = replaceOutputBuffer(n * 4);
+            for (int i = 0; i < n; i++) out.putFloat(tmp[i]);
+            out.flip();
+        }
     }
 
     @Override protected void onFlush() { nucleo.reiniciar(); }

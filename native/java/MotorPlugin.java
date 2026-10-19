@@ -5,6 +5,9 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.content.Context;
+import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
 import android.media.MediaMetadataRetriever;
 import android.media.audiofx.AudioEffect;
 import android.media.audiofx.BassBoost;
@@ -38,7 +41,10 @@ import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -65,6 +71,8 @@ public class MotorPlugin extends Plugin {
     private BassBoost bass = null;
     private int sesionAudio = 0;
     private int envFuerza = 0, gravesFuerza = 0;
+    private int fallosAudio = 0;
+    private boolean sinEfectos = false;
 
     // ───────── utilidades ─────────
     private void ui(PluginCall call, Runnable r) {
@@ -92,6 +100,7 @@ public class MotorPlugin extends Plugin {
         if (id == 0 || id == sesionAudio) return;
         try { if (virt != null) virt.release(); } catch (Exception e) { } try { if (bass != null) bass.release(); } catch (Exception e) { }
         virt = null; bass = null; sesionAudio = id;
+        if (sinEfectos) return;
         try { virt = new Virtualizer(0, id); } catch (Throwable t) { virt = null; }
         try { bass = new BassBoost(0, id); } catch (Throwable t) { bass = null; }
         aplicarEfectos(); anunciarSesion(true);
@@ -180,6 +189,16 @@ public class MotorPlugin extends Plugin {
             else emitir("estado", estadoActual());
         }
         @Override public void onPlayerError(PlaybackException e) {
+            int cod = e.errorCode;
+            boolean deAudio = cod == PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED || cod == PlaybackException.ERROR_CODE_AUDIO_TRACK_WRITE_FAILED
+                    || cod == PlaybackException.ERROR_CODE_AUDIO_TRACK_OFFLOAD_INIT_FAILED || cod == PlaybackException.ERROR_CODE_AUDIO_TRACK_OFFLOAD_WRITE_FAILED;
+            if (deAudio && fallosAudio < 2) {                              // el teléfono no aceptó el formato de salida: se reintenta de forma más sencilla
+                fallosAudio++; ExoPlayer q = Motor.jugador;
+                if (fallosAudio == 1) { EqProcesador.salida16 = true; getContext().getSharedPreferences("onda_motor", Context.MODE_PRIVATE).edit().putBoolean("salida16", true).apply(); }
+                else { sinEfectos = true; try { if (virt != null) virt.release(); } catch (Exception x) { } try { if (bass != null) bass.release(); } catch (Exception x) { } virt = null; bass = null; }
+                JSObject o = new JSObject(); o.put("mensaje", fallosAudio == 1 ? "Tu teléfono no aceptó el audio de 32 bits; cambié a 16 bits y sigo." : "Desactivé los efectos de sonido del sistema para poder reproducir."); emitir("error", o);
+                long pos = q.getCurrentPosition(); int idx = q.getCurrentMediaItemIndex(); q.prepare(); q.seekTo(idx, pos); q.play(); return;
+            }
             JSObject o = new JSObject(); o.put("mensaje", "No pude reproducir esta canción (" + e.getErrorCodeName() + ")."); emitir("error", o);
             ExoPlayer p = Motor.jugador; if (p.hasNextMediaItem()) { p.seekToNextMediaItem(); p.prepare(); p.play(); }
         }
@@ -232,9 +251,10 @@ public class MotorPlugin extends Plugin {
                         MediaStore.Audio.Media.TRACK, MediaStore.Audio.Media.YEAR, MediaStore.Audio.Media.DURATION, MediaStore.Audio.Media.SIZE,
                         MediaStore.Audio.Media.DATE_ADDED, MediaStore.Audio.Media.MIME_TYPE, MediaStore.Audio.Media.DISPLAY_NAME));
                 if (Build.VERSION.SDK_INT >= 29) col.add(MediaStore.Audio.Media.RELATIVE_PATH);
-                if (Build.VERSION.SDK_INT >= 30) { col.add("album_artist"); col.add("genre"); col.add("disc_number"); }
+                if (Build.VERSION.SDK_INT >= 30) { col.add("album_artist"); col.add("disc_number"); }
                 JSArray out = new JSArray();
                 ContentResolver cr = getContext().getContentResolver();
+                Map<Long, String> generos = mapaGeneros(cr);          // aparte: pedir el género en la consulta principal es muy lento en algunos teléfonos
                 try (Cursor c = cr.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, col.toArray(new String[0]), "is_music != 0 OR mime_type LIKE '%flac%'", null, null)) {
                     if (c != null) while (c.moveToNext()) {
                         long id = c.getLong(c.getColumnIndexOrThrow(MediaStore.Audio.Media._ID));
@@ -246,7 +266,7 @@ public class MotorPlugin extends Plugin {
                         f.put("id", "ms" + id); f.put("uri", android.content.ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id).toString());
                         f.put("titulo", limpio(c, MediaStore.Audio.Media.TITLE)); f.put("artista", limpio(c, MediaStore.Audio.Media.ARTIST));
                         f.put("albumArtista", limpio(c, "album_artist")); f.put("album", limpio(c, MediaStore.Audio.Media.ALBUM)); f.put("albumId", String.valueOf(c.getLong(c.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID))));
-                        f.put("genero", limpio(c, "genre")); f.put("pista", tr); f.put("disco", disco); f.put("anio", c.getInt(c.getColumnIndexOrThrow(MediaStore.Audio.Media.YEAR)));
+                        f.put("genero", generos.containsKey(id) ? generos.get(id) : ""); f.put("pista", tr); f.put("disco", disco); f.put("anio", c.getInt(c.getColumnIndexOrThrow(MediaStore.Audio.Media.YEAR)));
                         f.put("duracion", dur / 1000.0); f.put("tam", c.getLong(c.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE))); f.put("fecha", c.getLong(c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)) * 1000);
                         f.put("mime", limpio(c, MediaStore.Audio.Media.MIME_TYPE)); f.put("nombre", limpio(c, MediaStore.Audio.Media.DISPLAY_NAME)); f.put("carpeta", limpio(c, "relative_path"));
                         out.put(f);
@@ -256,6 +276,18 @@ public class MotorPlugin extends Plugin {
             } catch (SecurityException e) { call.reject("permiso"); }
             catch (Exception e) { call.reject("No pude leer la música: " + e.getMessage()); }
         }).start();
+    }
+    private static Map<Long, String> mapaGeneros(ContentResolver cr) {
+        Map<Long, String> m = new HashMap<>();
+        try (Cursor g = cr.query(MediaStore.Audio.Genres.EXTERNAL_CONTENT_URI, new String[]{MediaStore.Audio.Genres._ID, MediaStore.Audio.Genres.NAME}, null, null, null)) {
+            while (g != null && g.moveToNext()) {
+                long gid = g.getLong(0); String nombre = g.getString(1); if (nombre == null || nombre.isEmpty()) continue;
+                try (Cursor mm = cr.query(MediaStore.Audio.Genres.Members.getContentUri("external", gid), new String[]{MediaStore.Audio.Genres.Members.AUDIO_ID}, null, null, null)) {
+                    while (mm != null && mm.moveToNext()) m.put(mm.getLong(0), nombre);
+                } catch (Exception e) { /* este género se omite */ }
+            }
+        } catch (Exception e) { /* sin géneros */ }
+        return m;
     }
     private static String limpio(Cursor c, String col) {
         int i = c.getColumnIndex(col); if (i < 0 || c.isNull(i)) return "";
@@ -268,7 +300,7 @@ public class MotorPlugin extends Plugin {
             JSObject o = new JSObject();
             if (f.exists()) { o.put("ruta", f.getAbsolutePath()); call.resolve(o); return; }
             Bitmap b = null;
-            try { if (Build.VERSION.SDK_INT >= 29) b = getContext().getContentResolver().loadThumbnail(Uri.parse(uri), new Size(600, 600), null); } catch (Exception e) { /* se prueba otra forma */ }
+            try { if (Build.VERSION.SDK_INT >= 29) b = getContext().getContentResolver().loadThumbnail(Uri.parse(uri), new Size(480, 480), null); } catch (Exception e) { /* se prueba otra forma */ }
             if (b == null) {
                 MediaMetadataRetriever r = new MediaMetadataRetriever();
                 try { r.setDataSource(getContext(), Uri.parse(uri)); byte[] d = r.getEmbeddedPicture(); if (d != null) b = BitmapFactory.decodeByteArray(d, 0, d.length); }
@@ -276,6 +308,71 @@ public class MotorPlugin extends Plugin {
             }
             if (b != null) { try (FileOutputStream w = new FileOutputStream(f)) { b.compress(Bitmap.CompressFormat.JPEG, 88, w); o.put("ruta", f.getAbsolutePath()); } catch (Exception e) { /* sin portada */ } }
             call.resolve(o);
+        }).start();
+    }
+
+    // ───────── salida de audio propia de Onda (Bluetooth, parlante del teléfono, cable, USB) ─────────
+    private static boolean tipoUtil(int t) { return t == 2 || t == 3 || t == 4 || t == 8 || t == 9 || t == 11 || t == 22 || t == 26 || t == 27; }
+    private AudioDeviceInfo[] salidasDisponibles() { return ((AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE)).getDevices(AudioManager.GET_DEVICES_OUTPUTS); }
+    @PluginMethod public void salidas(PluginCall call) {
+        ui(call, () -> {
+            JSArray a = new JSArray(); boolean parlante = false;
+            for (AudioDeviceInfo d : salidasDisponibles()) {
+                int t = d.getType(); if (!tipoUtil(t)) continue; if (t == 2) { if (parlante) continue; parlante = true; }
+                JSObject o = new JSObject(); o.put("tipo", t); o.put("nombre", d.getProductName() == null ? "" : d.getProductName().toString()); a.put(o);
+            }
+            JSObject r = new JSObject(); r.put("salidas", a); call.resolve(r);
+        });
+    }
+    @PluginMethod public void salida(PluginCall call) {
+        ui(call, () -> {
+            int tipo = call.getInt("tipo", -1); String nombre = call.getString("nombre", ""); AudioDeviceInfo sel = null;
+            if (tipo >= 0) for (AudioDeviceInfo d : salidasDisponibles()) {
+                if (d.getType() != tipo) continue;
+                String n = d.getProductName() == null ? "" : d.getProductName().toString();
+                if (sel == null || n.equals(nombre)) sel = d;
+            }
+            Motor.jugador.setPreferredAudioDevice(sel);
+            JSObject r = new JSObject(); r.put("activa", sel != null); call.resolve(r);
+        });
+    }
+
+    // ───────── internet (portadas y letras): solo a servicios de la lista ─────────
+    private static final String[] PERMITIDOS = {"itunes.apple.com", "mzstatic.com", "api.deezer.com", "dzcdn.net", "lrclib.net", "musicbrainz.org", "coverartarchive.org", "archive.org"};
+    private static boolean permitido(String direccion) {
+        try {
+            URL u = new URL(direccion); if (!"https".equals(u.getProtocol())) return false; String host = u.getHost().toLowerCase(Locale.ROOT);
+            for (String p : PERMITIDOS) if (host.equals(p) || host.endsWith("." + p)) return true;
+        } catch (Exception e) { /* dirección inválida */ }
+        return false;
+    }
+    private static byte[] bajar(String direccion, int max) throws Exception {
+        HttpURLConnection c = (HttpURLConnection) new URL(direccion).openConnection();
+        c.setRequestProperty("User-Agent", "Onda/0.4 (reproductor personal; github.com/camo043099-eng/reproductor)"); c.setConnectTimeout(8000); c.setReadTimeout(15000);
+        int codigo = c.getResponseCode(); InputStream in = codigo < 400 ? c.getInputStream() : c.getErrorStream();
+        ByteArrayOutputStream b = new ByteArrayOutputStream(); byte[] t = new byte[1 << 14]; int n;
+        while (in != null && (n = in.read(t)) > 0) { b.write(t, 0, n); if (b.size() > max) throw new Exception("respuesta demasiado grande"); }
+        if (codigo >= 400) throw new Exception("http " + codigo);
+        return b.toByteArray();
+    }
+    @PluginMethod public void texto(PluginCall call) {
+        new Thread(() -> {
+            String u = call.getString("url", "");
+            if (!permitido(u)) { call.reject("dirección no permitida"); return; }
+            try { JSObject o = new JSObject(); o.put("codigo", 200); o.put("cuerpo", new String(bajar(u, 4 << 20), "UTF-8")); call.resolve(o); }
+            catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+        }).start();
+    }
+    @PluginMethod public void descargar(PluginCall call) {
+        new Thread(() -> {
+            String u = call.getString("url", ""), albumId = call.getString("albumId", "x").replaceAll("[^A-Za-z0-9_]", "_");
+            if (!permitido(u)) { call.reject("dirección no permitida"); return; }
+            try {
+                byte[] d = bajar(u, 12 << 20); Bitmap b = BitmapFactory.decodeByteArray(d, 0, d.length); if (b == null) throw new Exception("la imagen no se pudo leer");
+                File dir = new File(getContext().getFilesDir(), "portadas"); dir.mkdirs(); File f = new File(dir, albumId + ".jpg");
+                try (FileOutputStream w = new FileOutputStream(f)) { b.compress(Bitmap.CompressFormat.JPEG, 90, w); }
+                JSObject o = new JSObject(); o.put("ruta", f.getAbsolutePath()); call.resolve(o);
+            } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
         }).start();
     }
 

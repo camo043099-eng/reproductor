@@ -85,6 +85,8 @@ export class ReproductorNativo extends EventTarget {
   ponerRG(m) { this.rgModo = m; this.N.rg({ modo: m }); }
   ponerVolumen() { /* el volumen lo controlan los botones del teléfono */ }
   ponerEspacial() { return this.N.espacial({ ancho: this.ancho / 100, env: Math.round(this.env * 10), graves: Math.round(this.graves * 10) }); }
+  salidas() { return this.N.salidas(); }
+  ponerSalida(s) { return this.N.salida(s ? { tipo: s.tipo, nombre: s.nombre || "" } : { tipo: -1 }); }
   capacidades() { return this.N.capacidades(); }
   efectosSistema() { return this.N.efectosSistema(); }
   /** al volver a la app: pregunta al motor cómo va (por si no llegaron avisos mientras estaba en segundo plano) */

@@ -2,6 +2,7 @@ import { Reproductor, BANDAS, PRESETS } from "./player.js";
 import { leerEtiquetas } from "./tags.js";
 import * as db from "./db.js";
 import { ReproductorNativo } from "./nativo.js";
+import { buscarPortadaUrl, buscarLetra, parsearLRC, lineaActual } from "./internet.js";
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 
 const $ = (s) => document.querySelector(s);
@@ -18,10 +19,10 @@ const I = {
   fav: svg('<path d="M12 20s-7-4.5-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.500-7 10-7 10z"/>'),
   eq: svg('<path d="M5 4v16M12 4v16M19 4v16M3 14h4M10 8h4M17 15h4"/>'),
   luna: svg('<path d="M20 14.500A8 8 0 019.500 4 8 8 0 1020 14.500z"/>'), lista: svg('<path d="M4 6h12M4 12h12M4 18h7M18 15v6M15 18h6"/>'),
-  volver: svg('<path d="M15 5l-7 7 7 7"/>'), mas3: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.800"/><circle cx="12" cy="12" r="1.800"/><circle cx="12" cy="19" r="1.800"/></svg>',
+  letra: svg('<path d="M4 6h16M4 11h11M4 16h16M4 21h8"/>'), volver: svg('<path d="M15 5l-7 7 7 7"/>'), mas3: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.800"/><circle cx="12" cy="12" r="1.800"/><circle cx="12" cy="19" r="1.800"/></svg>',
 };
 const ponerIconos = () => {
-  const m = { "#b-agregar": I.mas, "#b-ajustes": I.ajustes, "#mini-sig": I.sig, "#r-cola": I.cola, "#r-azar": I.azar, "#r-ant": I.ant, "#r-sig": I.sig, "#r-rep": I.rep, "#r-fav": I.fav, "#r-eq": I.eq, "#r-sueno": I.luna, "#r-lista": I.lista };
+  const m = { "#b-agregar": I.mas, "#b-ajustes": I.ajustes, "#mini-sig": I.sig, "#r-cola": I.cola, "#r-azar": I.azar, "#r-ant": I.ant, "#r-sig": I.sig, "#r-rep": I.rep, "#r-fav": I.fav, "#r-eq": I.eq, "#r-sueno": I.luna, "#r-lista": I.lista, "#r-letra": I.letra };
   for (const [k, v] of Object.entries(m)) $(k).innerHTML = v;
   document.querySelectorAll("[data-cerrar]").forEach((b) => { b.innerHTML = I.abajo; });
 };
@@ -32,7 +33,7 @@ const colador = new Intl.Collator("es", { sensitivity: "base", numeric: true });
 const normal = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 // ── estado ──
-const E = { vista: "inicio", canciones: [], listas: [], tab: "canciones", orden: "titulo", q: "", detalle: null, aj: {} };
+const E = { version: 0, vista: "inicio", canciones: [], listas: [], tab: "canciones", orden: "titulo", q: "", detalle: null, aj: {} };
 const porId = new Map();
 const urlsPort = new Map();                                              // clave de álbum → URL o null
 let reproductor;
@@ -50,7 +51,23 @@ const vigia = "IntersectionObserver" in window ? new IntersectionObserver((es) =
   for (const e of es) if (e.isIntersecting) { vigia.unobserve(e.target); hidratar(e.target); }
 }, { rootMargin: "200px" }) : null;
 async function hidratar(img) { const u = await portadaUrl(img.dataset.alb); if (u) img.src = u; }
-function imagenes(raiz) { raiz.querySelectorAll("img[data-alb]").forEach((i) => { if (!i.dataset.alb) return; if (vigia) vigia.observe(i); else hidratar(i); }); }
+function imagenes(raiz) { raiz.querySelectorAll("img[data-alb]:not([data-obs])").forEach((i) => { i.dataset.obs = "1"; if (!i.dataset.alb) return; if (vigia) vigia.observe(i); else hidratar(i); }); }
+const imgsDe = (alb) => document.querySelectorAll(`img[data-alb="${CSS.escape(alb)}"]`);
+
+// pinta listas largas por tandas: lo primero aparece al instante y el resto llega entre cuadros, sin congelar la pantalla
+let tokenPintado = 0;
+function pintar(c, items, f, envoltura) {
+  const mi = ++tokenPintado, N = 40;
+  c.innerHTML = envoltura(items.slice(0, N).map(f).join(""));
+  const cont = c.querySelector("[data-tandas]"); let i = N;
+  const paso = () => {
+    if (mi !== tokenPintado || !cont.isConnected || i >= items.length) return;
+    const fin = Math.min(items.length, i + 120); let h = ""; for (let k = i; k < fin; k++) h += f(items[k], k);
+    cont.insertAdjacentHTML("beforeend", h); i = fin; imagenes(cont); requestAnimationFrame(paso);
+  };
+  if (items.length > N) requestAnimationFrame(paso);
+  imagenes(c);
+}
 const imgHtml = (s, cls = "") => `<img class="${cls}" src="${SIN}" data-alb="${esc(s.alb || "")}" alt="" loading="lazy" decoding="async">`;
 
 // ── aviso ──
@@ -60,7 +77,7 @@ function avisar(t, ms = 2800) { const a = $("#aviso"); a.textContent = t; a.hidd
 // ── biblioteca ──
 async function cargarTodo() {
   E.canciones = await db.todo("canciones"); E.listas = await db.todo("listas");
-  porId.clear(); for (const s of E.canciones) porId.set(s.id, s);
+  porId.clear(); E.version++; for (const s of E.canciones) porId.set(s.id, s);
 }
 function claveAlbum(t) { return normal((t.albumArtista || t.artista || "") + "|" + (t.album || "")); }
 async function miniatura(blob) {
@@ -93,7 +110,7 @@ async function importar(lista) {
     } catch (_) { malas++; }
     if (i % 10 === 9) { await new Promise((r) => setTimeout(r)); }
   }
-  importando = false;
+  importando = false; E.version++;
   avisar(`Listo: ${nuevas} nueva${nuevas === 1 ? "" : "s"}${repetidas ? `, ${repetidas} ya estaban` : ""}${malas ? `, ${malas} con error` : ""}.`, 4500);
   await db.pedirPersistencia(); dibujar(); mostrarEspacio();
 }
@@ -118,12 +135,14 @@ async function elegirCarpeta() {
 }
 
 // ── listados ──
+let cacheOrden = { clave: "", lista: null };
+function ordenadas() { const clave = E.orden + "|" + E.version; if (cacheOrden.clave !== clave) cacheOrden = { clave, lista: ordenar(E.canciones) }; return cacheOrden.lista; }
 function ordenar(arr) {
   const k = E.orden, c = (a, b) => colador.compare(a, b);
   const f = { titulo: (a, b) => c(a.titulo || a.nombre, b.titulo || b.nombre), artista: (a, b) => c(a.artista, b.artista) || c(a.album, b.album) || (a.disco - b.disco) || (a.pista - b.pista), album: (a, b) => c(a.album, b.album) || (a.disco - b.disco) || (a.pista - b.pista), reciente: (a, b) => b.fecha - a.fecha }[k];
   return arr.slice().sort(f);
 }
-const coincide = (s, q) => !q || normal([s.titulo, s.artista, s.album, s.nombre, s.genero, s.anio].join(" ")).includes(q);
+const coincide = (s, q) => !q || (s._b ||= normal([s.titulo, s.artista, s.album, s.nombre, s.genero, s.anio].join(" "))).includes(q);
 function filaCancion(s, i, extra = "") {
   const sonando = reproductor.actual?.id === s.id;
   return `<li class="fila${sonando ? " sonando" : ""}" data-i="${i}" data-id="${esc(s.id)}" tabindex="0">${imgHtml(s)}<span class="info"><b>${esc(s.titulo || s.nombre)}</b><span>${esc(s.artista || "Artista desconocido")}${extra}</span></span><span class="dur">${fmt(s.duracion)}</span><button class="mas" type="button" data-mas aria-label="Más opciones">${I.mas3}</button></li>`;
@@ -142,6 +161,7 @@ const saludo = () => { const h = new Date().getHours(); return h < 12 ? "Buenos 
 const IN = { inicio: svg('<path d="M4 11l8-7 8 7v9a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1z"/>'), buscar: I.buscar, biblioteca: svg('<path d="M5 4v16M10 4v16M15 5l4 14"/>') };
 function animarCambio() { const c = $("#contenido"); c.classList.remove("entra"); void c.offsetWidth; c.classList.add("entra"); }
 function dibujar() {
+  tokenPintado++;
   const v = E.vista;
   $("#titulo-vista").textContent = v === "inicio" ? saludo() : v === "buscar" ? "Buscar" : "Tu biblioteca";
   $("#buscador").hidden = v !== "buscar"; $("#pestanas").hidden = v !== "biblioteca"; $("#barra-orden").hidden = true;
@@ -178,9 +198,9 @@ function dibujarBuscar() {
   }
   listaActual = ordenar(E.canciones.filter((s) => coincide(s, q)));
   const albs = [...agrupar((s) => s.alb)].filter(([, v]) => v.some((s) => coincide(s, q))).slice(0, 10);
-  c.innerHTML = (albs.length ? `<section class="estante"><h3>Álbumes</h3><div class="carril">${albs.map(([k, v]) => `<button class="tarjeta" type="button" data-det="album" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].album || "Sin álbum")}</b><span>${esc(v[0].albumArtista || v[0].artista || "")}</span></button>`).join("")}</div></section>` : "") +
-    (listaActual.length ? `<h3 class="sub">Canciones</h3><ul class="lista">${listaActual.map((s, i) => filaCancion(s, i)).join("")}</ul>` : `<div class="vacio">Nada coincide con “${esc(E.q)}”.</div>`);
-  imagenes(c);
+  const cabeza = (albs.length ? `<section class="estante"><h3>Álbumes</h3><div class="carril">${albs.map(([k, v]) => `<button class="tarjeta" type="button" data-det="album" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].album || "Sin álbum")}</b><span>${esc(v[0].albumArtista || v[0].artista || "")}</span></button>`).join("")}</div></section>` : "") +
+    (listaActual.length ? `<h3 class="sub">Canciones</h3>` : `<div class="vacio">Nada coincide con “${esc(E.q)}”.</div>`);
+  pintar(c, listaActual, (s, i) => filaCancion(s, i), (h) => cabeza + `<ul class="lista" data-tandas>${h}</ul>`);
 }
 function dibujarBiblioteca() {
   const c = $("#contenido"), q = "", d = E.detalle;
@@ -189,19 +209,19 @@ function dibujarBiblioteca() {
   if (!E.canciones.length) { c.innerHTML = vacio(); $("#resumen").textContent = ""; return; }
   if (d) return dibujarDetalle(c, d);
   if (E.tab === "canciones") {
-    listaActual = ordenar(E.canciones.filter((s) => coincide(s, q)));
+    listaActual = ordenadas();
     const dur = listaActual.reduce((a, s) => a + (s.duracion || 0), 0);
     $("#resumen").textContent = `${listaActual.length} canciones · ${fmt(dur)}`;
-    c.innerHTML = listaActual.length ? `<ul class="lista">${listaActual.map((s, i) => filaCancion(s, i)).join("")}</ul>` : `<div class="vacio">Nada coincide con “${esc(E.q)}”.</div>`;
+    pintar(c, listaActual, (s, i) => filaCancion(s, i), (h) => `<ul class="lista" data-tandas>${h}</ul>`);
   } else if (E.tab === "albumes") {
     const g = [...agrupar((s) => s.alb)].filter(([, v]) => v.some((s) => coincide(s, q))).sort((a, b) => colador.compare(a[1][0].album, b[1][0].album));
-    c.innerHTML = `<div class="rejilla">${g.map(([k, v]) => `<button class="tarjeta" type="button" data-det="album" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].album || "Sin álbum")}</b><span>${esc(v[0].albumArtista || v[0].artista || "")} · ${v.length}</span></button>`).join("")}</div>`;
+    pintar(c, g, ([k, v]) => `<button class="tarjeta" type="button" data-det="album" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].album || "Sin álbum")}</b><span>${esc(v[0].albumArtista || v[0].artista || "")} · ${v.length}</span></button>`, (h) => `<div class="rejilla" data-tandas>${h}</div>`);
   } else if (E.tab === "artistas") {
     const g = [...agrupar((s) => normal(s.albumArtista || s.artista))].filter(([, v]) => v.some((s) => coincide(s, q))).sort((a, b) => colador.compare(a[1][0].albumArtista || a[1][0].artista, b[1][0].albumArtista || b[1][0].artista));
-    c.innerHTML = `<div class="rejilla">${g.map(([k, v]) => `<button class="tarjeta" type="button" data-det="artista" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].albumArtista || v[0].artista || "Desconocido")}</b><span>${v.length} canciones</span></button>`).join("")}</div>`;
+    pintar(c, g, ([k, v]) => `<button class="tarjeta" type="button" data-det="artista" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].albumArtista || v[0].artista || "Desconocido")}</b><span>${v.length} canciones</span></button>`, (h) => `<div class="rejilla" data-tandas>${h}</div>`);
   } else if (E.tab === "carpetas") {
     const g = [...agrupar((s) => s.carpeta || "")].sort((a, b) => colador.compare(a[0], b[0]));
-    c.innerHTML = `<div class="rejilla">${g.map(([k, v]) => `<button class="tarjeta" type="button" data-det="carpeta" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(nombreCarpeta(k))}</b><span>${v.length} canciones</span></button>`).join("")}</div>`;
+    pintar(c, g, ([k, v]) => `<button class="tarjeta" type="button" data-det="carpeta" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(nombreCarpeta(k))}</b><span>${v.length} canciones</span></button>`, (h) => `<div class="rejilla" data-tandas>${h}</div>`);
   } else {
     const fav = E.canciones.filter((s) => s.fav);
     const filas = [`<button class="tarjeta" type="button" data-det="lista" data-k="__fav"><span class="sinport" style="display:grid;place-items:center;color:var(--ac2)">${I.fav.replace("<svg", '<svg width="56" height="56" fill="currentColor"')}</span><b>Favoritas</b><span>${fav.length} canciones</span></button>`];
@@ -226,7 +246,9 @@ function dibujarDetalle(c, d) {
   $("#resumen").textContent = "";
   c.innerHTML = `<div class="cabecera-detalle"><button class="ib" type="button" data-volver aria-label="Volver">${I.volver}</button><h2>${esc(titulo)}</h2>${l ? `<button class="ib" type="button" data-borrar-lista aria-label="Borrar lista">${I.mas3}</button>` : ""}</div>
   <div class="acciones-detalle"><button class="boton primario" type="button" data-tocar-todo>Reproducir</button><button class="boton" type="button" data-tocar-azar>Aleatorio</button></div>
-  ${listaActual.length ? `<ul class="lista">${listaActual.map((s, i) => filaCancion(s, i, d.tipo === "album" ? "" : ` · ${esc(s.album || "")}`)).join("")}</ul>` : `<div class="vacio">Aquí no hay canciones todavía.</div>`}`;
+  <div id="det-lista"></div>`;
+  const cont = $("#det-lista");
+  if (listaActual.length) pintar(cont, listaActual, (s, i) => filaCancion(s, i, d.tipo === "album" ? "" : ` · ${esc(s.album || "")}`), (h) => `<ul class="lista" data-tandas>${h}</ul>`); else cont.innerHTML = `<div class="vacio">Aquí no hay canciones todavía.</div>`;
   imagenes(c);
 }
 
@@ -248,7 +270,8 @@ function actualizarMini() {
   $("#r-chips").innerHTML = chips.map((t) => `<span class="chip${t === "Hi-Res" ? " activo" : ""}">${esc(t)}</span>`).join("");
   const f = $("#r-fav"); f.setAttribute("aria-pressed", String(!!s.fav)); f.firstElementChild.style.fill = s.fav ? "currentColor" : "none"; f.style.color = s.fav ? "var(--ac2)" : "";
   document.title = `${s.titulo || s.nombre} · Onda`;
-  document.querySelectorAll(".fila").forEach((el) => el.classList.toggle("sonando", el.dataset.id === s.id));
+  document.querySelectorAll(".fila.sonando").forEach((el) => el.classList.remove("sonando"));
+  document.querySelectorAll(`.fila[data-id="${CSS.escape(s.id)}"]`).forEach((el) => el.classList.add("sonando"));
   actualizarTiempo();
 }
 function actualizarEstado() {
@@ -280,7 +303,7 @@ function actualizarTiempo() {
 }
 
 // ── sesión y ajustes guardados ──
-async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz }, "config").catch(() => {}); }
+async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null }, "config").catch(() => {}); }
 let tSes = 0;
 async function guardarSesion(fuerza) {
   const ahora = Date.now(); if (!fuerza && ahora - tSes < 4000) return; tSes = ahora;
@@ -335,13 +358,14 @@ function opcionesCancion(s, enLista) {
     { t: s.fav ? "Quitar de favoritas" : "Agregar a favoritas", f: () => alternarFav(s) },
     { t: "Agregar a una lista…", f: () => setTimeout(() => agregarALista(s), 0) },
   ];
+  op.push({ t: "Buscar portada en internet", f: () => portadaWeb(s) }, { t: "Elegir portada de mi galería", f: () => elegirImagen(s) }, { t: "Ver letra", f: () => { if (reproductor.actual?.id !== s.id) tocar([s], 0).then(abrirLetra); else abrirLetra(); } });
   if (enLista) op.push({ t: "Quitar de esta lista", f: async () => { enLista.ids = enLista.ids.filter((x) => x !== s.id); await db.poner("listas", enLista); dibujar(); } });
   if (!MOTOR) op.push({ t: "Borrar de la biblioteca", cls: "peligro", f: async () => { if (!confirm(`¿Borrar “${s.titulo || s.nombre}” de la app? El archivo original de tu teléfono no se toca.`)) return; await borrarCancion(s); } });
   menu(s.titulo || s.nombre, op);
 }
 async function borrarCancion(s) {
   await db.borrar("canciones", s.id); await db.borrar("archivos", s.id);
-  E.canciones = E.canciones.filter((x) => x.id !== s.id); porId.delete(s.id);
+  E.canciones = E.canciones.filter((x) => x.id !== s.id); E.version++; porId.delete(s.id);
   for (const l of E.listas) if (l.ids.includes(s.id)) { l.ids = l.ids.filter((x) => x !== s.id); await db.poner("listas", l); }
   if (!E.canciones.some((x) => x.alb === s.alb)) { await db.borrar("portadas", s.alb); urlsPort.delete(s.alb); }
   dibujar(); mostrarEspacio();
@@ -395,6 +419,19 @@ function vizEncender() {
 }
 function vizApagar() { cancelAnimationFrame(vizRaf); vizRaf = 0; $("#r-viz").hidden = true; }
 
+const NOMBRES_SALIDA = { 2: "Parlante del teléfono", 3: "Audífonos con cable", 4: "Audífonos con cable", 8: "Bluetooth", 9: "HDMI", 11: "USB", 22: "USB", 26: "Bluetooth", 27: "Bluetooth" };
+const nombreSalida = (s) => (s ? (s.tipo === 8 || s.tipo === 26 || s.tipo === 27 ? `Bluetooth${s.nombre ? " · " + s.nombre : ""}` : NOMBRES_SALIDA[s.tipo] || "Otra salida") : "Automática");
+function etiquetaSalida() { $("#aj-salida").textContent = "Salida de audio de Onda: " + nombreSalida(E.aj.salida); }
+async function elegirSalida() {
+  let r; try { r = await reproductor.salidas(); } catch (_) { return avisar("No pude ver las salidas de audio."); }
+  const op = [{ t: "Automática (la que use el teléfono)", f: () => cambiarSalida(null) }];
+  for (const s of r.salidas || []) op.push({ t: nombreSalida(s), f: () => cambiarSalida({ tipo: s.tipo, nombre: s.nombre }) });
+  menu("Salida de audio de Onda", op);
+}
+async function cambiarSalida(s) {
+  E.aj.salida = s; etiquetaSalida(); guardarAjustes();
+  try { const r = await reproductor.ponerSalida(s); avisar(!s ? "Salida automática" : r.activa ? "Onda suena por: " + nombreSalida(s) : "Esa salida no está conectada ahora; usaré la automática.", 3000); } catch (_) { avisar("No pude cambiar la salida."); }
+}
 function abrirReproductor() { if (pila.includes("hoja-rep")) return; abrir("hoja-rep"); actualizarTiempo(); vizEncender(); }
 async function mostrarEspacio() {
   if (MOTOR) { const b = E.canciones.reduce((a, s) => a + (s.tam || 0), 0); $("#aj-espacio").textContent = `${E.canciones.length} canciones · ${(b / 1073741824).toFixed(2)} GB (no se copian)`; return; }
@@ -411,6 +448,8 @@ function enlazar() {
   R.addEventListener("duracion", (e) => { const s = porId.get(e.detail.id); if (s && Math.abs((s.duracion || 0) - e.detail.duracion) > 1) { s.duracion = e.detail.duracion; db.poner("canciones", s); } });
   R.addEventListener("cola", dibujarCola);
   R.addEventListener("detalles", () => actualizarMini());
+  R.addEventListener("tiempo", () => actualizarLetra());
+  R.addEventListener("cambio", () => { if (pila.includes("hoja-letra") && R.actual) cargarLetra(R.actual); });
   R.addEventListener("error", (e) => avisar(e.detail.mensaje));
   R.addEventListener("dormido", () => avisar("Temporizador: música apagada. Buenas noches."));
   R.addEventListener("sueno", () => { if (pila.includes("hoja-sueno")) dibujarSueno(); });
@@ -449,6 +488,15 @@ function enlazar() {
   $("#r-azar").addEventListener("click", () => { R.ponerAleatorio(!R.aleatorio); $("#r-azar").setAttribute("aria-pressed", String(R.aleatorio)); });
   $("#r-rep").addEventListener("click", () => { const m = { no: "todo", todo: "uno", uno: "no" }[R.repetir]; R.ponerRepetir(m); $("#r-rep").dataset.modo = m; $("#r-rep").style.opacity = m === "no" ? "" : "1"; avisar({ no: "Sin repetir", todo: "Repetir toda la cola", uno: "Repetir esta canción" }[m], 1500); });
   $("#r-fav").addEventListener("click", () => { if (R.actual) alternarFav(R.actual); });
+  $("#r-letra").addEventListener("click", abrirLetra);
+  $("#letra-cuerpo").addEventListener("click", (e) => {
+    if (e.target.closest("#letra-reintento")) { if (R.actual) cargarLetra(R.actual); return; }
+    const p = e.target.closest("p[data-i]"); if (p && letraAct.lineas.length) R.buscar(letraAct.lineas[+p.dataset.i].t);
+  });
+  $("#f-imagen").addEventListener("change", async (e) => { const f = e.target.files[0]; e.target.value = ""; if (!f || !imagenPara) return; const m = await miniatura(f); if (m) { await ponerPortada(imagenPara.alb, m); avisar("Portada cambiada", 1800); } else avisar("No pude leer esa imagen."); });
+  $("#aj-salida").addEventListener("click", elegirSalida);
+  $("#aj-portadas").addEventListener("click", () => descargarFaltantes(true));
+  $("#aj-auto").addEventListener("change", (e) => { E.aj.auto = e.target.checked; guardarAjustes(); });
   $("#r-lista").addEventListener("click", () => { if (R.actual) agregarALista(R.actual); });
   $("#r-cola").addEventListener("click", () => { dibujarCola(); abrir("hoja-cola"); });
   $("#r-eq").addEventListener("click", () => { mostrarEq(); abrir("hoja-eq"); });
@@ -481,7 +529,7 @@ function enlazar() {
     R.pausa(); for (const a of ["canciones", "archivos", "portadas", "listas"]) await db.vaciar(a);
     E.canciones = []; E.listas = []; porId.clear(); urlsPort.clear(); E.detalle = null; $("#mini").hidden = true; cerrar("hoja-aj"); dibujar(); mostrarEspacio();
   });
-  document.addEventListener("visibilitychange", () => { if (document.hidden) guardarSesion(true); else reproductor.resincronizar?.(); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) guardarSesion(true); else { reproductor.resincronizar?.(); if (MOTOR && E.aj.salida) reproductor.ponerSalida(E.aj.salida).catch(() => {}); } });
   gestos();
 }
 function gestos() {
@@ -554,9 +602,9 @@ async function iniciar() {
   if (cfg) {
     E.orden = cfg.orden || "titulo"; $("#orden").value = E.orden; reproductor.bandasDb = cfg.bandas?.length === BANDAS.length ? cfg.bandas : reproductor.bandasDb;
     reproductor.preampDb = cfg.pre || 0; reproductor.rgModo = cfg.rg || "pista"; reproductor.eqOn = cfg.eq !== false; reproductor.ponerVelocidad(cfg.vel || 1);
-    E.aj.viz = !!cfg.viz; $("#aj-viz").checked = E.aj.viz;
+    E.aj.viz = !!cfg.viz; $("#aj-viz").checked = E.aj.viz; E.aj.auto = cfg.auto !== false; $("#aj-auto").checked = E.aj.auto; E.aj.salida = cfg.salida || null;
   }
-  if (MOTOR) { if (cfg?.esp) { reproductor.ancho = cfg.esp.a || 0; reproductor.env = cfg.esp.e || 0; reproductor.graves = cfg.esp.g || 0; } document.querySelectorAll("#aj-viz, #aj-gap, #aj-persistir, #aj-borrar").forEach((e) => { (e.closest(".campo") || e).hidden = true; }); $("#aj-info").textContent = "Motor de audio nativo (ExoPlayer): cambio de canción sin pausa, ecualizador de 10 bandas de 32 bits y lectura directa de tus archivos."; $("#b-agregar").setAttribute("aria-label", "Actualizar biblioteca"); reproductor.aplicarTodo(); }
+  if (MOTOR) { if (cfg?.esp) { reproductor.ancho = cfg.esp.a || 0; reproductor.env = cfg.esp.e || 0; reproductor.graves = cfg.esp.g || 0; } document.querySelectorAll("#aj-viz, #aj-gap, #aj-persistir, #aj-borrar").forEach((e) => { (e.closest(".campo") || e).hidden = true; }); $("#aj-info").textContent = "Motor de audio nativo (ExoPlayer): cambio de canción sin pausa, ecualizador de 10 bandas de 32 bits y lectura directa de tus archivos."; $("#b-agregar").setAttribute("aria-label", "Actualizar biblioteca"); reproductor.aplicarTodo(); $("#aj-salida").hidden = false; $("#aj-salida-info").hidden = false; etiquetaSalida(); reproductor.ponerSalida(E.aj.salida).catch(() => {}); }
   dibujar(); mostrarEspacio();
   if (MOTOR) {
     await iniciarNativo(false);
@@ -587,7 +635,7 @@ async function fusionar(nuevas) {
   }
   const quitar = E.canciones.filter((s) => !vistos.has(s.id)).map((s) => s.id);
   await db.lote("canciones", lista, quitar);
-  E.canciones = lista; porId.clear(); for (const s of lista) porId.set(s.id, s);
+  E.canciones = lista; E.version++; porId.clear(); for (const s of lista) porId.set(s.id, s);
   dibujar(); mostrarEspacio();
 }
 let escaneando = false;
@@ -596,26 +644,91 @@ async function iniciarNativo(manual) {
   try {
     const r = await MOTOR.permisos(); E.sinPermiso = !r.audio;
     if (E.sinPermiso) { dibujar(); if (manual) avisar("Sin permiso no puedo ver tu música. Actívalo en Ajustes del teléfono → Apps → Onda → Permisos.", 6000); return; }
-    avisar(manual ? "Actualizando…" : "Buscando música…", 0);
+    avisar(manual ? "Actualizando…" : "Buscando música…", 0); const t0 = performance.now();
     const res = await MOTOR.escanear(); await fusionar(res.canciones || []);
-    avisar(`${E.canciones.length} canciones en tu biblioteca`, 2200); portadasNativas();
+    avisar(`${E.canciones.length} canciones listas (${((performance.now() - t0) / 1000).toFixed(1)} s)`, 2600);
+    portadasNativas().then(() => { if (E.aj.auto !== false) descargarFaltantes(false); }).catch(() => {});
   } catch (e) { avisar("No pude leer tu música: " + String(e?.message || e), 6000); }
   finally { escaneando = false; }
 }
+// ── portadas desde internet o galería ──
+const texto = async (url) => {
+  if (MOTOR) { const r = await MOTOR.texto({ url }); return r.cuerpo; }
+  const r = await fetch(url); if (!r.ok) throw new Error("http " + r.status); return r.text();
+};
+async function ponerPortada(alb, blob) {
+  await db.poner("portadas", blob, alb); urlsPort.delete(alb);
+  imgsDe(alb).forEach(hidratar);
+  if (reproductor.actual?.alb === alb) actualizarMini();
+}
+async function portadaWeb(s, callado) {
+  if (!callado) avisar("Buscando portada…", 0);
+  try {
+    const url = await buscarPortadaUrl(texto, s);
+    if (!url) { if (!callado) avisar(`No encontré la portada de “${s.album || s.titulo}”. Puedes elegir una de tu galería.`, 5000); return false; }
+    let blob;
+    if (MOTOR) { const r = await MOTOR.descargar({ url, albumId: s.albumId || s.alb }); blob = await (await fetch(window.Capacitor.convertFileSrc(r.ruta))).blob(); }
+    else blob = await miniatura(await (await fetch(url)).blob());
+    await ponerPortada(s.alb, blob); await db.borrar("ajustes", "sinportada:" + s.alb).catch(() => {});
+    if (!callado) avisar("Portada lista", 1800); return true;
+  } catch (e) { if (!callado) avisar("No pude descargar la portada. ¿Tienes internet?", 4500); return false; }
+}
+let imagenPara = null;
+function elegirImagen(s) { imagenPara = s; $("#f-imagen").click(); }
+async function descargarFaltantes(manual) {
+  const albumes = new Map(); for (const s of E.canciones) if (!albumes.has(s.alb)) albumes.set(s.alb, s);
+  const tienen = new Set(await db.claves("portadas")), marcas = new Set(await db.claves("ajustes"));
+  const faltan = []; for (const [alb, s] of albumes) if (!tienen.has(alb) && (manual || !marcas.has("sinweb:" + alb))) faltan.push(s);
+  if (!faltan.length) { if (manual) avisar("Todas las canciones ya tienen portada.", 2500); return; }
+  let ok = 0;
+  for (let i = 0; i < faltan.length; i++) {
+    if (manual) avisar(`Buscando portadas ${i + 1} de ${faltan.length}…`, 0);
+    if (await portadaWeb(faltan[i], true)) ok++; else await db.poner("ajustes", true, "sinweb:" + faltan[i].alb).catch(() => {});
+  }
+  if (manual || ok) avisar(`Portadas nuevas: ${ok} de ${faltan.length}`, 3500);
+}
+
+// ── letras ──
+let letraAct = { id: null, lineas: [], idx: -2 };
+async function abrirLetra() { const s = reproductor.actual; if (!s) return; if (!pila.includes("hoja-letra")) abrir("hoja-letra"); await cargarLetra(s); }
+async function cargarLetra(s) {
+  const cuerpo = $("#letra-cuerpo"); $("#letra-titulo").textContent = s.titulo || s.nombre;
+  letraAct = { id: s.id, lineas: [], idx: -2 };
+  cuerpo.className = "letra-cuerpo"; cuerpo.innerHTML = `<div class="vacio">Buscando la letra…</div>`;
+  let L = await db.traer("ajustes", "letra:" + s.id).catch(() => null), error = false;
+  if (!L) { try { L = await buscarLetra(texto, s); } catch (_) { error = true; } if (L) await db.poner("ajustes", L, "letra:" + s.id).catch(() => {}); }
+  if (letraAct.id !== s.id) return;                                       // mientras tanto cambió la canción
+  if (!L) { cuerpo.innerHTML = `<div class="vacio">${error ? "No pude buscar la letra. ¿Tienes internet?" : "No encontré la letra de esta canción."}<br><button class="boton" id="letra-reintento" type="button" style="margin-top:14px">Intentar otra vez</button></div>`; return; }
+  const lineas = parsearLRC(L.sincronizada);
+  if (lineas.length) { letraAct.lineas = lineas; cuerpo.innerHTML = lineas.map((l, i) => `<p data-i="${i}">${esc(l.txt) || "♪"}</p>`).join(""); actualizarLetra(true); }
+  else { cuerpo.className = "letra-cuerpo plana"; cuerpo.innerHTML = String(L.plana).split(/\r?\n/).map((t) => `<p>${esc(t) || "&nbsp;"}</p>`).join(""); }
+}
+function actualizarLetra(salto) {
+  if (!pila.includes("hoja-letra") || !letraAct.lineas.length) return;
+  const i = lineaActual(letraAct.lineas, reproductor.tiempo + 0.2); if (i === letraAct.idx) return;
+  letraAct.idx = i; const ps = $("#letra-cuerpo").children;
+  for (let k = 0; k < ps.length; k++) { ps[k].classList.toggle("actual", k === i); ps[k].classList.toggle("pasada", k < i); }
+  if (i >= 0) ps[i].scrollIntoView({ block: "center", behavior: salto ? "auto" : "smooth" });
+}
+
 async function portadasNativas() {
   const albumes = new Map(); for (const s of E.canciones) if (!albumes.has(s.alb)) albumes.set(s.alb, s);
-  let n = 0;
-  for (const [alb, s] of albumes) {
-    try {
-      if (await db.traer("portadas", alb) || await db.traer("ajustes", "sinportada:" + alb)) continue;
-      const r = await MOTOR.portada({ albumId: s.albumId, uri: s.uri });
-      if (!r.ruta) { await db.poner("ajustes", true, "sinportada:" + alb); continue; }
-      const b = await (await fetch(window.Capacitor.convertFileSrc(r.ruta))).blob();
-      await db.poner("portadas", b, alb); urlsPort.delete(alb);
-      document.querySelectorAll("img[data-alb]").forEach((i) => { if (i.dataset.alb === alb) hidratar(i); });
-      if (reproductor.actual?.alb === alb) actualizarMini();
-    } catch (_) { /* se sigue con el siguiente álbum */ }
-    if (++n % 5 === 0) await new Promise((r) => setTimeout(r, 30));
-  }
+  const tienen = new Set(await db.claves("portadas")), marcas = new Set(await db.claves("ajustes"));
+  const pendientes = [...albumes].filter(([alb]) => !tienen.has(alb) && !marcas.has("sinportada:" + alb));
+  let k = 0;
+  const obrero = async () => {                                            // 3 a la vez: la lectura de portadas es lo más lento
+    while (k < pendientes.length) {
+      const [alb, s] = pendientes[k++];
+      try {
+        const r = await MOTOR.portada({ albumId: s.albumId, uri: s.uri });
+        if (!r.ruta) { await db.poner("ajustes", true, "sinportada:" + alb); continue; }
+        const b = await (await fetch(window.Capacitor.convertFileSrc(r.ruta))).blob();
+        await db.poner("portadas", b, alb); urlsPort.delete(alb);
+        imgsDe(alb).forEach(hidratar);
+        if (reproductor.actual?.alb === alb) actualizarMini();
+      } catch (_) { /* se sigue con el siguiente álbum */ }
+    }
+  };
+  await Promise.all([obrero(), obrero(), obrero()]);
 }
 iniciar();

@@ -48,6 +48,7 @@ try:
           const reg = (n) => async (a) => { llamadas.push([n, a]); return {}; };
           const M = new Proxy({
             addListener: (n, f) => { oy[n] = f; return Promise.resolve({ remove() {} }); },
+            texto: async ({ url }) => ({ codigo: 200, cuerpo: url.includes('lrclib') ? JSON.stringify({ syncedLyrics: '[00:01.00] primera\\n[00:05.00] segunda', plainLyrics: 'x' }) : JSON.stringify({ results: [], data: [] }) }),
             permisos: async () => ({ audio: true }), escanear: async () => ({ canciones: lista }), portada: async () => ({}),
             estado: async () => ({ ids: [], indice: -1, pos: 0, sonando: false }),
           }, { get: (t, k) => (k in t ? t[k] : reg(k)) });
@@ -69,6 +70,10 @@ try:
         t = pn.inner_text("#r-chips"); assert "24 bits" in t and "96 kHz" in t, t
         pn.click("#r-eq"); pn.click("[data-preset=Bajos]"); pn.wait_for_function("window.__llamadas.some(x=>x[0]=='eq' && x[1].bandas[0]==6)")
         pn.click("#hoja-eq [data-cerrar]"); pn.wait_for_selector("#hoja-eq", state="hidden")
+        pn.click("#r-letra"); pn.wait_for_selector("#letra-cuerpo p[data-i]"); assert pn.locator("#letra-cuerpo p").count() == 2, pn.inner_html("#letra-cuerpo")
+        pn.evaluate("window.__oy.tiempo({pos:5500,dur:203000,indice:2})"); pn.wait_for_selector("#letra-cuerpo p.actual"); assert pn.inner_text("#letra-cuerpo p.actual") == "segunda"
+        pn.click("#letra-cuerpo p >> nth=0"); assert pn.evaluate("window.__llamadas.some(x=>x[0]=='buscar' && x[1].ms==1000)"); print("letras OK")
+        pn.click("#hoja-letra [data-cerrar]"); pn.wait_for_selector("#hoja-letra", state="hidden")
         pn.click("#r-azar"); pn.wait_for_function("window.__llamadas.some(x=>x[0]=='reordenar')")
         pn.click("#r-sueno"); pn.click("[data-sueno='15']"); assert pn.evaluate("window.__llamadas.some(x=>x[0]=='dormir' && x[1].minutos==15)")
         print("nativo (simulado) OK")

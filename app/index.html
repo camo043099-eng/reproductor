@@ -71,8 +71,15 @@
     <button class="ib" id="r-fav" aria-label="Favorita" aria-pressed="false"></button>
     <button class="ib" id="r-eq" aria-label="Ecualizador"></button>
     <button class="ib" id="r-sueno" aria-label="Temporizador"></button>
+    <button class="ib" id="r-letra" aria-label="Letra"></button>
     <button class="ib" id="r-lista" aria-label="Agregar a una lista"></button>
   </div>
+</section>
+
+<!-- letra -->
+<section class="hoja letra" id="hoja-letra" hidden role="dialog" aria-label="Letra">
+  <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span id="letra-titulo">Letra</span><span></span></div>
+  <div class="letra-cuerpo" id="letra-cuerpo"></div>
 </section>
 
 <!-- cola -->
@@ -119,6 +126,10 @@
     <div class="campo"><span>Visualizador de espectro</span><label class="interruptor"><input type="checkbox" id="aj-viz"><span></span></label></div>
     <p class="suave pequeno">Un dibujo de barras que se mueve con la música, solo mientras suena y el reproductor está abierto. Apagado por defecto.</p>
     <div class="campo"><span>Cambio de canción casi sin pausa</span><label class="interruptor"><input type="checkbox" id="aj-gap" checked disabled><span></span></label></div>
+    <div class="campo"><span>Buscar portadas en internet solas</span><label class="interruptor"><input type="checkbox" id="aj-auto" checked><span></span></label></div>
+    <button class="boton" id="aj-portadas" type="button">Buscar ahora las portadas que faltan</button>
+    <button class="boton" id="aj-salida" type="button" hidden>Salida de audio de Onda: Automática</button>
+    <p class="suave pequeno" id="aj-salida-info" hidden>Elige por dónde suena solo Onda. Por ejemplo, el parlante del teléfono mientras otras apps usan tus audífonos Bluetooth.</p>
     <div class="campo"><span>Almacenamiento</span><b id="aj-espacio">…</b></div>
     <button class="boton" id="aj-persistir" type="button">Pedir que el teléfono no borre mi música</button>
     <button class="boton peligro" id="aj-borrar" type="button">Borrar toda la biblioteca</button>
@@ -126,6 +137,7 @@
   </div>
 </section>
 
+<input type="file" id="f-imagen" accept="image/*" hidden>
 <input type="file" id="f-audio" accept="audio/*,.flac,.mp3,.m4a,.aac,.ogg,.opus,.wav,.alac,.aiff" multiple hidden>
 <input type="file" id="f-carpeta" webkitdirectory multiple hidden>
 <div class="fondo" id="fondo" hidden></div>
