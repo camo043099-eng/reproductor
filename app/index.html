@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Onda</title>
+<meta name="description" content="Reproductor de música propio: FLAC, MP3 y más, con ecualizador y ReplayGain, sin internet.">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app" id="app">
+  <header class="cabeza">
+    <h1>Onda</h1>
+    <div class="cabeza-botones">
+      <button class="ib" id="b-buscar" type="button" aria-label="Buscar" aria-expanded="false"></button>
+      <button class="ib" id="b-agregar" type="button" aria-label="Agregar música"></button>
+      <button class="ib" id="b-ajustes" type="button" aria-label="Ajustes"></button>
+    </div>
+  </header>
+  <div class="buscador" id="buscador" hidden><input id="q" type="search" placeholder="Buscar canción, artista o álbum" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+  <nav class="pestanas" id="pestanas" role="tablist" aria-label="Biblioteca">
+    <button role="tab" data-t="canciones" aria-selected="true">Canciones</button>
+    <button role="tab" data-t="albumes" aria-selected="false">Álbumes</button>
+    <button role="tab" data-t="artistas" aria-selected="false">Artistas</button>
+    <button role="tab" data-t="listas" aria-selected="false">Listas</button>
+  </nav>
+  <div class="barra-orden" id="barra-orden">
+    <span id="resumen" class="suave"></span>
+    <label class="suave">Orden <select id="orden"><option value="titulo">Título</option><option value="artista">Artista</option><option value="album">Álbum</option><option value="reciente">Recientes</option></select></label>
+  </div>
+  <main class="contenido" id="contenido" tabindex="-1"></main>
+  <div class="aviso" id="aviso" role="status" aria-live="polite" hidden></div>
+</div>
+
+<!-- mini reproductor -->
+<div class="mini" id="mini" hidden>
+  <button class="mini-info" id="mini-abrir" type="button" aria-label="Abrir reproductor">
+    <img id="mini-port" alt=""><span class="mini-texto"><b id="mini-titulo"></b><span id="mini-artista"></span></span>
+  </button>
+  <button class="ib" id="mini-play" type="button" aria-label="Reproducir o pausar"></button>
+  <button class="ib" id="mini-sig" type="button" aria-label="Siguiente"></button>
+  <div class="mini-barra"><i id="mini-prog"></i></div>
+</div>
+
+<!-- reproductor completo -->
+<section class="hoja completa" id="hoja-rep" hidden aria-label="Reproduciendo" role="dialog">
+  <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span class="suave">Reproduciendo</span><button class="ib" id="r-cola" aria-label="Cola"></button></div>
+  <div class="portada-grande"><img id="r-port" alt=""><canvas id="r-viz" width="320" height="80" hidden></canvas></div>
+  <div class="datos"><h2 id="r-titulo"></h2><p id="r-artista"></p><p class="suave" id="r-album"></p></div>
+  <div class="chips" id="r-chips"></div>
+  <div class="barra"><input id="r-barra" type="range" min="0" max="1000" value="0" aria-label="Posición"><div class="tiempos"><span id="r-t1">0:00</span><span id="r-t2">0:00</span></div></div>
+  <div class="controles">
+    <button class="ib" id="r-azar" aria-label="Aleatorio" aria-pressed="false"></button>
+    <button class="ib grande" id="r-ant" aria-label="Anterior"></button>
+    <button class="ib play" id="r-play" aria-label="Reproducir o pausar"></button>
+    <button class="ib grande" id="r-sig" aria-label="Siguiente"></button>
+    <button class="ib" id="r-rep" aria-label="Repetir" data-modo="no"></button>
+  </div>
+  <div class="extras">
+    <button class="ib" id="r-fav" aria-label="Favorita" aria-pressed="false"></button>
+    <button class="ib" id="r-eq" aria-label="Ecualizador"></button>
+    <button class="ib" id="r-sueno" aria-label="Temporizador"></button>
+    <button class="ib" id="r-lista" aria-label="Agregar a una lista"></button>
+  </div>
+</section>
+
+<!-- cola -->
+<section class="hoja" id="hoja-cola" hidden role="dialog" aria-label="Cola">
+  <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span>Cola de reproducción</span><span></span></div>
+  <ul class="lista" id="cola-lista"></ul>
+</section>
+
+<!-- ecualizador -->
+<section class="hoja" id="hoja-eq" hidden role="dialog" aria-label="Ecualizador">
+  <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span>Ecualizador</span><label class="interruptor"><input type="checkbox" id="eq-on" checked><span></span></label></div>
+  <div class="chips presets" id="eq-presets"></div>
+  <div class="eq-bandas" id="eq-bandas"></div>
+  <div class="campo"><label for="eq-pre">Preamplificación <b id="eq-pre-v">0 dB</b></label><input type="range" id="eq-pre" min="-12" max="12" step="0.5" value="0"></div>
+  <div class="campo"><label for="eq-vel">Velocidad <b id="eq-vel-v">1×</b></label><input type="range" id="eq-vel" min="0.5" max="2" step="0.05" value="1"></div>
+  <div class="campo"><span>Volumen parejo (ReplayGain)</span>
+    <div class="seg" id="eq-rg" role="group" aria-label="ReplayGain"><button data-v="off">Apagado</button><button data-v="pista">Por canción</button><button data-v="album">Por álbum</button></div></div>
+</section>
+
+<!-- temporizador -->
+<section class="hoja corta" id="hoja-sueno" hidden role="dialog" aria-label="Temporizador de sueño">
+  <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span>Temporizador de sueño</span><span></span></div>
+  <div class="opciones" id="sueno-op"></div>
+</section>
+
+<!-- agregar a lista / opciones -->
+<section class="hoja corta" id="hoja-menu" hidden role="dialog" aria-label="Opciones">
+  <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span id="menu-titulo">Opciones</span><span></span></div>
+  <div class="opciones" id="menu-op"></div>
+</section>
+
+<!-- ajustes -->
+<section class="hoja" id="hoja-aj" hidden role="dialog" aria-label="Ajustes">
+  <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span>Ajustes</span><span></span></div>
+  <div class="ajustes">
+    <div class="campo"><span>Visualizador de espectro</span><label class="interruptor"><input type="checkbox" id="aj-viz"><span></span></label></div>
+    <p class="suave pequeno">Un dibujo de barras que se mueve con la música, solo mientras suena y el reproductor está abierto. Apagado por defecto.</p>
+    <div class="campo"><span>Cambio de canción casi sin pausa</span><label class="interruptor"><input type="checkbox" id="aj-gap" checked disabled><span></span></label></div>
+    <div class="campo"><span>Almacenamiento</span><b id="aj-espacio">…</b></div>
+    <button class="boton" id="aj-persistir" type="button">Pedir que el teléfono no borre mi música</button>
+    <button class="boton peligro" id="aj-borrar" type="button">Borrar toda la biblioteca</button>
+    <p class="suave pequeno" id="aj-info"></p>
+  </div>
+</section>
+
+<input type="file" id="f-audio" accept="audio/*,.flac,.mp3,.m4a,.aac,.ogg,.opus,.wav,.alac,.aiff" multiple hidden>
+<input type="file" id="f-carpeta" webkitdirectory multiple hidden>
+<div class="fondo" id="fondo" hidden></div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
