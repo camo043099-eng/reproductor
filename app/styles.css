@@ -498,3 +498,13 @@ html .letra-sync { gap: 8px; }
 html[data-fondo="portada"] .ambiente::after, html[data-fondo="imagen"] .ambiente::after { background: linear-gradient(rgba(0,0,0,.62), rgba(0,0,0,.82)); }
 .ambiente { will-change: transform; contain: strict; }
 .contenido.entra { animation: none; }
+
+#eq-curva { width: 100%; height: auto; border-radius: 14px; margin: 6px 0 10px; background: rgba(255,255,255,.05); display: block; }
+#eq-modo, #eq-nb { margin: 4px 0 8px; }
+html #eq-bandas.b31 { overflow-x: auto; justify-content: flex-start; gap: 0; }
+html #eq-bandas.b31 .banda { flex: 0 0 38px; }
+.eq-fila { display: grid; grid-template-columns: 64px 1fr 1fr 1fr 34px; gap: 6px; align-items: center; padding: 6px 0; font-size: .8rem; }
+.eq-fila input[type=number] { width: 100%; min-width: 0; padding: 8px 6px; border-radius: 10px; color: var(--tx); background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); font: inherit; text-align: center; }
+.eq-fila .tipo { padding: 8px 4px; border-radius: 10px; background: rgba(255,255,255,.1); font-size: .72rem; font-weight: 700; }
+.eq-fila .quitar { padding: 8px 0; border-radius: 10px; background: rgba(255,255,255,.08); }
+.eq-fila-t { display: grid; grid-template-columns: 64px 1fr 1fr 1fr 34px; gap: 6px; font-size: .68rem; color: var(--tx2); text-align: center; padding-top: 4px; }

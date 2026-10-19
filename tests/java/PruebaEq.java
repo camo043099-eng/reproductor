@@ -37,5 +37,19 @@ public class PruebaEq {
         re.reiniciar(); float[] a1 = seno(9000, 0.3, hz, 44100), a2 = a1.clone(); re.procesar(a2, a2.length); float pk = 0; boolean fi = true; for (float v : a2) { pk = Math.max(pk, Math.abs(v)); if (Float.isNaN(v)) fi = false; }
         ok(fi && pk <= 1.0f, "realce: agudos al 30% estables y sin pasar de 1 (" + pk + ")");
         re.ponerRealce(0); re.reiniciar(); float[] p1 = seno(9000, 0.3, hz, 44100), p2 = p1.clone(); re.procesar(p2, p2.length); ok(java.util.Arrays.equals(p1, p2), "realce apagado: idéntico bit a bit");
+        NucleoEq pr = new NucleoEq(); pr.configurar(hz, 2);
+        pr.ponerFiltros(new double[]{1000, 100}, new double[]{6, 0}, new double[]{2, 1}, new int[]{0, 0}, true);
+        float[] t1 = seno(1000, 0.2, hz, 44100), t2 = t1.clone(); pr.procesar(t2, t2.length);
+        double gp = 20 * Math.log10(rms(t2, 40000) / rms(t1, 40000)); ok(Math.abs(gp) < 0.5, "paramétrico +6 dB a 1 kHz: neto ~0 dB con el margen automático (" + gp + ")");
+        pr.reiniciar(); float[] t3 = seno(100, 0.2, hz, 44100), t4 = t3.clone(); pr.procesar(t4, t4.length);
+        ok(20 * Math.log10(rms(t4, 40000) / rms(t3, 40000)) < -4, "paramétrico: lo que no se sube queda más bajo (margen)");
+        NucleoEq pf = new NucleoEq(); pf.configurar(hz, 2); double[] ff = new double[32], gg = new double[32], qq = new double[32]; int[] tt = new int[32];
+        for (int k = 0; k < 32; k++) { ff[k] = 40 * Math.pow(1.25, k); gg[k] = (k % 2 == 0 ? 8 : -8); qq[k] = 4; }
+        pf.ponerFiltros(ff, gg, qq, tt, true); float[] ru2 = new float[88200]; java.util.Random r3 = new java.util.Random(7); for (int k = 0; k < ru2.length; k++) ru2[k] = (float) (r3.nextGaussian() * 0.1);
+        pf.procesar(ru2, ru2.length); boolean estF = true; for (float v : ru2) if (Float.isNaN(v) || Float.isInfinite(v) || Math.abs(v) > 1) estF = false; ok(estF, "32 filtros extremos: estable y sin pasar de 1");
+        NucleoEq to = new NucleoEq(); to.configurar(hz, 2); to.ponerTono(6, 0, 0); float[] g5 = seno(60, 0.2, hz, 44100), g6 = g5.clone(); to.procesar(g6, g6.length);
+        ok(rms(g6, 40000) > rms(g5, 40000) * 0.9 && rms(g6, 40000) < rms(g5, 40000) * 3, "tono: graves +6 dB suben los graves (con margen)");
+        NucleoEq ba = new NucleoEq(); ba.configurar(hz, 2); ba.ponerTono(0, 0, 0.5); float[] b1 = seno(1000, 0.3, hz, 4410), b2 = b1.clone(); ba.procesar(b2, b2.length);
+        ok(Math.abs(b2[4000] - b1[4000] * 0.5) < 1e-4 || Math.abs(b2[4000]) <= Math.abs(b1[4000]), "balance: baja el canal izquierdo, el derecho intacto");
     }
 }

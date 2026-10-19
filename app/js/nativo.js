@@ -2,6 +2,7 @@
 // Tiene los mismos métodos y eventos que el reproductor web (player.js), así la interfaz no cambia.
 
 import { BANDAS, PRESETS } from "./player.js";
+import { filtrosGrafico } from "./eqpro.js";
 
 const barajar = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const dato = (s) => ({ id: s.id, uri: s.uri, titulo: s.titulo || s.nombre || "", artista: s.artista || "", album: s.album || "", albumId: s.portadaId || s.albumId || "" });
@@ -10,7 +11,7 @@ export class ReproductorNativo extends EventTarget {
   constructor(N) {
     super(); this.N = N; this.nativo = true;
     this.lista = []; this.original = []; this.pos = -1;
-    this.aleatorio = false; this.repetir = "no"; this.rgModo = "pista"; this.preampDb = 0; this.eqOn = true; this.bandasDb = PRESETS.Plano.slice(); this.velocidad = 1; this.volumen = 1; this.ancho = 0; this.env = 0; this.graves = 0;
+    this.aleatorio = false; this.repetir = "no"; this.rgModo = "pista"; this.preampDb = 0; this.eqOn = true; this.eqModo = "grafico"; this.eqNb = 10; this.g31 = new Array(31).fill(0); this.filtros = []; this.grave = 0; this.agudo = 0; this.bal = 0; this.bandasDb = PRESETS.Plano.slice(); this.velocidad = 1; this.volumen = 1; this.ancho = 0; this.env = 0; this.graves = 0;
     this.letras = {}; this.ruta = "altavoz";
     this._pos = 0; this._dur = 0; this._sonando = false; this._dormirEn = 0; this._tSueno = null;
     const on = (n, f) => N.addListener(n, f);
@@ -90,7 +91,23 @@ export class ReproductorNativo extends EventTarget {
   }
 
   // ── sonido ──
-  _eq() { this.N.eq({ bandas: this.bandasDb, on: this.eqOn, pre: this.preampDb }); }
+  _eq() {
+    const base = { on: this.eqOn, pre: this.preampDb, grave: this.grave, agudo: this.agudo, bal: this.bal }, fl = (l) => l.map((x) => [x.f, x.g, x.q, x.t]);
+    if (this.eqModo === "param") this.N.eq(this.filtros.length ? { ...base, filtros: fl(this.filtros) } : { ...base, bandas: new Array(10).fill(0) });
+    else if (this.eqNb === 31) this.N.eq({ ...base, filtros: fl(filtrosGrafico(this.g31, 31)) });
+    else this.N.eq({ ...base, bandas: this.bandasDb });
+  }
+  ajustarBanda31(i, db) { this.g31[i] = Math.max(-12, Math.min(12, db)); this._eq(); }
+  ponerModoEq(m, nb) { this.eqModo = m === "param" ? "param" : "grafico"; if (nb) this.eqNb = nb === 31 ? 31 : 10; this._eq(); }
+  ponerFiltros(l) { this.filtros = l.slice(0, 32); this._eq(); }
+  ponerTono(grave, agudo, bal) { this.grave = grave; this.agudo = agudo; this.bal = bal; this._eq(); }
+  /** todo el estado del ecualizador (para guardar, exportar y perfiles por salida) */
+  estadoEq() { return { modo: this.eqModo, nb: this.eqNb, b: this.bandasDb.slice(), g31: this.g31.slice(), f: this.filtros.map((x) => ({ ...x })), grave: this.grave, agudo: this.agudo, bal: this.bal, p: this.preampDb }; }
+  cargarEstadoEq(o) {
+    if (!o) return; this.eqModo = o.modo === "param" ? "param" : "grafico"; this.eqNb = o.nb === 31 ? 31 : 10;
+    if (o.b?.length === 10) this.bandasDb = o.b.slice(); if (o.g31?.length === 31) this.g31 = o.g31.slice(); this.filtros = (o.f || []).slice(0, 32);
+    this.grave = o.grave || 0; this.agudo = o.agudo || 0; this.bal = o.bal || 0; if (o.p != null) this.preampDb = o.p; this._eq();
+  }
   ajustarBanda(i, db) { this.bandasDb[i] = Math.max(-12, Math.min(12, db)); this._eq(); }
   usarPreset(n) { if (PRESETS[n]) { this.bandasDb = PRESETS[n].slice(); this._eq(); } }
   activarEq(v) { this.eqOn = !!v; this._eq(); }

@@ -540,8 +540,18 @@ public class MotorPlugin extends Plugin {
     @PluginMethod public void eq(PluginCall call) {
         ui(call, () -> {
             try {
-                JSArray b = call.getArray("bandas"); double[] db = new double[10]; for (int i = 0; i < 10 && i < b.length(); i++) db[i] = b.getDouble(i);
-                Motor.eq.nucleo.ponerBandas(db, call.getBoolean("on", true)); preampDb = call.getData().optDouble("pre", 0); aplicarGanancia(); call.resolve();
+                boolean on = call.getBoolean("on", true);
+                JSArray fs = call.getArray("filtros");
+                if (fs != null && fs.length() > 0) {                                   // paramétrico: [[frecuencia, ganancia, Q, tipo], ...]
+                    int n = Math.min(NucleoEq.MAXF, fs.length()); double[] f = new double[n], g = new double[n], q = new double[n]; int[] t = new int[n];
+                    for (int i = 0; i < n; i++) { JSArray r = fs.getJSONArray(i); f[i] = r.getDouble(0); g[i] = r.getDouble(1); q[i] = r.getDouble(2); t[i] = r.getInt(3); }
+                    Motor.eq.nucleo.ponerFiltros(f, g, q, t, on);
+                } else {
+                    JSArray b = call.getArray("bandas"); double[] db = new double[10]; for (int i = 0; b != null && i < 10 && i < b.length(); i++) db[i] = b.getDouble(i);
+                    Motor.eq.nucleo.ponerBandas(db, on);
+                }
+                Motor.eq.nucleo.ponerTono(call.getData().optDouble("grave", 0), call.getData().optDouble("agudo", 0), call.getData().optDouble("bal", 0));
+                preampDb = call.getData().optDouble("pre", 0); aplicarGanancia(); call.resolve();
             } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
         });
     }

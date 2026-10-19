@@ -69,6 +69,13 @@ try:
         pn.evaluate("window.__oy.detalles({id:'ms3',sampleRate:96000,bits:24,canales:2})"); pn.click("#mini-abrir"); pn.wait_for_selector("#hoja-rep.ver")
         t = pn.inner_text("#r-chips"); assert "24 bits" in t and "96 kHz" in t, t
         pn.click("#r-eq"); pn.click("[data-preset=Bajos]"); pn.wait_for_function("window.__llamadas.some(x=>x[0]=='eq' && x[1].bandas[0]==6)")
+        # ecualizador avanzado: paramétrico, importar AutoEQ, 31 bandas, tono
+        pn.click("#eq-modo [data-m=param]"); pn.click("#eq-mas"); pn.wait_for_function("window.__llamadas.some(x=>x[0]=='eq' && x[1].filtros && x[1].filtros.length==1)")
+        pn.click("#eq-importar"); pn.fill("#eq-texto", "Preamp: -4 dB\nFilter 1: ON PK Fc 105 Hz Gain 3.4 dB Q 0.70\nFilter 2: ON HSC Fc 8000 Hz Gain -3 dB Q 0.7"); pn.click("#eq-aplicar")
+        pn.wait_for_function("window.__llamadas.some(x=>x[0]=='eq' && x[1].filtros && x[1].filtros.length==2 && x[1].filtros[1][3]==2 && x[1].pre==-4)")
+        pn.fill("#eq-grave", "4"); pn.dispatch_event("#eq-grave", "input"); pn.wait_for_function("window.__llamadas.some(x=>x[0]=='eq' && x[1].grave==4)")
+        pn.click("#eq-modo [data-m=grafico]"); pn.click("#eq-nb [data-n='31']"); pn.wait_for_function("window.__llamadas.some(x=>x[0]=='eq' && x[1].filtros && x[1].filtros.length==31)")
+        assert pn.locator("#eq-bandas .banda").count() == 31; pn.click("#eq-nb [data-n='10']"); assert pn.locator("#eq-bandas .banda").count() == 10; print("eq avanzado OK")
         pn.click("#hoja-eq [data-cerrar]"); pn.wait_for_selector("#hoja-eq", state="hidden")
         pn.click("#r-letra"); pn.wait_for_selector("#letra-cuerpo p[data-i]"); assert pn.locator("#letra-cuerpo p").count() == 2, pn.inner_html("#letra-cuerpo")
         pn.evaluate("window.__oy.tiempo({pos:5500,dur:203000,indice:2})"); pn.wait_for_selector("#letra-cuerpo p.actual"); assert pn.inner_text("#letra-cuerpo p.actual") == "segunda"

@@ -109,8 +109,29 @@
 <!-- ecualizador -->
 <section class="hoja" id="hoja-eq" hidden role="dialog" aria-label="Ecualizador">
   <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span>Ecualizador</span><label class="interruptor"><input type="checkbox" id="eq-on" checked><span></span></label></div>
-  <div class="chips presets" id="eq-presets"></div>
-  <div class="eq-bandas" id="eq-bandas"></div>
+  <div class="seg solo-nativo" id="eq-modo" hidden role="group" aria-label="Tipo de ecualizador"><button data-m="grafico">Gráfico</button><button data-m="param">Paramétrico</button></div>
+  <canvas id="eq-curva" width="640" height="150" aria-label="Curva de respuesta del ecualizador"></canvas>
+  <div id="eq-vista-g">
+    <div class="seg solo-nativo" id="eq-nb" hidden role="group" aria-label="Bandas"><button data-n="10">10 bandas</button><button data-n="31">31 bandas</button></div>
+    <div class="chips presets" id="eq-presets"></div>
+    <div class="eq-bandas" id="eq-bandas"></div>
+  </div>
+  <div id="eq-vista-p" hidden>
+    <div id="eq-filas"></div>
+    <div class="acciones-detalle"><button class="boton" id="eq-mas" type="button">Añadir filtro</button><button class="boton" id="eq-limpiar" type="button">Quitar todos</button></div>
+  </div>
+  <div id="eq-tono" class="solo-nativo" hidden>
+    <div class="campo"><label for="eq-grave">Graves <b id="eq-grave-v">0 dB</b></label><input type="range" id="eq-grave" min="-12" max="12" step="0.5" value="0"></div>
+    <div class="campo"><label for="eq-agudo">Agudos <b id="eq-agudo-v">0 dB</b></label><input type="range" id="eq-agudo" min="-12" max="12" step="0.5" value="0"></div>
+    <div class="campo"><label for="eq-bal">Balance <b id="eq-bal-v">centro</b></label><input type="range" id="eq-bal" min="-100" max="100" step="5" value="0"></div>
+  </div>
+  <div class="acciones-detalle solo-nativo" id="eq-io" hidden><button class="boton" id="eq-importar" type="button">Importar perfil (AutoEQ)</button><button class="boton" id="eq-exportar" type="button">Exportar / compartir</button></div>
+  <div id="eq-io-caja" hidden>
+    <p class="suave pequeno">Pega aquí un perfil de AutoEQ o Equalizer APO (líneas “Filter 1: ON PK Fc 105 Hz Gain 3.4 dB Q 0.70”) o elige el archivo .txt.</p>
+    <textarea id="eq-texto" rows="7" style="width:100%;padding:12px;border-radius:16px;color:var(--tx);background:rgba(255,255,255,.1);font-size:.9rem"></textarea>
+    <div class="acciones-detalle"><button class="boton primario" id="eq-aplicar" type="button">Aplicar</button><button class="boton" id="eq-archivo" type="button">Elegir archivo</button><button class="boton" id="eq-copiar" type="button">Copiar</button></div>
+    <input type="file" id="f-eq" accept=".txt,text/plain" hidden>
+  </div>
   <div class="campo"><label for="eq-pre">Preamplificación <b id="eq-pre-v">0 dB</b></label><input type="range" id="eq-pre" min="-12" max="12" step="0.5" value="0"></div>
   <div class="campo"><label for="eq-vel">Velocidad <b id="eq-vel-v">1×</b></label><input type="range" id="eq-vel" min="0.5" max="2" step="0.05" value="1"></div>
   <div class="campo"><span>Volumen parejo (ReplayGain)</span>

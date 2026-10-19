@@ -1,4 +1,5 @@
 import { Reproductor, BANDAS, PRESETS } from "./player.js";
+import { filtrosGrafico, respuesta, leerAutoEQ, aTextoAutoEQ, ISO31, MAX_FILTROS } from "./eqpro.js";
 import { leerEtiquetas } from "./tags.js";
 import * as db from "./db.js";
 import { ReproductorNativo } from "./nativo.js";
@@ -6,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.33";
+const VERSION = "0.9.34";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -502,10 +503,10 @@ function actualizarTiempo() {
 
 // ── sesión y ajustes guardados ──
 function perfilesSalida() {
-  const p = (E.aj.perfiles ||= {}); if (E.aj.eqSalida && MOTOR && reproductor.ruta) p[reproductor.ruta] = { b: reproductor.bandasDb.slice(), p: reproductor.preampDb };
+  const p = (E.aj.perfiles ||= {}); if (E.aj.eqSalida && MOTOR && reproductor.ruta) p[reproductor.ruta] = { b: reproductor.bandasDb.slice(), p: reproductor.preampDb, x: reproductor.estadoEq ? reproductor.estadoEq() : undefined };
   return p;
 }
-async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", realce: E.aj.realce || "0", ritmo: E.aj.ritmo || "cd", ritmoLat: E.aj.ritmoLat || "260", ritmoEst: E.aj.ritmoEst || "onda", blur: E.aj.blur !== false, eqSalida: !!E.aj.eqSalida, anim: !!E.aj.anim, inicioBib: !!E.aj.inicioBib, progreso: E.aj.progreso !== false, saltos: E.aj.saltos !== false, hires: !!E.aj.hires, detener: !!E.aj.detener, ritmoFps: E.aj.ritmoFps || "60", contar: E.aj.contar || "auto", largoMin: E.aj.largoMin || "20", perfiles: perfilesSalida() } }, "config").catch(() => {}); }
+async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", realce: E.aj.realce || "0", ritmo: E.aj.ritmo || "cd", ritmoLat: E.aj.ritmoLat || "260", ritmoEst: E.aj.ritmoEst || "onda", blur: E.aj.blur !== false, eqSalida: !!E.aj.eqSalida, anim: !!E.aj.anim, inicioBib: !!E.aj.inicioBib, progreso: E.aj.progreso !== false, saltos: E.aj.saltos !== false, hires: !!E.aj.hires, detener: !!E.aj.detener, ritmoFps: E.aj.ritmoFps || "60", contar: E.aj.contar || "auto", largoMin: E.aj.largoMin || "20", perfiles: perfilesSalida() }, eqx: reproductor.estadoEq ? reproductor.estadoEq() : undefined }, "config").catch(() => {}); }
 let tSes = 0;
 async function guardarSesion(fuerza) {
   const ahora = Date.now(); if (!fuerza && ahora - tSes < 4000) return; tSes = ahora;
@@ -795,7 +796,8 @@ function dibujarCola() {
 // ── ecualizador ──
 function armarEq() {
   const nom = (f) => (f >= 1000 ? f / 1000 + "k" : f);
-  $("#eq-bandas").innerHTML = BANDAS.map((f, i) => `<div class="banda"><span id="eq-v${i}">0</span><input type="range" min="-12" max="12" step="0.5" value="0" data-b="${i}" aria-label="${f} Hz"><span>${nom(f)}</span></div>`).join("");
+  const lista = reproductor.eqNb === 31 ? ISO31 : BANDAS; $("#eq-bandas").classList.toggle("b31", lista.length === 31);
+  $("#eq-bandas").innerHTML = lista.map((f, i) => `<div class="banda"><span id="eq-v${i}">0</span><input type="range" min="-12" max="12" step="0.5" value="0" data-b="${i}" aria-label="${f} Hz"><span>${nom(f)}</span></div>`).join("");
   $("#eq-presets").innerHTML = Object.keys(PRESETS).map((n) => `<button class="chip" type="button" data-preset="${esc(n)}">${esc(n)}</button>`).join("");
 }
 function mostrarEspacial() {
@@ -803,9 +805,35 @@ function mostrarEspacial() {
   $("#esp-ancho").value = R.ancho; $("#esp-ancho-v").textContent = R.ancho + "%"; $("#esp-env").value = R.env; $("#esp-env-v").textContent = R.env + "%"; $("#esp-gra").value = R.graves; $("#esp-gra-v").textContent = R.graves + "%";
   R.capacidades().then((c) => { $("#esp-env-c").hidden = !c.envolvente; $("#esp-gra-c").hidden = !c.graves; }).catch(() => {});
 }
+function gananciasGraf() { return reproductor.eqNb === 31 ? reproductor.g31 : reproductor.bandasDb; }
+function filtrosActuales() { const R = reproductor; return R.eqModo === "param" ? R.filtros : filtrosGrafico(gananciasGraf(), R.eqNb === 31 ? 31 : 10); }
+function dibujarCurva() {
+  const cv = $("#eq-curva"), g = cv.getContext("2d"), W = cv.width, H = cv.height; g.clearRect(0, 0, W, H);
+  const pts = 160, fr = Array.from({ length: pts }, (_, i) => 20 * Math.pow(1000, i / (pts - 1))), R = reproductor;
+  const y = (db) => H / 2 - (Math.max(-18, Math.min(18, db)) / 18) * (H / 2 - 8);
+  g.strokeStyle = "rgba(255,255,255,.12)"; g.lineWidth = 1; g.fillStyle = "rgba(255,255,255,.45)"; g.font = "18px sans-serif";
+  for (const db of [-12, -6, 0, 6, 12]) { g.beginPath(); g.moveTo(0, y(db)); g.lineTo(W, y(db)); g.stroke(); }
+  for (const f of [100, 1000, 10000]) { const x = (Math.log10(f / 20) / 3) * W; g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); g.fillText(f >= 1000 ? f / 1000 + "k" : f, x + 4, H - 6); }
+  const on = R.eqOn !== false, r = respuesta(on ? filtrosActuales() : [], fr, { grave: on ? R.grave || 0 : 0, agudo: on ? R.agudo || 0 : 0 });
+  g.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--ac2").trim() || "#c9d0ff"; g.lineWidth = 3; g.beginPath();
+  r.forEach((db, i) => { const x = (i / (pts - 1)) * W; i ? g.lineTo(x, y(db)) : g.moveTo(x, y(db)); }); g.stroke();
+}
+function armarFilas() {
+  const R = reproductor, TIPOS = ["Pico", "Grave", "Agudo"];
+  $("#eq-filas").innerHTML = R.filtros.length ? `<div class="eq-fila-t"><span>Tipo</span><span>Frecuencia Hz</span><span>Ganancia dB</span><span>Q (ancho)</span><span></span></div>` + R.filtros.map((x, i) => `<div class="eq-fila" data-i="${i}"><button class="tipo" type="button" data-tipo aria-label="Tipo de filtro">${TIPOS[x.t]}</button><input type="number" inputmode="decimal" data-c="f" value="${+(+x.f).toFixed(1)}" min="15" max="20000" step="any" aria-label="Frecuencia"><input type="number" inputmode="decimal" data-c="g" value="${+(+x.g).toFixed(1)}" min="-18" max="18" step="0.5" aria-label="Ganancia"><input type="number" inputmode="decimal" data-c="q" value="${+(+x.q).toFixed(2)}" min="0.1" max="18" step="0.1" aria-label="Q"><button class="quitar" type="button" data-quitar aria-label="Quitar filtro">✕</button></div>`).join("") : `<p class="suave pequeno">Sin filtros. Toca “Añadir filtro” o importa un perfil de AutoEQ.</p>`;
+}
 function mostrarEq() {
   mostrarEspacial();
-  reproductor.bandasDb.forEach((v, i) => { const r = document.querySelector(`[data-b="${i}"]`); if (r) r.value = v; $("#eq-v" + i).textContent = (v > 0 ? "+" : "") + v; });
+  { const R = reproductor, nat = MOTOR && R.eqModo !== undefined, param = nat && R.eqModo === "param";
+    $("#eq-vista-g").hidden = param; $("#eq-vista-p").hidden = !param;
+    document.querySelectorAll("#eq-modo button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.m === (param ? "param" : "grafico"))));
+    document.querySelectorAll("#eq-nb button").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.n === (R.eqNb === 31 ? 31 : 10))));
+    if (nat) { if ((R.eqNb === 31) !== $("#eq-bandas").classList.contains("b31")) armarEq(); if (param) armarFilas();
+      $("#eq-grave").value = R.grave; $("#eq-grave-v").textContent = (R.grave > 0 ? "+" : "") + R.grave + " dB"; $("#eq-agudo").value = R.agudo; $("#eq-agudo-v").textContent = (R.agudo > 0 ? "+" : "") + R.agudo + " dB";
+      $("#eq-bal").value = Math.round(R.bal * 100); $("#eq-bal-v").textContent = R.bal === 0 ? "centro" : (R.bal < 0 ? "izquierda " : "derecha ") + Math.abs(Math.round(R.bal * 100)) + "%"; }
+    $("#eq-curva").hidden = !nat; $("#eq-presets").hidden = nat && R.eqNb === 31; }
+  gananciasGraf().forEach((v, i) => { const r = document.querySelector(`[data-b="${i}"]`); if (r) r.value = v; const t = $("#eq-v" + i); if (t) t.textContent = (v > 0 ? "+" : "") + v; });
+  if (MOTOR && reproductor.eqModo !== undefined) dibujarCurva();
   $("#eq-on").checked = reproductor.eqOn; $("#eq-pre").value = reproductor.preampDb; $("#eq-pre-v").textContent = reproductor.preampDb + " dB";
   $("#eq-vel").value = reproductor.velocidad; $("#eq-vel-v").textContent = +reproductor.velocidad.toFixed(2) + "×";
   document.querySelectorAll("#eq-rg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === reproductor.rgModo)));
@@ -952,7 +980,7 @@ function enlazar() {
   R.addEventListener("ruta", (e) => {                                      // ecualizador distinto para cada salida (altavoz, Bluetooth, cable…)
     const nombres = { altavoz: "altavoz del teléfono", bluetooth: "Bluetooth", usb: "USB", cable: "audífonos con cable" };
     if (!E.aj.eqSalida) return; const pf = (E.aj.perfiles || {})[e.detail];
-    if (pf && pf.b && pf.b.length === BANDAS.length) { R.bandasDb = pf.b.slice(); R.preampDb = pf.p || 0; R._eq(); if (pila.includes("hoja-eq")) mostrarEq(); avisar("Ecualizador de " + (nombres[e.detail] || e.detail)); }
+    if (pf && pf.b && pf.b.length === BANDAS.length) { R.bandasDb = pf.b.slice(); R.preampDb = pf.p || 0; if (pf.x && R.cargarEstadoEq) R.cargarEstadoEq(pf.x); else R._eq(); if (pila.includes("hoja-eq")) mostrarEq(); avisar("Ecualizador de " + (nombres[e.detail] || e.detail)); }
   });
   R.addEventListener("error", (e) => avisar(e.detail.mensaje));
   R.addEventListener("dormido", () => avisar("Temporizador: música apagada. Buenas noches."));
@@ -1044,11 +1072,46 @@ function enlazar() {
     else R.irA(R.orden[+f.dataset.pos]);
   });
 
-  $("#eq-bandas").addEventListener("input", (e) => { const i = e.target.dataset.b; if (i == null) return; R.ajustarBanda(+i, +e.target.value); $("#eq-v" + i).textContent = (+e.target.value > 0 ? "+" : "") + e.target.value; guardarAjustes(); });
+  $("#eq-bandas").addEventListener("input", (e) => { const i = e.target.dataset.b; if (i == null) return; if (R.eqNb === 31) R.ajustarBanda31(+i, +e.target.value); else R.ajustarBanda(+i, +e.target.value); if (MOTOR) dibujarCurva(); $("#eq-v" + i).textContent = (+e.target.value > 0 ? "+" : "") + e.target.value; guardarAjustes(); });
   $("#eq-presets").addEventListener("click", (e) => { const b = e.target.closest("[data-preset]"); if (!b) return; R.usarPreset(b.dataset.preset); mostrarEq(); guardarAjustes(); });
   for (const [id, campo] of [["esp-ancho", "ancho"], ["esp-env", "env"], ["esp-gra", "graves"]]) $("#" + id).addEventListener("input", (e) => { R[campo] = +e.target.value; $("#" + id + "-v").textContent = e.target.value + "%"; R.ponerEspacial?.(); guardarAjustes(); });
   $("#esp-sis").addEventListener("click", () => R.efectosSistema().catch(() => avisar("Tu teléfono no tiene un panel de efectos aparte. Busca “Calidad de sonido y efectos” o “Dolby Atmos” en los ajustes de sonido.", 6000)));
-  $("#eq-on").addEventListener("change", (e) => { R.activarEq(e.target.checked); guardarAjustes(); });
+  $("#eq-on").addEventListener("change", (e) => { R.activarEq(e.target.checked); guardarAjustes(); if (MOTOR) dibujarCurva(); });
+  if (MOTOR) {
+    const guardar = (() => { let t = 0; return () => { clearTimeout(t); t = setTimeout(guardarAjustes, 400); }; })();
+    $("#eq-modo").addEventListener("click", (e) => { const b = e.target.closest("[data-m]"); if (!b) return; R.ponerModoEq(b.dataset.m); mostrarEq(); guardar(); });
+    $("#eq-nb").addEventListener("click", (e) => { const b = e.target.closest("[data-n]"); if (!b) return; R.ponerModoEq("grafico", +b.dataset.n); armarEq(); mostrarEq(); guardar(); });
+    const nuevoFiltro = () => ({ f: 1000, g: 0, q: 1, t: 0 });
+    $("#eq-mas").addEventListener("click", () => { if (R.filtros.length >= MAX_FILTROS) return avisar("Máximo 32 filtros.", 2000); R.ponerFiltros([...R.filtros, nuevoFiltro()]); armarFilas(); dibujarCurva(); guardar(); });
+    $("#eq-limpiar").addEventListener("click", () => { R.ponerFiltros([]); armarFilas(); dibujarCurva(); guardar(); });
+    $("#eq-filas").addEventListener("input", (e) => {
+      const fila = e.target.closest(".eq-fila"), c = e.target.dataset.c; if (!fila || !c) return; const x = R.filtros[+fila.dataset.i]; if (!x) return; const v = parseFloat(String(e.target.value).replace(",", "."));
+      if (!isFinite(v)) return; x[c] = c === "f" ? Math.max(15, Math.min(20000, v)) : c === "g" ? Math.max(-18, Math.min(18, v)) : Math.max(0.1, Math.min(18, v)); R._eq(); dibujarCurva(); guardar();
+    });
+    $("#eq-filas").addEventListener("click", (e) => {
+      const fila = e.target.closest(".eq-fila"); if (!fila) return; const i = +fila.dataset.i;
+      if (e.target.closest("[data-quitar]")) { R.ponerFiltros(R.filtros.filter((_, k) => k !== i)); armarFilas(); dibujarCurva(); guardar(); }
+      else if (e.target.closest("[data-tipo]")) { R.filtros[i].t = (R.filtros[i].t + 1) % 3; R._eq(); armarFilas(); dibujarCurva(); guardar(); }
+    });
+    for (const [id, campo] of [["eq-grave", "grave"], ["eq-agudo", "agudo"], ["eq-bal", "bal"]]) $("#" + id).addEventListener("input", (e) => {
+      const v = +e.target.value; R.ponerTono(campo === "grave" ? v : R.grave, campo === "agudo" ? v : R.agudo, campo === "bal" ? v / 100 : R.bal);
+      if (campo === "bal") $("#eq-bal-v").textContent = v === 0 ? "centro" : (v < 0 ? "izquierda " : "derecha ") + Math.abs(v) + "%"; else $("#" + id + "-v").textContent = (v > 0 ? "+" : "") + v + " dB";
+      dibujarCurva(); guardar();
+    });
+    $("#eq-importar").addEventListener("click", () => { $("#eq-io-caja").hidden = !$("#eq-io-caja").hidden; });
+    $("#eq-exportar").addEventListener("click", async () => {
+      const t = aTextoAutoEQ(filtrosActuales().filter((x) => Math.abs(x.g) >= 0.01), R.preampDb); $("#eq-texto").value = t; $("#eq-io-caja").hidden = false;
+      try { await navigator.clipboard.writeText(t); avisar("Copiado. Pégalo donde quieras compartirlo.", 2500); } catch (_) { avisar("Selecciona el texto y cópialo.", 2500); }
+    });
+    $("#eq-copiar").addEventListener("click", async () => { try { await navigator.clipboard.writeText($("#eq-texto").value); avisar("Copiado.", 1500); } catch (_) { avisar("Selecciona el texto y cópialo.", 2500); } });
+    $("#eq-archivo").addEventListener("click", () => $("#f-eq").click());
+    $("#f-eq").addEventListener("change", async (e) => { const f = e.target.files[0]; if (f) $("#eq-texto").value = await f.text(); e.target.value = ""; });
+    $("#eq-aplicar").addEventListener("click", () => {
+      const r = leerAutoEQ($("#eq-texto").value); if (!r.filtros.length) return avisar("No encontré filtros en ese texto.", 3500);
+      R.preampDb = Math.max(-12, Math.min(12, r.pre)); R.ponerFiltros(r.filtros); R.ponerModoEq("param"); $("#eq-io-caja").hidden = true; mostrarEq(); guardar();
+      avisar(`Perfil aplicado: ${r.filtros.length} filtros${r.ignorados ? ` (${r.ignorados} no compatibles ignorados)` : ""}${r.recortados ? ` (${r.recortados} de más recortados)` : ""}.`, 4000);
+    });
+  }
   $("#eq-pre").addEventListener("input", (e) => { R.ponerPreamp(+e.target.value); $("#eq-pre-v").textContent = e.target.value + " dB"; guardarAjustes(); });
   $("#eq-vel").addEventListener("input", (e) => { R.ponerVelocidad(+e.target.value); $("#eq-vel-v").textContent = +(+e.target.value).toFixed(2) + "×"; guardarAjustes(); });
   $("#eq-rg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; R.ponerRG(b.dataset.v); mostrarEq(); guardarAjustes(); });
@@ -1143,6 +1206,7 @@ async function iniciar() {
   const cfg = await db.traer("ajustes", "config").catch(() => null);
   if (cfg) {
     E.orden = cfg.orden || "titulo"; $("#orden").value = E.orden; reproductor.bandasDb = cfg.bandas?.length === BANDAS.length ? cfg.bandas : reproductor.bandasDb;
+    if (cfg.eqx && reproductor.cargarEstadoEq) reproductor.cargarEstadoEq(cfg.eqx);
     reproductor.preampDb = cfg.pre || 0; reproductor.rgModo = cfg.rg || "pista"; reproductor.eqOn = cfg.eq !== false; reproductor.ponerVelocidad(cfg.vel || 1);
     E.aj.viz = !!cfg.viz; $("#aj-viz").checked = E.aj.viz; E.aj.auto = cfg.auto !== false; $("#aj-auto").checked = E.aj.auto; E.aj.salida = cfg.salida || null; Object.assign(E.aj, cfg.av || {}); if (cfg.av && cfg.av.fondo === undefined) E.aj.acento = "auto";
   }
