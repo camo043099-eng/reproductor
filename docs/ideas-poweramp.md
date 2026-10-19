@@ -57,3 +57,13 @@ Otros: Exportar/Importar ajustes y datos, Obtener soporte, Enviar errores. Cada 
 
 ## Que ya tiene Onda (para no repetir)
 Pausa al desconectar audifonos y salida por dispositivo existen; falta revisar foco de audio (atenuar vs pausar), botones multi-toque, ignorar pistas cortas/video, umbral "contar como reproducido", progreso en pistas largas, reescaneo total.
+
+## Investigación: ecualizador de Poweramp (19 oct 2026)
+Fuentes: powerampapp.com y Xataka Android.
+- Paramétrico de hasta 64 bandas con preamp; gráfico configurable hasta 32 bandas; modo gráfico y paramétrico.
+- Refuerzo de graves y agudos, balance, ganancia (subir sobre el volumen de fábrica).
+- Presets por dispositivo / salida / audífono; exportar, respaldar y compartir.
+- AutoEQ: presets para cientos de audífonos.
+- Salida: Hi-Res, AAudio/OpenSL, USB exclusivo, tubería de 64 bits, 16/24/32/float, hasta 768 kHz, DSD, Bluetooth LDAC.
+- DVC (volumen directo), gapless, crossfade, ReplayGain, Gain Tracker, interpolación del decodificador (beta).
+- Limitador mencionado; compresor y reverb no confirmados.
