@@ -72,6 +72,7 @@ public class MotorPlugin extends Plugin {
     private int sesionAudio = 0;
     private int envFuerza = 0, gravesFuerza = 0;
     private int fallosAudio = 0;
+    private boolean ritmoOn = false;
     private int fundidoMs = 0; private boolean fadeSueno = false; private long ultimaEmision = 0;
     private android.media.AudioDeviceCallback cbRuta = null;
     private boolean sinEfectos = false;
@@ -132,6 +133,17 @@ public class MotorPlugin extends Plugin {
             }
         }
     };
+    private final Runnable ritmoTic = new Runnable() {
+        @Override public void run() {
+            ExoPlayer p = Motor.jugador;
+            if (!ritmoOn || p == null || !p.isPlaying()) return;
+            JSObject o = new JSObject(); o.put("b", EqProcesador.nivelBajo); o.put("r", EqProcesador.nivelTotal); emitir("nivel", o);
+            h.postDelayed(this, 40);
+        }
+    };
+    @PluginMethod public void ritmo(PluginCall call) {
+        ui(call, () -> { ritmoOn = call.getBoolean("on", false); h.removeCallbacks(ritmoTic); if (ritmoOn) h.post(ritmoTic); call.resolve(); });
+    }
     private static float curva(float x) { x = Math.max(0f, Math.min(1f, x)); return x * x * (3f - 2f * x); }   // suavizado (smoothstep)
     @PluginMethod public void fundido(PluginCall call) {
         ui(call, () -> {
@@ -196,7 +208,7 @@ public class MotorPlugin extends Plugin {
     // ───────── escucha del reproductor ─────────
     private class Escucha implements Player.Listener {
         @Override public void onIsPlayingChanged(boolean sonando) {
-            emitir("estado", estadoActual()); h.removeCallbacks(tic); if (sonando) { h.post(tic); servicio(); efectos(); anunciarSesion(true); } else anunciarSesion(false);
+            emitir("estado", estadoActual()); h.removeCallbacks(tic); h.removeCallbacks(ritmoTic); if (sonando && ritmoOn) h.post(ritmoTic); if (sonando) { h.post(tic); servicio(); efectos(); anunciarSesion(true); } else anunciarSesion(false);
         }
         @Override public void onAudioSessionIdChanged(int id) { efectos(); }
         @Override public void onPlaybackStateChanged(int e) { emitir("estado", estadoActual()); }

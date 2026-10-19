@@ -15,12 +15,15 @@ public final class EqProcesador extends BaseAudioProcessor {
     public static volatile boolean salida16 = false;
     private int enc = C.ENCODING_PCM_16BIT;
     private float[] tmp = new float[0];
+    /** nivel del audio (0..1) para animar la carátula al ritmo: graves y total del último bloque */
+    public static volatile float nivelBajo = 0, nivelTotal = 0;
+    private double lp = 0, lpK = 0.02;
 
     @Override
     protected AudioFormat onConfigure(AudioFormat in) throws UnhandledAudioFormatException {
         enc = in.encoding;
         if (enc != C.ENCODING_PCM_16BIT && enc != C.ENCODING_PCM_24BIT && enc != C.ENCODING_PCM_32BIT && enc != C.ENCODING_PCM_FLOAT) throw new UnhandledAudioFormatException(in);
-        nucleo.configurar(in.sampleRate, in.channelCount);
+        nucleo.configurar(in.sampleRate, in.channelCount); lpK = 1 - Math.exp(-2 * Math.PI * 140.0 / Math.max(8000, in.sampleRate));
         return new AudioFormat(in.sampleRate, in.channelCount, salida16 ? C.ENCODING_PCM_16BIT : C.ENCODING_PCM_FLOAT);
     }
 
@@ -42,6 +45,9 @@ public final class EqProcesador extends BaseAudioProcessor {
         }
         input.position(input.position() + n * bytes);
         nucleo.procesar(tmp, n);
+        { int C = Math.max(1, inputAudioFormat.channelCount); double sb = 0, st = 0; int fr = n / C;
+          for (int f = 0; f < fr; f++) { double m = 0; for (int c = 0; c < C; c++) m += tmp[f * C + c]; m /= C; lp += (m - lp) * lpK; sb += lp * lp; st += m * m; }
+          if (fr > 0) { nivelBajo = (float) Math.min(1, Math.sqrt(sb / fr) * 3.2); nivelTotal = (float) Math.min(1, Math.sqrt(st / fr) * 2.2); } }
         if (salida16) {
             ByteBuffer out = replaceOutputBuffer(n * 2);
             for (int i = 0; i < n; i++) { float v = tmp[i] * 32767f; out.putShort((short) Math.max(-32768, Math.min(32767, Math.round(v)))); }

@@ -260,7 +260,8 @@ html.sinchips #r-chips { display: none !important; }
 .campo label.interruptor { width: 52px; display: block; }
 .interruptor input:checked + span { background: var(--sw, #34c759); border-color: var(--sw, #34c759); }
 /* la barra de arriba de las hojas tapa lo que pasa por detrás */
-.hoja:not(.completa) .hoja-top { background: linear-gradient(rgba(0,0,0,.92), rgba(0,0,0,.78)); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-radius: 0 0 16px 16px; }
+.hoja:not(.completa) .hoja-top { background: linear-gradient(rgba(8,8,12,.92), rgba(8,8,12,.6) 70%, transparent); border-radius: 0; }
+.hoja-top > span:nth-child(2) { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* fondos personalizables */
 html[data-fondo="negro"] .ambiente { background: #000; }
 html[data-fondo="portada"] .ambiente, html[data-fondo="imagen"] .ambiente { background: #000; overflow: hidden; }
@@ -353,3 +354,10 @@ html[data-fondo="portada"] .ambiente::after, html[data-fondo="imagen"] .ambiente
 .opciones button { border-radius: 0; border-bottom: 1px solid rgba(255,255,255,.07); }
 .opciones button:last-child { border-bottom: 0; }
 .opciones button.activo::after { content: "✓"; float: right; }
+
+/* carátula redonda que late con los graves */
+.completa .portada-grande.circulo { border-radius: 50%; transition: border-radius .5s var(--rebote), translate .45s var(--rebote), rotate .45s var(--rebote), transform .6s var(--rebote); will-change: scale;
+  box-shadow: 0 0 0 calc(var(--aro, 0) * 16px) color-mix(in srgb, var(--ac2, #fff) calc(var(--aro, 0) * 45%), transparent), 0 0 calc(30px + var(--aro, 0) * 50px) color-mix(in srgb, var(--ac2, #fff) calc(var(--aro, 0) * 55%), transparent), 0 30px 60px rgba(0,0,0,.5); }
+.completa .portada-grande.circulo::after { border-radius: 50%; }
+.completa .portada-grande.circulo canvas { display: none; }
+@media (prefers-reduced-motion: reduce) { .completa .portada-grande.circulo { border-radius: 22px; } }

@@ -435,7 +435,7 @@ function perfilesSalida() {
   const p = (E.aj.perfiles ||= {}); if (E.aj.eqSalida && MOTOR && reproductor.ruta) p[reproductor.ruta] = { b: reproductor.bandasDb.slice(), p: reproductor.preampDb };
   return p;
 }
-async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", eqSalida: !!E.aj.eqSalida, perfiles: perfilesSalida() } }, "config").catch(() => {}); }
+async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", ritmo: E.aj.ritmo || "circulo", eqSalida: !!E.aj.eqSalida, perfiles: perfilesSalida() } }, "config").catch(() => {}); }
 let tSes = 0;
 async function guardarSesion(fuerza) {
   const ahora = Date.now(); if (!fuerza && ahora - tSes < 4000) return; tSes = ahora;
@@ -523,7 +523,7 @@ async function restaurarCopia(archivo) {
 
 // ── ajustes avanzados ──
 const TOGGLES = [["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-plano", "plano", false], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false]];
-const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"]];
+const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-ritmo", "ritmo", "circulo"]];
 let tocadoEnfoque = false;
 function sincronizarAjustes() {
   for (const [id, clave, def] of TOGGLES) $("#" + id).checked = E.aj[clave] === undefined ? def : !!E.aj[clave];
@@ -535,6 +535,7 @@ function aplicarAvanzados() {
   r.classList.toggle("plano", !!a.plano); r.classList.toggle("sinchips", a.chips === false); window.__vibrar = a.vib !== false;
   aplicarColores(); $("#aj-fondo-img").hidden = a.fondo !== "imagen";
   r.style.setProperty("--lt", a.letraTam || "1");
+  if (typeof ritmoEncender === "function" && reproductor) { ritmoApagar(); if (pila.includes("hoja-rep")) ritmoEncender(); else document.querySelector("#hoja-rep .portada-grande")?.classList.toggle("circulo", a.ritmo !== "off"); }
   if (MOTOR && reproductor) { reproductor.ponerFundido(+a.fundido || 0).catch(() => {}); }
   if (MOTOR && reproductor) { const o = { silencio: !!a.silencio, ruido: a.ruido !== false }; if (tocadoEnfoque || a.enfoque === false) o.enfoque = a.enfoque !== false; reproductor.ponerAvanzado(o).catch(() => {}); }
 }
@@ -559,7 +560,7 @@ function cerrar(id, desdeHistorial) {
   const k = pila.lastIndexOf(id); if (k < 0) return; pila.splice(k, 1); { const h = $("#" + id); h.classList.remove("ver"); clearTimeout(h._t); h._t = setTimeout(() => { h.hidden = true; }, 420); }
   if (!pila.some((x) => $("#" + x).classList.contains("corta"))) $("#fondo").hidden = true;
   if (!desdeHistorial) { ignorarPop++; history.back(); }
-  if (id === "hoja-rep") vizApagar();
+  if (id === "hoja-rep") { vizApagar(); ritmoApagar(); }
 }
 let salirListo = false;
 // atrás: cierra lo abierto, vuelve a Inicio y, en Inicio, pide un segundo gesto para salir
@@ -665,6 +666,31 @@ function vizEncender() {
   };
   paso();
 }
+// ── carátula al ritmo (círculo que "salta" con los graves; solo mientras el reproductor está abierto y sonando) ──
+let ritRaf = 0, ritMedia = 0, ritImp = 0, ritUlt = 0;
+function nivelRitmo() {
+  if (MOTOR) return reproductor.nivel();
+  if (!reproductor.espectro(buf)) return { b: 0, r: 0 };
+  const b = (buf[0] + buf[1] + buf[2]) / 765, r = buf.reduce((a, x, i) => (i < 40 ? a + x : a), 0) / (40 * 255);
+  return { b: Math.min(1, b * 1.1), r };
+}
+function ritmoEncender() {
+  const el = document.querySelector("#hoja-rep .portada-grande"); if (!el) return;
+  const on = (E.aj.ritmo || "circulo") !== "off" && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  el.classList.toggle("circulo", on);
+  if (MOTOR && reproductor.ponerRitmo) reproductor.ponerRitmo(on && pila.includes("hoja-rep")).catch(() => {});
+  if (!on || ritRaf) return;
+  const paso = (ahora) => {
+    ritRaf = requestAnimationFrame(paso);
+    if (!reproductor.sonando) { el.style.scale = ""; el.style.setProperty("--aro", 0); return; }
+    const n = nivelRitmo(); ritMedia += (n.b - ritMedia) * 0.06;
+    if (n.b > ritMedia * 1.3 + 0.03 && ahora - ritUlt > 170) { ritImp = Math.min(1, 0.55 + n.b); ritUlt = ahora; }
+    ritImp *= 0.88;
+    el.style.scale = (1 + 0.075 * ritImp + 0.025 * n.b).toFixed(4); el.style.setProperty("--aro", ritImp.toFixed(3));
+  };
+  ritRaf = requestAnimationFrame(paso);
+}
+function ritmoApagar() { cancelAnimationFrame(ritRaf); ritRaf = 0; ritImp = 0; const el = document.querySelector("#hoja-rep .portada-grande"); if (el) { el.style.scale = ""; el.style.setProperty("--aro", 0); } if (MOTOR && reproductor.ponerRitmo) reproductor.ponerRitmo(false).catch(() => {}); }
 function vizApagar() { cancelAnimationFrame(vizRaf); vizRaf = 0; $("#r-viz").hidden = true; }
 
 const NOMBRES_SALIDA = { 2: "Parlante del teléfono", 3: "Audífonos con cable", 4: "Audífonos con cable", 8: "Bluetooth", 9: "HDMI", 11: "USB", 22: "USB", 26: "Bluetooth", 27: "Bluetooth" };
@@ -680,7 +706,7 @@ async function cambiarSalida(s) {
   E.aj.salida = s; etiquetaSalida(); guardarAjustes();
   try { const r = await reproductor.ponerSalida(s); avisar(!s ? "Salida automática" : r.activa ? "Onda suena por: " + nombreSalida(s) : "Esa salida no está conectada ahora; usaré la automática.", 3000); } catch (_) { avisar("No pude cambiar la salida."); }
 }
-function abrirReproductor() { if (pila.includes("hoja-rep")) return; abrir("hoja-rep"); actualizarTiempo(); vizEncender(); }
+function abrirReproductor() { if (pila.includes("hoja-rep")) return; abrir("hoja-rep"); actualizarTiempo(); vizEncender(); ritmoEncender(); }
 async function mostrarEspacio() {
   if (MOTOR) { const b = E.canciones.reduce((a, s) => a + (s.tam || 0), 0); $("#aj-espacio").textContent = `${E.canciones.length} canciones · ${(b / 1073741824).toFixed(2)} GB (no se copian)`; return; }
   const e = await db.espacio(), mb = (b) => (b / 1048576 >= 1024 ? (b / 1073741824).toFixed(2) + " GB" : Math.round(b / 1048576) + " MB");
