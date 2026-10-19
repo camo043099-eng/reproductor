@@ -75,10 +75,11 @@ async function importar(lista) {
   if (!archivos.length) { avisar("No encontré canciones en lo que elegiste."); return; }
   importando = true; let nuevas = 0, repetidas = 0, malas = 0;
   for (let i = 0; i < archivos.length; i++) {
-    const f = archivos[i]; avisar(`Importando ${i + 1} de ${archivos.length}…`, 0);
+    const meta = archivos[i]; avisar(`Importando ${i + 1} de ${archivos.length}…`, 0);
     try {
-      const id = db.idDe(f);
+      const id = db.idDe(meta);
       if (porId.has(id)) { repetidas++; continue; }
+      const f = typeof meta.cargar === "function" ? await meta.cargar() : meta;
       const t = await leerEtiquetas(f), alb = claveAlbum(t);
       if (t.portada && !(await db.traer("portadas", alb))) { const m = await miniatura(t.portada); if (m) await db.poner("portadas", m, alb); }
       const { portada, ...datos } = t;
@@ -91,6 +92,25 @@ async function importar(lista) {
   importando = false;
   avisar(`Listo: ${nuevas} nueva${nuevas === 1 ? "" : "s"}${repetidas ? `, ${repetidas} ya estaban` : ""}${malas ? `, ${malas} con error` : ""}.`, 4500);
   await db.pedirPersistencia(); dibujar(); mostrarEspacio();
+}
+
+// ── carpeta (en la app Android se usa el selector nativo; en el navegador, el de archivos) ──
+async function elegirCarpeta() {
+  const N = window.Capacitor?.Plugins?.Carpeta;
+  if (!N) return $("#f-carpeta").click();
+  try {
+    avisar("Leyendo la carpeta…", 0); const r = await N.elegir();
+    const items = (r.archivos || []).map((a) => ({
+      name: a.nombre, size: a.tam, lastModified: a.fecha, type: a.mime || "",
+      async cargar() {
+        const c = await N.copiar({ uri: a.uri, id: String(a.fecha) + "_" + a.tam });
+        try { const b = await (await fetch(window.Capacitor.convertFileSrc(c.ruta))).blob(); return new File([b], a.nombre, { lastModified: a.fecha, type: a.mime || b.type }); }
+        finally { N.borrar({ ruta: c.ruta }).catch(() => {}); }
+      },
+    }));
+    if (!items.length) return avisar("No hay canciones en esa carpeta.");
+    importar(items);
+  } catch (e) { avisar(/cancel/i.test(String(e?.message || e)) ? "No elegiste ninguna carpeta." : "No pude leer la carpeta."); }
 }
 
 // ── listados ──
@@ -318,7 +338,7 @@ function enlazar() {
   });
   $("#q").addEventListener("input", (e) => { E.q = e.target.value; dibujar(); });
   $("#b-agregar").addEventListener("click", () => menu("Agregar música", [
-    { t: "Elegir canciones", f: () => $("#f-audio").click() }, { t: "Elegir una carpeta completa", f: () => $("#f-carpeta").click() }]));
+    { t: "Elegir canciones", f: () => $("#f-audio").click() }, { t: "Elegir una carpeta completa", f: elegirCarpeta }]));
   $("#b-ajustes").addEventListener("click", () => { mostrarEspacio(); abrir("hoja-aj"); });
   for (const id of ["#f-audio", "#f-carpeta"]) $(id).addEventListener("change", (e) => { const l = [...e.target.files]; e.target.value = ""; importar(l); });
   $("#pestanas").addEventListener("click", (e) => { const b = e.target.closest("button[data-t]"); if (!b) return; E.tab = b.dataset.t; E.detalle = null; dibujar(); });

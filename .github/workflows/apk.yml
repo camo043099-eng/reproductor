@@ -14,6 +14,10 @@ jobs:
         with: { distribution: temurin, java-version: 17 }
       - run: npm install
       - run: npx cap add android
+      - name: Instalar el plugin nativo de carpetas
+        run: |
+          cp native/CarpetaPlugin.java android/app/src/main/java/com/camo/onda/CarpetaPlugin.java
+          python3 native/parchear.py
       - run: npx cap sync android
       - name: Compilar APK de prueba
         working-directory: android
