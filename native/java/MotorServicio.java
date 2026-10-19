@@ -19,6 +19,7 @@ public class MotorServicio extends MediaSessionService {
 
     @Override public void onTaskRemoved(@Nullable Intent raiz) {
         ExoPlayer p = Motor.jugador;
+        if (p != null && getSharedPreferences("onda_motor", MODE_PRIVATE).getBoolean("detener", false)) { p.pause(); p.stop(); stopSelf(); return; }
         if (p == null || !p.getPlayWhenReady() || p.getMediaItemCount() == 0) stopSelf();
     }
 

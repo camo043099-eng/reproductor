@@ -41,6 +41,7 @@ export class ReproductorNativo extends EventTarget {
   /** nivel de graves/total (0..1) enviado por el motor, con pequeño retraso para coincidir con lo que se oye */
   ponerRitmo(on) { this._ritmo = !!on; return this.N.ritmo({ on: !!on }); }
   infoAudio() { return this.N.infoAudio(); }
+  ponerAlCerrar(detener) { return this.N.alCerrar({ detener: !!detener }); }
   ponerRealce(mezcla) { return this.N.realce({ mezcla }); }
   ponerHiRes(on) { return this.N.hiResPuro({ on: !!on }); }
   reiniciarNivel() { this._cola = []; this._ult = null; }

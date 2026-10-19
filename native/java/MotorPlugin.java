@@ -144,6 +144,10 @@ public class MotorPlugin extends Plugin {
     @PluginMethod public void ritmo(PluginCall call) {
         ui(call, () -> { ritmoOn = call.getBoolean("on", false); EqProcesador.medir = ritmoOn; h.removeCallbacks(ritmoTic); if (ritmoOn) h.post(ritmoTic); call.resolve(); });
     }
+    /** qué pasa con la música al cerrar la app desde recientes */
+    @PluginMethod public void alCerrar(PluginCall call) {
+        getContext().getSharedPreferences("onda_motor", Context.MODE_PRIVATE).edit().putBoolean("detener", call.getBoolean("detener", false)).apply(); call.resolve();
+    }
     /** realce de brillo para MP3/AAC de poca calidad (0 = apagado) */
     @PluginMethod public void realce(PluginCall call) {
         try { if (Motor.eq != null) Motor.eq.nucleo.ponerRealce(call.getDouble("mezcla", 0.0)); call.resolve(); } catch (Throwable e) { call.resolve(); }
