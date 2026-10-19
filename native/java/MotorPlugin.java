@@ -544,7 +544,7 @@ public class MotorPlugin extends Plugin {
                 JSArray fs = call.getArray("filtros");
                 if (fs != null && fs.length() > 0) {                                   // paramétrico: [[frecuencia, ganancia, Q, tipo], ...]
                     int n = Math.min(NucleoEq.MAXF, fs.length()); double[] f = new double[n], g = new double[n], q = new double[n]; int[] t = new int[n];
-                    for (int i = 0; i < n; i++) { JSArray r = fs.getJSONArray(i); f[i] = r.getDouble(0); g[i] = r.getDouble(1); q[i] = r.getDouble(2); t[i] = r.getInt(3); }
+                    for (int i = 0; i < n; i++) { JSONArray r = fs.getJSONArray(i); f[i] = r.getDouble(0); g[i] = r.getDouble(1); q[i] = r.getDouble(2); t[i] = r.getInt(3); }
                     Motor.eq.nucleo.ponerFiltros(f, g, q, t, on);
                 } else {
                     JSArray b = call.getArray("bandas"); double[] db = new double[10]; for (int i = 0; b != null && i < 10 && i < b.length(); i++) db[i] = b.getDouble(i);
