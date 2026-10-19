@@ -425,7 +425,7 @@ public class MotorPlugin extends Plugin {
     }
 
     // ───────── internet (portadas y letras): solo a servicios de la lista ─────────
-    private static final String[] PERMITIDOS = {"itunes.apple.com", "mzstatic.com", "api.deezer.com", "dzcdn.net", "lrclib.net", "musicbrainz.org", "coverartarchive.org", "archive.org", "music.163.com", "translate.googleapis.com", "clients5.google.com", "api.mymemory.translated.net", "api.lyrics.ovh"};
+    private static final String[] PERMITIDOS = {"itunes.apple.com", "mzstatic.com", "api.deezer.com", "dzcdn.net", "lrclib.net", "musicbrainz.org", "coverartarchive.org", "archive.org", "music.163.com", "translate.googleapis.com", "clients5.google.com", "api.mymemory.translated.net", "api.lyrics.ovh", "raw.githubusercontent.com", "cdn.jsdelivr.net"};
     private static boolean permitido(String direccion) {
         try {
             URL u = new URL(direccion); if (!"https".equals(u.getProtocol())) return false; String host = u.getHost().toLowerCase(Locale.ROOT);
@@ -446,7 +446,7 @@ public class MotorPlugin extends Plugin {
         new Thread(() -> {
             String u = call.getString("url", "");
             if (!permitido(u)) { call.reject("dirección no permitida"); return; }
-            try { JSObject o = new JSObject(); o.put("codigo", 200); o.put("cuerpo", new String(bajar(u, 4 << 20), "UTF-8")); call.resolve(o); }
+            try { JSObject o = new JSObject(); o.put("codigo", 200); o.put("cuerpo", new String(bajar(u, u.contains("AutoEq") ? 24 << 20 : 4 << 20), "UTF-8")); call.resolve(o); }
             catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
         }).start();
     }

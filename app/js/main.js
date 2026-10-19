@@ -1,5 +1,5 @@
 import { Reproductor, BANDAS, PRESETS } from "./player.js";
-import { filtrosGrafico, respuesta, leerAutoEQ, aTextoAutoEQ, ISO31, MAX_FILTROS, leerIndiceAutoEQ, buscarEnIndice, urlPerfilAutoEQ } from "./eqpro.js";
+import { filtrosGrafico, respuesta, leerAutoEQ, aTextoAutoEQ, ISO31, MAX_FILTROS, AUTOEQ_BASE, leerIndiceAutoEQ, buscarEnIndice, urlPerfilAutoEQ } from "./eqpro.js";
 import { leerEtiquetas } from "./tags.js";
 import * as db from "./db.js";
 import { ReproductorNativo } from "./nativo.js";
@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.37";
+const VERSION = "0.9.38";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -1128,7 +1128,7 @@ function enlazar() {
     const cargarIndiceEq = async () => {
       if (indiceEq) return indiceEq;
       try { const g = await db.traer("ajustes", "autoeq-idx"); if (g && g.lista?.length && Date.now() - g.t < 30 * 864e5) return (indiceEq = g.lista); } catch (_) { /* se baja de nuevo */ }
-      const lista = leerIndiceAutoEQ(await texto("https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/INDEX.md"));
+      const lista = leerIndiceAutoEQ(await textoAuto("INDEX.md"));
       if (!lista.length) throw new Error("sin índice");
       indiceEq = lista; db.poner("ajustes", { t: Date.now(), lista }, "autoeq-idx").catch(() => {}); return lista;
     };
@@ -1140,7 +1140,7 @@ function enlazar() {
         const r = buscarEnIndice(lista, q);
         res.innerHTML = r.length ? r.map((e, i) => `<button type="button" class="boton" data-i="${i}" style="display:block;width:100%;text-align:left;margin:4px 0">${esc(e.n)} <small>· ${esc(e.s)}</small></button>`).join("") : "No encontré ese modelo. Prueba con menos palabras (ej.: solo “EDX”) o importa el perfil a mano.";
         res._r = r;
-      } catch (_) { res.textContent = "No pude conectar. Revisa tu internet e inténtalo de nuevo."; }
+      } catch (err) { res.textContent = "No pude conectar con la base de perfiles (" + String(err?.message || err).slice(0, 80) + "). Revisa tu internet e inténtalo de nuevo."; }
     };
     $("#eq-buscar").addEventListener("click", () => { const c = $("#eq-bus-caja"); c.hidden = !c.hidden; if (!c.hidden) { $("#eq-bus").focus(); cargarIndiceEq().catch(() => {}); } });
     $("#eq-bus").addEventListener("input", () => { clearTimeout(busT); busT = setTimeout(pintarBus, 250); });
@@ -1148,7 +1148,7 @@ function enlazar() {
       const b = ev.target.closest("button[data-i]"); if (!b) return; const e = $("#eq-bus-res")._r?.[+b.dataset.i]; if (!e) return;
       avisar("Bajando perfil…", 6000);
       try {
-        const r = leerAutoEQ(await texto(urlPerfilAutoEQ(e))); if (!r.filtros.length) return avisar("Ese modelo no tiene perfil disponible. Prueba con otra fuente de la lista.", 4500);
+        const r = leerAutoEQ(await textoAuto(urlPerfilAutoEQ(e).slice(AUTOEQ_BASE.length))); if (!r.filtros.length) return avisar("Ese modelo no tiene perfil disponible. Prueba con otra fuente de la lista.", 4500);
         R.preampDb = Math.max(-12, Math.min(12, r.pre)); R.ponerFiltros(r.filtros); R.ponerModoEq("param"); $("#eq-bus-caja").hidden = true; mostrarEq(); guardar();
         avisar(`Listo: perfil de ${e.n} (${e.s}) aplicado, ${r.filtros.length} filtros.`, 4500);
       } catch (_) { avisar("No pude bajar el perfil. Revisa tu internet.", 4000); }
@@ -1318,6 +1318,11 @@ async function iniciarNativo(manual) {
   finally { escaneando = false; }
 }
 // ── portadas desde internet o galería ──
+// base AutoEQ: primero GitHub directo y, si falla, el espejo jsDelivr
+const textoAuto = async (ruta) => {
+  try { return await texto(AUTOEQ_BASE + ruta); }
+  catch (_) { return await texto("https://cdn.jsdelivr.net/gh/jaakkopasanen/AutoEq@master/results/" + ruta); }
+};
 const texto = async (url) => {
   if (MOTOR) { const r = await MOTOR.texto({ url }); return r.cuerpo; }
   const r = await fetch(url); if (!r.ok) throw new Error("http " + r.status); return r.text();
