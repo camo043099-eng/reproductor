@@ -146,7 +146,7 @@ public class MotorPlugin extends Plugin {
     }
     /** realce de brillo para MP3/AAC de poca calidad (0 = apagado) */
     @PluginMethod public void realce(PluginCall call) {
-        Motor.eq.nucleo.ponerRealce(call.getDouble("mezcla", 0.0)); call.resolve();
+        try { if (Motor.eq != null) Motor.eq.nucleo.ponerRealce(call.getDouble("mezcla", 0.0)); call.resolve(); } catch (Throwable e) { call.resolve(); }
     }
     /** Hi-Res puro: se guarda y se aplica al volver a abrir la app (el reproductor se crea una sola vez) */
     @PluginMethod public void hiResPuro(PluginCall call) {

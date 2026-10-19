@@ -6,7 +6,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, traducir, par
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.24";
+const VERSION = "0.9.25";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -374,10 +374,11 @@ function ponerLargo(el, texto) {
   el.textContent = ""; const sp = document.createElement("span"); sp.className = "desl"; sp.textContent = texto; el.append(sp);
   requestAnimationFrame(() => { const d = sp.scrollWidth - el.clientWidth; if (d > 4) { sp.style.setProperty("--dx", -d - 6 + "px"); sp.style.setProperty("--dur", Math.max(3, d / 32).toFixed(1) + "s"); sp.classList.add("va"); } });
 }
+let ultimoRealce = -1;
 function aplicarRealce() {                                                // solo para MP3/AAC/OGG de menos de 320 kbps
   if (!MOTOR || !reproductor?.ponerRealce) return; const s = reproductor.actual, m = E.aj.realce || "0";
   const malo = s && /^(MP3|AAC|OGG|WMA)$/.test(s.formato || "") && s.bitrate > 0 && s.bitrate < 315;
-  reproductor.ponerRealce(malo && m === "suave" ? 0.10 : malo && m === "medio" ? 0.18 : 0).catch(() => {});
+  const v = malo && m === "suave" ? 0.10 : malo && m === "medio" ? 0.18 : 0; if (v === ultimoRealce) return; ultimoRealce = v; try { reproductor.ponerRealce(v).catch(() => {}); } catch (_) { /* motor aún no listo */ }
 }
 function actualizarMini() {
   const s = reproductor.actual; $("#mini").hidden = !s; aplicarRealce();
