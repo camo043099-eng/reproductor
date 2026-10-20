@@ -24,14 +24,24 @@ public final class NucleoEq {
     private boolean pasaTodo = true;
     private double realce = 0;                                   // 0 = apagado; 0,10 suave; 0,18 medio (mezcla del brillo regenerado)
     private final double[][] hp = new double[2][4];              // [canal]{x1, y1 (1.er filtro), x1, y1 (2.º filtro)}
+    private volatile boolean faseInvertida = false;             // true: invierte la fase de toda la señal (rips de vinilo antiguos, pruebas de fase)
+    private volatile double crossfeed = 0;                      // 0 = apagado; mezcla del canal opuesto filtrado (graves/medios) para IEMs cerrados
+    private static final double CF_CORTE_HZ = 700;               // corte del paso bajo del crossfeed (estilo Chu Moy)
+    private double cfK = 0;                                     // coeficiente del paso bajo, depende de la frecuencia de muestreo
+    private final double[] cfBajo = new double[2];              // estado del paso bajo: [0] sigue al R (va al L), [1] sigue al L (va al R)
     public synchronized void ponerRealce(double m) { realce = Math.max(0, Math.min(0.3, m)); }
+    public void ponerFaseInvertida(boolean v) { faseInvertida = v; }
+    /** mezcla de 0 a 0,6 del canal opuesto (filtrado a graves y medios) */
+    public void ponerCrossfeed(double m) { crossfeed = Math.max(0, Math.min(0.6, m)); }
 
     public synchronized void configurar(int hz, int canales) {
         this.hz = hz; this.canales = Math.max(1, canales);
         this.estado = new double[this.canales][SLOTS][4];
+        cfK = 1 - Math.exp(-2 * Math.PI * CF_CORTE_HZ / Math.max(8000, hz));
+        java.util.Arrays.fill(cfBajo, 0);
         sucio = true; rampa = rampaTot = Math.max(1, hz / 80); saltarGan = true;
     }
-    public synchronized void reiniciar() { for (double[][] c : estado) for (double[] b : c) java.util.Arrays.fill(b, 0); sucio = true; rampa = rampaTot = Math.max(1, hz / 80); saltarGan = true; }
+    public synchronized void reiniciar() { for (double[][] c : estado) for (double[] b : c) java.util.Arrays.fill(b, 0); java.util.Arrays.fill(cfBajo, 0); sucio = true; rampa = rampaTot = Math.max(1, hz / 80); saltarGan = true; }
     public NucleoEq() { for (int i = 0; i < N; i++) { ff[i] = F[i]; fq[i] = Q; ft[i] = i == 0 ? EST_GRAVE : i == N - 1 ? EST_AGUDO : PICO; } }
     /** gráfico clásico de 10 bandas (31 Hz a 16 kHz) */
     public synchronized void ponerBandas(double[] db, boolean activo) {
@@ -58,6 +68,7 @@ public final class NucleoEq {
             System.arraycopy(o.ff, 0, ff, 0, SLOTS); System.arraycopy(o.fg, 0, fg, 0, SLOTS); System.arraycopy(o.fq, 0, fq, 0, SLOTS); System.arraycopy(o.ft, 0, ft, 0, SLOTS);
             nf = o.nf; tonoGrave = o.tonoGrave; tonoAgudo = o.tonoAgudo; balance = o.balance; eqOn = o.eqOn; gananciaDb = o.gananciaDb;
             tfG = o.tfG; tqG = o.tqG; tfA = o.tfA; tqA = o.tqA; ancho = o.ancho; realce = o.realce; sucio = true;
+            faseInvertida = o.faseInvertida; crossfeed = o.crossfeed;
         }
     }
 
@@ -111,7 +122,8 @@ public final class NucleoEq {
         if (saltarGan) { gAct = lineal; saltarGan = false; }
         final double kG = 1 - Math.exp(-1.0 / (0.02 * Math.max(8000, hz)));
         final int C = canales;
-        if (pasaTodo && gAct == lineal && realce == 0) { rampa = 0; return; }   // plano y sin ganancia: pasa idéntico, bit a bit
+        final boolean cruce = crossfeed > 0.001 && C == 2, fase = faseInvertida;
+        if (pasaTodo && gAct == lineal && realce == 0 && !cruce && !fase) { rampa = 0; return; }   // plano y sin ganancia: pasa idéntico, bit a bit
         final double g = lineal;
         for (int k = 0; k < cuantas; k++) {
             int c = k % C; if (c == 0) { gAct += (g - gAct) * kG; if (Math.abs(g - gAct) < 1e-7) gAct = g; }
@@ -141,6 +153,17 @@ public final class NucleoEq {
             final float gi = (float) Math.min(1, 1 - balance), gd2 = (float) Math.min(1, 1 + balance);
             for (int k = 0; k + 1 < cuantas; k += 2) { x[k] *= gi; x[k + 1] *= gd2; }
         }
+        if (cruce) {                                                     // crossfeed estilo Chu Moy (simplificado): cada oído recibe un poco de graves y medios del otro canal
+            final double a = crossfeed, norm = 1.0 / (1.0 + a), kc = cfK;
+            for (int k = 0; k + 1 < cuantas; k += 2) {
+                double l = x[k], r = x[k + 1];
+                cfBajo[0] += kc * (r - cfBajo[0]);                       // paso bajo del R
+                cfBajo[1] += kc * (l - cfBajo[1]);                       // paso bajo del L
+                x[k] = (float) ((l + a * cfBajo[0]) * norm);
+                x[k + 1] = (float) ((r + a * cfBajo[1]) * norm);
+            }
+        }
+        if (fase) for (int k = 0; k < cuantas; k++) x[k] = (float) (x[k] * -1.0);   // inversión de fase: antes del limitador
         for (int k = 0; k < cuantas; k++) x[k] = (float) limitar(x[k]);
     }
     /** Pasa limpio hasta 0,92; por encima curva suave hacia 1 (sin recorte duro). */
