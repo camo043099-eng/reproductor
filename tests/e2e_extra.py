@@ -74,6 +74,8 @@ try:
         n0 = pn.evaluate("window.__onda.reproductor.lista.length")
         pn.evaluate("() => { const o = window.__onda; o.E.canciones.push(...o.E.canciones.slice(0, 3).map((s, i) => ({ ...s, id: 'z' + i, alb: 'ZZ', album: 'Zeta', pista: i + 1, titulo: 'Z' + i, nombre: 'Z' + i }))); o.continuarAlbum(); }")
         assert pn.evaluate("window.__onda.reproductor.lista.length") == n0 + 3, "no siguio con el siguiente album"; print("siguiente album OK")
+        cb = pn.evaluate("() => { const o = window.__onda, c = o.E.canciones; c[0].formato = 'MP3'; c[0].duracion = 200; c[0].tam = 200 * 16000; c[1].formato = 'FLAC'; c[1].duracion = 200; c[1].tam = 200 * 16000; c[2].formato = 'MP3'; c[2].duracion = 200; c[2].tam = 200 * 40000; return o.calidadBaja().map((s) => s.id); }")
+        assert cb == ['ms1'], cb; print("calidad baja OK")
         pn.evaluate("window.__oy.detalles({id:'ms3',sampleRate:96000,bits:24,canales:2})"); pn.click("#mini-abrir"); pn.wait_for_selector("#hoja-rep.ver")
         t = pn.inner_text("#r-chips"); assert "24 bits" in t and "96 kHz" in t, t
         pn.click("#r-eq"); pn.click("[data-preset=Bajos]"); pn.wait_for_function("window.__llamadas.some(x=>x[0]=='eq' && x[1].bandas[0]==6)")

@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.43";
+const VERSION = "0.9.44";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -283,7 +283,7 @@ function dibujarInicio() {
   const mix = (k, nombre, s, etiqueta) => `<button class="mix" type="button" data-det="lista" data-k="${esc(k)}" style="--h:${tono(nombre)}">${imgHtml(s)}<i>${etiqueta}</i><b>${esc(nombre)}</b></button>`;
   const paraTi = mh.map((m) => mix("__mix:" + m.id, m.nombre, porId.get(m.ids[0]), m.etiqueta)).join("");
   const mixes = generos.map(([g]) => mix("__gen:" + g, "Mix " + g, cancionDeGenero(g), "MIX")).concat(nuevas.length > 10 ? [mix("__olv", "Para redescubrir", nuevas[Math.floor(nuevas.length / 2)], "SIN ESCUCHAR")] : []).join("");
-  const fichas = [`<button class="chip mezcla" data-mezclar type="button">Mezclar todo</button>`, `<button class="chip" data-det="lista" data-k="__fav" type="button">Favoritas</button>`, `<button class="chip" data-estadisticas type="button">Tu actividad</button>`, `<button class="chip" data-personalizar type="button">Personalizar</button>`, `<button class="chip" data-portadas type="button">Descargar carátulas</button>`,
+  const fichas = [`<button class="chip mezcla" data-mezclar type="button">Mezclar todo</button>`, `<button class="chip" data-det="lista" data-k="__fav" type="button">Favoritas</button>`, `<button class="chip" data-estadisticas type="button">Tu actividad</button>`, ...(calidadBaja().length ? [`<button class="chip" data-det="lista" data-k="__baja" type="button">Calidad baja (${calidadBaja().length})</button>`] : []), `<button class="chip" data-personalizar type="button">Personalizar</button>`, `<button class="chip" data-portadas type="button">Descargar carátulas</button>`,
     ...generos.slice(0, 5).map(([g]) => `<button class="chip" data-det="lista" data-k="${esc("__gen:" + g)}" type="button">${esc(g)}</button>`),
     `<button class="chip" data-ir="canciones" type="button">Canciones</button>`, `<button class="chip" data-ir="albumes" type="button">Álbumes</button>`, `<button class="chip" data-ir="artistas" type="button">Artistas</button>`, `<button class="chip" data-ir="listas" type="button">Listas</button>`];
   c.innerHTML = `<div class="fichas">${fichas.join("")}</div>
@@ -393,6 +393,7 @@ function dibujarBiblioteca() {
   } else {
     const fav = E.canciones.filter((s) => s.fav);
     const filas = [`<button class="tarjeta" type="button" data-det="lista" data-k="__fav"><span class="sinport" style="display:grid;place-items:center;color:var(--ac2)">${I.fav.replace("<svg", '<svg width="56" height="56" fill="currentColor"')}</span><b>Favoritas</b><span>${fav.length} canciones</span></button>`];
+    { const nb = calidadBaja().length; if (nb) filas.splice(1, 0, `<button class="tarjeta" type="button" data-det="lista" data-k="__baja"><span class="sinport" style="display:grid;place-items:center;color:#ffb44d">${I.eq.replace("<svg", '<svg width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5"')}</span><b>Calidad baja</b><span>${nb} canciones</span></button>`); }
     for (const l of E.listas) filas.push(`<button class="tarjeta" type="button" data-det="lista" data-k="${esc(l.id)}"><span class="sinport" style="display:grid;place-items:center;color:var(--tx2)">${I.lista.replace("<svg", '<svg width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5"')}</span><b>${esc(l.nombre)}</b><span>${l.ids.length} canciones</span></button>`);
     c.innerHTML = `<div class="acciones-detalle"><button class="boton" type="button" data-nueva-lista>Nueva lista</button></div><div class="rejilla">${filas.join("")}</div>`;
     $("#resumen").textContent = "";
@@ -409,19 +410,21 @@ function cancionesDe(d) {
   if (d.k === "__mas") return masEscuchadas();
   if (d.k === "__ult") return ultimasEscuchadas();
   if (d.k === "__olv") return sinEscuchar();
+  if (d.k === "__baja") return calidadBaja();
   if (d.k.startsWith("__gen:")) { const g = d.k.slice(6); return E.canciones.filter((s) => generosDe(s).includes(g)); }
   const l = E.listas.find((x) => x.id === d.k); return l ? l.ids.map((id) => porId.get(id)).filter(Boolean) : [];
 }
 function dibujarDetalle(c, d) {
   listaActual = cancionesDe(d);
   const l = d.tipo === "lista" && !d.k.startsWith("__") ? E.listas.find((x) => x.id === d.k) : null;
-  const titulo = d.k.startsWith("__mix:") ? (mixPorId(d.k.slice(6))?.nombre || "Tu mix") : d.tipo === "carpeta" ? nombreCarpeta(d.k) : d.tipo === "album" ? (listaActual[0]?.album || "Álbum") : d.tipo === "artista" ? (listaActual[0]?.albumArtista || listaActual[0]?.artista || "Artista") : l ? l.nombre : ({ __fav: "Favoritas", __mas: "Más escuchadas", __ult: "Escuchadas hace poco", __olv: "Para redescubrir" }[d.k] || (d.k.startsWith("__gen:") ? "Mix " + d.k.slice(6) : "Favoritas"));
+  const titulo = d.k.startsWith("__mix:") ? (mixPorId(d.k.slice(6))?.nombre || "Tu mix") : d.tipo === "carpeta" ? nombreCarpeta(d.k) : d.tipo === "album" ? (listaActual[0]?.album || "Álbum") : d.tipo === "artista" ? (listaActual[0]?.albumArtista || listaActual[0]?.artista || "Artista") : l ? l.nombre : ({ __fav: "Favoritas", __mas: "Más escuchadas", __ult: "Escuchadas hace poco", __olv: "Para redescubrir", __baja: "Calidad baja" }[d.k] || (d.k.startsWith("__gen:") ? "Mix " + d.k.slice(6) : "Favoritas"));
   $("#resumen").textContent = "";
   c.innerHTML = `<div class="cabecera-detalle"><button class="ib" type="button" data-volver aria-label="Volver">${I.volver}</button><h2>${esc(titulo)}</h2>${l ? `<button class="ib" type="button" data-borrar-lista aria-label="Borrar lista">${I.mas3}</button>` : ""}</div>
   <div class="acciones-detalle"><button class="boton primario" type="button" data-tocar-todo>Reproducir</button><button class="boton" type="button" data-tocar-azar>Aleatorio</button>${d.k.startsWith("__mix:") ? `<button class="boton" type="button" data-renovar-mixes>Renovar mixes</button>` : ""}${d.tipo === "album" ? `<button class="boton" type="button" data-portada-album>Buscar carátula</button>` : ""}</div>
+  ${d.k === "__baja" ? `<p class="nota-mix">Menos de ${KBPS_BAJO} kbps, las más escuchadas primero. Estas son las que más ganan si las consigues en FLAC o a 320 kbps.</p>` : ""}
   <div id="det-lista"></div>`;
   const cont = $("#det-lista");
-  if (listaActual.length) pintar(cont, listaActual, (s, i) => filaCancion(s, i, d.tipo === "album" ? "" : ` · ${esc(s.album || "")}`), (h) => `<ul class="lista" data-tandas>${h}</ul>`); else cont.innerHTML = `<div class="vacio">Aquí no hay canciones todavía.</div>`;
+  if (listaActual.length) pintar(cont, listaActual, (s, i) => filaCancion(s, i, d.k === "__baja" ? ` · ${kbpsDe(s)} kbps ${esc(s.formato || "")}` : d.tipo === "album" ? "" : ` · ${esc(s.album || "")}`), (h) => `<ul class="lista" data-tandas>${h}</ul>`); else cont.innerHTML = `<div class="vacio">Aquí no hay canciones todavía.</div>`;
   imagenes(c);
 }
 
@@ -609,6 +612,11 @@ async function mixesDeHoy(forzar = false) {
 function mixPorId(id) { return MIXES && MIXES.mixes.find((m) => m.id === id); }
 const masEscuchadas = () => { const m = porClave(); return Object.entries(HIST.m).filter(([k, e]) => e.n > 0 && m.has(k)).sort((a, b) => b[1].n - a[1].n || b[1].ms - a[1].ms).map(([k]) => m.get(k)); };
 const ultimasEscuchadas = () => { const m = porClave(); return Object.entries(HIST.m).filter(([k, e]) => e.u > 0 && m.has(k)).sort((a, b) => b[1].u - a[1].u).map(([k]) => m.get(k)); };
+// calidad baja: el tamaño del archivo y su duración dan la tasa de bits de cada canción (sin abrirla)
+const KBPS_BAJO = 192;
+const kbpsDe = (s) => (s.bitrate > 0 ? s.bitrate : s.tam > 0 && s.duracion > 0 ? Math.round((s.tam * 8) / s.duracion / 1000) : 0);
+const calidadBaja = () => E.canciones.filter((s) => /^(MP3|AAC|OGG|WMA)$/.test(s.formato || "") && kbpsDe(s) > 0 && kbpsDe(s) < KBPS_BAJO)
+  .sort((a, b) => (HIST.m[claveC(b)]?.n || 0) - (HIST.m[claveC(a)]?.n || 0) || kbpsDe(a) - kbpsDe(b));
 const sinEscuchar = () => E.canciones.filter((s) => !(HIST.m[claveC(s)]?.n > 0));
 const tiempoLargo = (ms) => { const m = Math.round(ms / 60000); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`; };
 function abrirStats() {
@@ -1372,7 +1380,7 @@ async function iniciar() {
   mostrarIntro(false);
   history.replaceState({ raiz: 1 }, ""); history.pushState({ s: 1 }, "");   // así el gesto de atrás no cierra la app de golpe
   reproductor = MOTOR ? new ReproductorNativo(MOTOR) : new Reproductor({ obtenerBlob: (id) => db.traer("archivos", id), obtenerPortada: async (s) => (s.alb ? db.traer("portadas", s.alb) : null) });
-  window.__onda = { reproductor, E, db, continuarAlbum, hist: () => HIST, claveC };                                    // para pruebas
+  window.__onda = { reproductor, E, db, continuarAlbum, calidadBaja, hist: () => HIST, claveC };                                    // para pruebas
   reproductor.instalarControlesSistema(); armarEq(); enlazar();
   await cargarTodo();
   const cfg = await db.traer("ajustes", "config").catch(() => null);
