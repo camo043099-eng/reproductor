@@ -62,7 +62,7 @@ import org.json.JSONObject;
 })
 public class MotorPlugin extends Plugin {
     private final Handler h = new Handler(Looper.getMainLooper());
-    private ExoPlayer escuchado = null;
+    private ExoPlayer escuchado = null; private Player.Listener escucha = null;
     private final Map<String, double[]> rg = new HashMap<>();   // id → {pista, album} en dB (NaN si no hay)
     private String modoRg = "pista";
     private double preampDb = 0; private double gananciaAplicadaDb = 0;
@@ -83,6 +83,50 @@ public class MotorPlugin extends Plugin {
             call.resolve();
         });
     }
+    // ── mezcla entre canciones (experimental) ──
+    private int cruceMs = 0; private boolean cruzando = false; private long cruceT0 = 0, cruceIni = 0; private int cruceDur = 0, cruceIdxA = -1, cruceIdxB = -1;
+    @PluginMethod public void cruce(PluginCall call) {
+        ui(call, () -> { cruceMs = Math.max(0, Math.min(12000, (int) Math.round(call.getData().optDouble("seg", 0) * 1000))); if (cruceMs == 0) cruceCancelar(); call.resolve(); });
+    }
+    private void cruceCancelar() { if (cruzando || Motor.jugadorB != null) { cruzando = false; Motor.abortarCruce(); } }
+    private void cruceRevisar(ExoPlayer p, long pos, long dur) {
+        if (cruzando) {
+            ExoPlayer b = Motor.jugadorB;
+            if (b == null || b.getPlayerError() != null || !p.getPlayWhenReady()) { cruceCancelar(); return; }
+            int idx = p.getCurrentMediaItemIndex();
+            if (idx != cruceIdxA) { if (idx == cruceIdxB) cruceTerminar(); else cruceCancelar(); return; }   // el primero ya pasó a la siguiente (o el usuario saltó a otra)
+            long ahora = android.os.SystemClock.uptimeMillis();
+            if (cruceT0 == 0) {                                                  // se espera a que el segundo suene de verdad para empezar a mezclar
+                if (b.isPlaying()) cruceT0 = ahora; else if (ahora - cruceIni > 2500) cruceCancelar();
+                return;
+            }
+            float x = Math.min(1f, (ahora - cruceT0) / (float) cruceDur);
+            Motor.fFund = (float) Math.cos(x * Math.PI / 2); Motor.mezclar(); b.setVolume((float) Math.sin(x * Math.PI / 2));   // potencia constante: no se nota un bajón a la mitad
+            if (x >= 1f) cruceTerminar();
+            return;
+        }
+        if (cruceMs <= 0 || fadeSueno || finCancionSueno || brechaMs > 0 || Motor.jugadorB != null) return;
+        if (p.getRepeatMode() == Player.REPEAT_MODE_ONE || !p.hasNextMediaItem() || dur == C.TIME_UNSET || dur < cruceMs * 3L) return;
+        long falta = dur - pos; if (falta > cruceMs + 500 || falta < 1500) return;
+        int sig = p.getNextMediaItemIndex(); if (sig < 0) return;
+        ExoPlayer b = Motor.crearCruce();
+        List<MediaItem> todos = new ArrayList<>(); for (int i = 0; i < p.getMediaItemCount(); i++) todos.add(p.getMediaItemAt(i));
+        b.setMediaItems(todos, sig, 0);
+        b.setRepeatMode(p.getRepeatMode()); b.setShuffleModeEnabled(p.getShuffleModeEnabled()); b.setPlaybackParameters(p.getPlaybackParameters()); b.setPauseAtEndOfMediaItems(p.getPauseAtEndOfMediaItems());
+        Motor.eqB.nucleo.ponerGananciaDb(gananciaDeItem(p.getMediaItemAt(sig)) + preampDb);
+        b.setVolume(0f); b.prepare(); b.play();
+        cruzando = true; cruceT0 = 0; cruceIni = android.os.SystemClock.uptimeMillis(); cruceIdxA = p.getCurrentMediaItemIndex(); cruceIdxB = sig; cruceDur = (int) Math.max(800, Math.min(cruceMs, falta - 400));
+    }
+    private void cruceTerminar() {
+        cruzando = false; ExoPlayer b = Motor.jugadorB; if (b == null) return;
+        try {
+            Motor.intercambiar(); asegurar(); aplicarGanancia();
+            MediaItem it = Motor.jugador.getCurrentMediaItem();
+            JSObject o = new JSObject(); o.put("indice", Motor.jugador.getCurrentMediaItemIndex()); o.put("id", it == null ? "" : it.mediaId); emitir("cambio", o);
+            emitir("estado", estadoActual()); if (it != null) detallesAsync(it);
+            h.removeCallbacks(tic); h.post(tic);
+        } catch (Throwable t) { Motor.abortarCruce(); }
+    }
     private int fundidoMs = 0; private boolean fadeSueno = false; private long ultimaEmision = 0;
     private android.media.AudioDeviceCallback cbRuta = null;
     private boolean sinEfectos = false;
@@ -96,8 +140,9 @@ public class MotorPlugin extends Plugin {
     }
     private void asegurar() {
         if (escuchado == Motor.jugador) return;
-        escuchado = Motor.jugador;
-        escuchado.addListener(new Escucha());
+        if (escuchado != null && escucha != null) { try { escuchado.removeListener(escucha); } catch (Throwable t) { /* el reproductor anterior ya no existe */ } }
+        escuchado = Motor.jugador; escucha = new Escucha();
+        escuchado.addListener(escucha);
         sesionAudio = 0; virt = null; bass = null; efectos();
     }
     private void servicio() { try { getContext().startService(new Intent(getContext(), MotorServicio.class)); } catch (Exception e) { /* en segundo plano no se puede arrancar */ } }
@@ -129,12 +174,13 @@ public class MotorPlugin extends Plugin {
             if (p != null && p.isPlaying()) {
                 long ahora = android.os.SystemClock.uptimeMillis(), pos = p.getCurrentPosition(), dur = p.getDuration();
                 boolean enFundido = false;
-                if (fundidoMs > 0 && !fadeSueno) {                       // fundido: el final de una canción baja suave y la siguiente sube suave
+                if (fundidoMs > 0 && !fadeSueno && cruceMs == 0) {                       // fundido: el final de una canción baja suave y la siguiente sube suave
                     float v = 1f;
                     if (dur != C.TIME_UNSET && dur > fundidoMs * 3L) { long falta = dur - pos; if (falta < fundidoMs) v = Math.min(v, curva(falta / (float) fundidoMs)); }
                     if (pos < fundidoMs) v = Math.min(v, curva(pos / (float) fundidoMs));
                     Motor.fFund = v; Motor.mezclar(); enFundido = v < 1f;
                 }
+                if (cruceMs > 0 || cruzando) { try { cruceRevisar(p, pos, dur); } catch (Throwable t) { cruceCancelar(); } enFundido = enFundido || cruzando; }
                 if (ahora - ultimaEmision >= 240) {
                     ultimaEmision = ahora;
                     JSObject o = new JSObject(); o.put("pos", pos); o.put("dur", dur == C.TIME_UNSET ? -1 : dur); o.put("indice", p.getCurrentMediaItemIndex()); emitir("tiempo", o);
@@ -251,10 +297,8 @@ public class MotorPlugin extends Plugin {
         List<MediaItem> l = new ArrayList<>(); for (int i = 0; i < a.length(); i++) l.add(item(a.getJSONObject(i))); return l;
     }
     private boolean rgSube = false; private double rgPre = 0, rgSin = 0;
-    private void aplicarGanancia() {
-        ExoPlayer p = Motor.jugador; if (p == null) return;
-        double db = 0; MediaItem it = p.getCurrentMediaItem();
-        double[] g = it == null ? null : rg.get(it.mediaId);
+    private double gananciaDeItem(MediaItem it) {
+        double db = 0; double[] g = it == null ? null : rg.get(it.mediaId);
         if (!"off".equals(modoRg)) {
             boolean hay = false;
             if (g != null) {
@@ -264,6 +308,11 @@ public class MotorPlugin extends Plugin {
             }
             db += hay ? rgPre : rgSin;
         }
+        return db;
+    }
+    private void aplicarGanancia() {
+        ExoPlayer p = Motor.jugador; if (p == null) return;
+        double db = gananciaDeItem(p.getCurrentMediaItem());
         gananciaAplicadaDb = db + preampDb; Motor.eq.nucleo.ponerGananciaDb(db + preampDb);
     }
     @PluginMethod public void rgAjustes(PluginCall call) {
@@ -530,12 +579,12 @@ public class MotorPlugin extends Plugin {
             } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
         });
     }
-    @PluginMethod public void alternar(PluginCall call) { ui(call, () -> { ExoPlayer p = Motor.jugador; brechaTok++; if (p.isPlaying()) Motor.pausarSuave(); else { if (p.getPlaybackState() == Player.STATE_ENDED) p.seekTo(0, 0); Motor.reproducirSuave(); } call.resolve(); }); }
-    @PluginMethod public void pausa(PluginCall call) { ui(call, () -> { brechaTok++; Motor.pausarSuave(); call.resolve(); }); }
-    @PluginMethod public void siguiente(PluginCall call) { ui(call, () -> { ExoPlayer p = Motor.jugador; if (p.hasNextMediaItem()) p.seekToNextMediaItem(); else p.seekTo(0, 0); brechaTok++; Motor.reproducirSuave(); call.resolve(); }); }
-    @PluginMethod public void anterior(PluginCall call) { ui(call, () -> { Motor.jugador.seekToPrevious(); call.resolve(); }); }
-    @PluginMethod public void irA(PluginCall call) { ui(call, () -> { ExoPlayer p = Motor.jugador; p.seekTo(call.getInt("indice", 0), 0); brechaTok++; Motor.reproducirSuave(); call.resolve(); }); }
-    @PluginMethod public void buscar(PluginCall call) { ui(call, () -> { Motor.jugador.seekTo(call.getData().optLong("ms", 0)); call.resolve(); }); }
+    @PluginMethod public void alternar(PluginCall call) { ui(call, () -> { cruceCancelar(); ExoPlayer p = Motor.jugador; brechaTok++; if (p.isPlaying()) Motor.pausarSuave(); else { if (p.getPlaybackState() == Player.STATE_ENDED) p.seekTo(0, 0); Motor.reproducirSuave(); } call.resolve(); }); }
+    @PluginMethod public void pausa(PluginCall call) { ui(call, () -> { cruceCancelar(); brechaTok++; Motor.pausarSuave(); call.resolve(); }); }
+    @PluginMethod public void siguiente(PluginCall call) { ui(call, () -> { cruceCancelar(); ExoPlayer p = Motor.jugador; if (p.hasNextMediaItem()) p.seekToNextMediaItem(); else p.seekTo(0, 0); brechaTok++; Motor.reproducirSuave(); call.resolve(); }); }
+    @PluginMethod public void anterior(PluginCall call) { ui(call, () -> { cruceCancelar(); Motor.jugador.seekToPrevious(); call.resolve(); }); }
+    @PluginMethod public void irA(PluginCall call) { ui(call, () -> { cruceCancelar(); ExoPlayer p = Motor.jugador; p.seekTo(call.getInt("indice", 0), 0); brechaTok++; Motor.reproducirSuave(); call.resolve(); }); }
+    @PluginMethod public void buscar(PluginCall call) { ui(call, () -> { cruceCancelar(); Motor.jugador.seekTo(call.getData().optLong("ms", 0)); call.resolve(); }); }
     @PluginMethod public void repetir(PluginCall call) {
         ui(call, () -> { String m = call.getString("modo", "no"); Motor.jugador.setRepeatMode("uno".equals(m) ? Player.REPEAT_MODE_ONE : "todo".equals(m) ? Player.REPEAT_MODE_ALL : Player.REPEAT_MODE_OFF); call.resolve(); });
     }
@@ -566,11 +615,11 @@ public class MotorPlugin extends Plugin {
     @PluginMethod public void insertar(PluginCall call) {
         ui(call, () -> { try { ExoPlayer p = Motor.jugador; p.addMediaItem(Math.min(call.getInt("indice", 0), p.getMediaItemCount()), item(call.getObject("item"))); call.resolve(); } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); } });
     }
-    @PluginMethod public void quitar(PluginCall call) { ui(call, () -> { Motor.jugador.removeMediaItem(call.getInt("indice", 0)); call.resolve(); }); }
+    @PluginMethod public void quitar(PluginCall call) { ui(call, () -> { cruceCancelar(); Motor.jugador.removeMediaItem(call.getInt("indice", 0)); call.resolve(); }); }
     @PluginMethod public void mover(PluginCall call) { ui(call, () -> { Motor.jugador.moveMediaItem(call.getInt("de", 0), call.getInt("a", 0)); call.resolve(); }); }
     /** Reordena la cola sin cortar la canción que suena (modo aleatorio). */
     @PluginMethod public void reordenar(PluginCall call) {
-        ui(call, () -> {
+        ui(call, () -> { cruceCancelar();
             try {
                 ExoPlayer p = Motor.jugador; int idx = call.getInt("indice", 0); List<MediaItem> todos = items(call.getArray("items"));
                 int cur = p.getCurrentMediaItemIndex(), n = p.getMediaItemCount();

@@ -52,6 +52,15 @@ public final class NucleoEq {
     public synchronized void ponerAncho(double a) { ancho = Math.max(0, Math.min(1, a)); sucio = true; }
     public synchronized void ponerGananciaDb(double db) { gananciaDb = Math.max(-24, Math.min(12, db)); sucio = true; }
 
+    /** copia todos los ajustes de otro núcleo (para la mezcla entre canciones: el segundo reproductor suena igual) */
+    public synchronized void copiarDe(NucleoEq o) {
+        synchronized (o) {
+            System.arraycopy(o.ff, 0, ff, 0, SLOTS); System.arraycopy(o.fg, 0, fg, 0, SLOTS); System.arraycopy(o.fq, 0, fq, 0, SLOTS); System.arraycopy(o.ft, 0, ft, 0, SLOTS);
+            nf = o.nf; tonoGrave = o.tonoGrave; tonoAgudo = o.tonoAgudo; balance = o.balance; eqOn = o.eqOn; gananciaDb = o.gananciaDb;
+            tfG = o.tfG; tqG = o.tqG; tfA = o.tfA; tqA = o.tqA; ancho = o.ancho; realce = o.realce; sucio = true;
+        }
+    }
+
     private synchronized void recalcular() {
         boolean algunaBanda = false;
         for (int i = 0; i < SLOTS; i++) {

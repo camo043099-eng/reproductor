@@ -52,19 +52,20 @@ public final class Motor {
         rampar(fTransp, 0f, fadeMs, new Runnable() { @Override public void run() { p.pause(); fTransp = 1f; mezclar(); } });
     }
 
-    public static synchronized void iniciar(Context ctx) {
-        if (jugador != null) return;
-        Context app = ctx.getApplicationContext();
-        eq = new EqProcesador();
+    public static Context appCtx;
+    public static ExoPlayer jugadorB;                                   // segundo reproductor, solo vive durante una mezcla entre canciones
+    public static EqProcesador eqB;
+
+    /** Construye un reproductor completo con su propio procesador de ecualizador. */
+    private static ExoPlayer construir(Context app, final EqProcesador ep, boolean foco) {
         final int colchonUs = Math.max(100, Math.min(3000, app.getSharedPreferences("onda_motor", Context.MODE_PRIVATE).getInt("colchon", 400))) * 1000;   // colchón de audio elegido por el usuario (ms)
-        EqProcesador.salida16 = app.getSharedPreferences("onda_motor", Context.MODE_PRIVATE).getBoolean("salida16", false);
         DefaultRenderersFactory fabrica = new DefaultRenderersFactory(app) {
             @Override
             protected AudioSink buildAudioSink(Context c, boolean enableFloatOutput, boolean enableAudioTrackPlaybackParams) {
                 return new DefaultAudioSink.Builder(c)
                         .setEnableFloatOutput(enableFloatOutput)
                         .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
-                        .setAudioProcessors(new AudioProcessor[]{eq})
+                        .setAudioProcessors(new AudioProcessor[]{ep})
                         // más colchón de audio: si el teléfono se atrasa un instante (otra app, ahorro de batería) no se oyen saltos
                         .setAudioTrackBufferSizeProvider(new DefaultAudioTrackBufferSizeProvider.Builder().setMinPcmBufferDurationUs(colchonUs).setMaxPcmBufferDurationUs(Math.max(1_000_000, colchonUs * 2)).build())
                         .build();
@@ -73,24 +74,57 @@ public final class Motor {
         // Con salida flotante, Media3 NO pasa los FLAC de 24 bits por nuestro procesador (sin ecualizador, sin ondas, sin control de volumen). Sin ella pasan todos.
         // Hi-Res puro (opción del usuario): salida flotante directa, sin ecualizador ni ondas en los FLAC de 24 bits
         fabrica.setEnableAudioFloatOutput(app.getSharedPreferences("onda_motor", Context.MODE_PRIVATE).getBoolean("hires", false));
-        jugador = new ExoPlayer.Builder(app, fabrica)
-                .setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), true)
+        ExoPlayer p = new ExoPlayer.Builder(app, fabrica)
+                .setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), foco)
                 .setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_LOCAL)
                 .build();
-        jugador.addAnalyticsListener(new androidx.media3.exoplayer.analytics.AnalyticsListener() {
+        p.addAnalyticsListener(new androidx.media3.exoplayer.analytics.AnalyticsListener() {
             @Override public void onAudioUnderrun(androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime t, int tam, long ms, long desde) { cortes++; }
         });
-        jugador.addListener(new androidx.media3.common.Player.Listener() {
+        p.addListener(new androidx.media3.common.Player.Listener() {
             @Override public void onPositionDiscontinuity(androidx.media3.common.Player.PositionInfo antes, androidx.media3.common.Player.PositionInfo ahora, int motivo) { if (motivo == androidx.media3.common.Player.DISCONTINUITY_REASON_INTERNAL || motivo == androidx.media3.common.Player.DISCONTINUITY_REASON_SKIP) saltos++; }
         });
-        PendingIntent abrir = PendingIntent.getActivity(app, 0, new Intent(app, MainActivity.class), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-        ForwardingPlayer envuelto = new ForwardingPlayer(jugador) {
+        return p;
+    }
+    private static ForwardingPlayer envolver(ExoPlayer p) {
+        return new ForwardingPlayer(p) {
             @Override public void play() { Motor.reproducirSuave(); }
             @Override public void pause() { Motor.pausarSuave(); }
             @Override public void setPlayWhenReady(boolean listo) { if (listo) Motor.reproducirSuave(); else Motor.pausarSuave(); }
         };
-        sesion = new MediaSession.Builder(app, envuelto).setId("onda").setSessionActivity(abrir).build();
+    }
+
+    public static synchronized void iniciar(Context ctx) {
+        if (jugador != null) return;
+        Context app = ctx.getApplicationContext(); appCtx = app;
+        eq = new EqProcesador();
+        EqProcesador.salida16 = app.getSharedPreferences("onda_motor", Context.MODE_PRIVATE).getBoolean("salida16", false);
+        jugador = construir(app, eq, true);
+        PendingIntent abrir = PendingIntent.getActivity(app, 0, new Intent(app, MainActivity.class), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        sesion = new MediaSession.Builder(app, envolver(jugador)).setId("onda").setSessionActivity(abrir).build();
+    }
+
+    // ── mezcla entre canciones (experimental): un segundo reproductor entra mientras el primero se apaga, y luego toma su lugar ──
+    public static ExoPlayer crearCruce() {
+        abortarCruce();
+        eqB = new EqProcesador(); eqB.nucleo.copiarDe(eq.nucleo);
+        jugadorB = construir(appCtx, eqB, false);                         // sin foco de audio: el foco lo sigue teniendo el primero
+        return jugadorB;
+    }
+    public static void abortarCruce() {
+        ExoPlayer b = jugadorB; jugadorB = null; eqB = null;
+        if (b != null) { try { b.release(); } catch (Throwable t) { /* ya liberado */ } }
+        fFund = 1f; mezclar();
+    }
+    /** el segundo reproductor pasa a ser el principal (la notificación y la app lo siguen automáticamente) */
+    public static void intercambiar() {
+        ExoPlayer a = jugador, b = jugadorB; if (b == null) return;
+        jugador = b; eq = eqB; jugadorB = null; eqB = null; fFund = 1f; fTransp = 1f;
+        if (sesion != null) sesion.setPlayer(envolver(b));
+        if (a != null) { try { a.release(); } catch (Throwable t) { /* ya liberado */ } }
+        b.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), true);
+        mezclar();
     }
 
     public static synchronized void liberar() {

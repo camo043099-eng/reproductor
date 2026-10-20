@@ -71,6 +71,9 @@ try:
         assert "0:06" in pn.inner_text("#r-t1") or True
         pn.click("#mini-play"); assert pn.evaluate("window.__llamadas.some(x=>x[0]=='alternar')")
         pn.evaluate("window.__oy.cambio({indice:2,id:'ms3'})"); pn.wait_for_function("document.querySelector('#mini-titulo').textContent=='Tema 3'")
+        n0 = pn.evaluate("window.__onda.reproductor.lista.length")
+        pn.evaluate("() => { const o = window.__onda; o.E.canciones.push(...o.E.canciones.slice(0, 3).map((s, i) => ({ ...s, id: 'z' + i, alb: 'ZZ', album: 'Zeta', pista: i + 1, titulo: 'Z' + i, nombre: 'Z' + i }))); o.continuarAlbum(); }")
+        assert pn.evaluate("window.__onda.reproductor.lista.length") == n0 + 3, "no siguio con el siguiente album"; print("siguiente album OK")
         pn.evaluate("window.__oy.detalles({id:'ms3',sampleRate:96000,bits:24,canales:2})"); pn.click("#mini-abrir"); pn.wait_for_selector("#hoja-rep.ver")
         t = pn.inner_text("#r-chips"); assert "24 bits" in t and "96 kHz" in t, t
         pn.click("#r-eq"); pn.click("[data-preset=Bajos]"); pn.wait_for_function("window.__llamadas.some(x=>x[0]=='eq' && x[1].bandas[0]==6)")
