@@ -13,6 +13,7 @@ export class ReproductorNativo extends EventTarget {
     this.lista = []; this.original = []; this.pos = -1;
     this.aleatorio = false; this.repetir = "no"; this.rgModo = "pista"; this.preampDb = 0; this.eqOn = true; this.eqModo = "grafico"; this.eqNb = 10; this.g31 = new Array(31).fill(0); this.filtros = []; this.grave = 0; this.agudo = 0; this.bal = 0; this.bandasDb = PRESETS.Plano.slice(); this.velocidad = 1; this.volumen = 1; this.ancho = 0; this.env = 0; this.graves = 0;
     this.letras = {}; this.ruta = "altavoz";
+    this._armado = false;                                   // true cuando el motor nativo ya tiene la cola cargada (tras cargarCola o sincronizar)
     this._pos = 0; this._dur = 0; this._sonando = false; this._dormirEn = 0; this._tSueno = null;
     const on = (n, f) => N.addListener(n, f);
     on("tiempo", (e) => { const nuevo = e.pos / 1000, est = this._sonando && this._posAt ? this._pos + ((performance.now() - this._posAt) / 1000) * (this.velocidad || 1) : nuevo, dif = nuevo - est; this._pos = Math.abs(dif) < 1.5 && Math.abs(dif) > 0.02 ? est + dif * 0.35 : nuevo; this._posAt = performance.now(); if (e.dur > 0) this._dur = e.dur / 1000; this._emitir("tiempo"); });
@@ -58,14 +59,22 @@ export class ReproductorNativo extends EventTarget {
     this.original = canciones.slice(); let lista = canciones.slice(), pos = indice;
     if (this.aleatorio && lista.length > 1) { const cur = lista[indice]; lista = [cur, ...barajar(lista.filter((_, k) => k !== indice))]; pos = 0; }
     this.lista = lista; this.pos = pos; this._pos = posMs / 1000; this._dur = this.actual?.duracion || 0;
-    await this.N.cargar({ items: lista.map(dato), indice: pos, sonar, posMs });
+    await this.N.cargar({ items: lista.map(dato), indice: pos, sonar, posMs }); this._armado = true;
     this._emitir("cola"); this._emitir("cambio", this.actual); this._sonando = sonar; this._emitir("estado");
   }
   async sincronizar(canciones, e) {                                    // la app se abrió y el motor ya estaba tocando
-    this.lista = canciones; this.original = canciones.slice(); this.pos = e.indice; this._pos = e.pos / 1000; this._sonando = !!e.sonando; this._dur = e.dur > 0 ? e.dur / 1000 : this.actual?.duracion || 0;
+    this.lista = canciones; this.original = canciones.slice(); this.pos = e.indice; this._pos = e.pos / 1000; this._sonando = !!e.sonando; this._armado = true; this._dur = e.dur > 0 ? e.dur / 1000 : this.actual?.duracion || 0;
     this._emitir("cola"); this._emitir("cambio", this.actual); this._emitir("estado");
   }
-  alternar() { this._sonando = !this._sonando; this._posAt = performance.now(); this._emitir("estado"); return this.N.alternar(); }
+  /** Play/pausa. Si el motor nativo no tiene la cola (arranque en frío tras cerrar desde Recientes), la carga primero y reproduce. */
+  alternar() {
+    if (!this._armado && this.lista.length) {
+      const i = Math.max(0, this.pos), ms = Math.round(Math.max(0, this._pos) * 1000);
+      this._sonando = true; this._posAt = performance.now(); this._emitir("estado");
+      return this.N.cargar({ items: this.lista.map(dato), indice: i, sonar: true, posMs: ms }).then(() => { this._armado = true; });
+    }
+    this._sonando = !this._sonando; this._posAt = performance.now(); this._emitir("estado"); return this.N.alternar();
+  }
   pausa() { return this.N.pausa(); }
   siguiente() { return this.N.siguiente(); }
   anterior() { return this.N.anterior(); }

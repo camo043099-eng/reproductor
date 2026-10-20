@@ -639,7 +639,7 @@ public class MotorPlugin extends Plugin {
             } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
         });
     }
-    @PluginMethod public void alternar(PluginCall call) { ui(call, () -> { cruceCancelar(); ExoPlayer p = Motor.jugador; brechaTok++; if (p.isPlaying()) Motor.pausarSuave(); else { if (p.getPlaybackState() == Player.STATE_ENDED) p.seekTo(0, 0); Motor.reproducirSuave(); } call.resolve(); }); }
+    @PluginMethod public void alternar(PluginCall call) { ui(call, () -> { cruceCancelar(); ExoPlayer p = Motor.jugador; brechaTok++; if (p.getMediaItemCount() == 0) { call.resolve(); return; } if (p.isPlaying()) Motor.pausarSuave(); else { if (p.getPlaybackState() == Player.STATE_ENDED) p.seekTo(0, 0); Motor.reproducirSuave(); } call.resolve(); }); }
     @PluginMethod public void pausa(PluginCall call) { ui(call, () -> { cruceCancelar(); brechaTok++; Motor.pausarSuave(); call.resolve(); }); }
     @PluginMethod public void siguiente(PluginCall call) { ui(call, () -> { cruceCancelar(); ExoPlayer p = Motor.jugador; if (p.hasNextMediaItem()) p.seekToNextMediaItem(); else p.seekTo(0, 0); brechaTok++; Motor.reproducirSuave(); call.resolve(); }); }
     @PluginMethod public void anterior(PluginCall call) { ui(call, () -> { cruceCancelar(); Motor.jugador.seekToPrevious(); call.resolve(); }); }
