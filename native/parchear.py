@@ -39,6 +39,7 @@ permisos = """    <uses-permission android:name="android.permission.READ_MEDIA_A
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 """
 servicio = """        <service android:name="com.camo.onda.MotorServicio" android:exported="true" android:foregroundServiceType="mediaPlayback">
             <intent-filter>

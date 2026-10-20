@@ -56,6 +56,7 @@ public final class Motor {
         if (jugador != null) return;
         Context app = ctx.getApplicationContext();
         eq = new EqProcesador();
+        final int colchonUs = Math.max(100, Math.min(3000, app.getSharedPreferences("onda_motor", Context.MODE_PRIVATE).getInt("colchon", 400))) * 1000;   // colchón de audio elegido por el usuario (ms)
         EqProcesador.salida16 = app.getSharedPreferences("onda_motor", Context.MODE_PRIVATE).getBoolean("salida16", false);
         DefaultRenderersFactory fabrica = new DefaultRenderersFactory(app) {
             @Override
@@ -65,7 +66,7 @@ public final class Motor {
                         .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                         .setAudioProcessors(new AudioProcessor[]{eq})
                         // más colchón de audio: si el teléfono se atrasa un instante (otra app, ahorro de batería) no se oyen saltos
-                        .setAudioTrackBufferSizeProvider(new DefaultAudioTrackBufferSizeProvider.Builder().setMinPcmBufferDurationUs(400_000).setMaxPcmBufferDurationUs(1_000_000).build())
+                        .setAudioTrackBufferSizeProvider(new DefaultAudioTrackBufferSizeProvider.Builder().setMinPcmBufferDurationUs(colchonUs).setMaxPcmBufferDurationUs(Math.max(1_000_000, colchonUs * 2)).build())
                         .build();
             }
         };

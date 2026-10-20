@@ -178,6 +178,33 @@ public class MotorPlugin extends Plugin {
         call.resolve(o);
     }
     private static float curva(float x) { x = Math.max(0f, Math.min(1f, x)); return x * x * (3f - 2f * x); }   // suavizado (smoothstep)
+    // ── USB directo (bit-perfect, Android 14+) y colchón de audio ──
+    private boolean usbDirecto = false;
+    private boolean aplicarUsbDirecto(boolean on) {
+        if (Build.VERSION.SDK_INT < 34) return false;
+        try {
+            AudioManager am = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+            android.media.AudioAttributes aa = new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA).setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC).build();
+            boolean hecho = false;
+            for (AudioDeviceInfo d : salidasDisponibles()) {
+                int t = d.getType(); if (t != 11 && t != 22) continue;                        // USB (dispositivo o auriculares)
+                if (!on) { am.clearPreferredMixerAttributes(aa, d); hecho = true; continue; }
+                for (android.media.AudioMixerAttributes m : am.getSupportedMixerAttributes(d)) {
+                    if (m.getMixerBehavior() == android.media.AudioMixerAttributes.MIXER_BEHAVIOR_BIT_PERFECT) { if (am.setPreferredMixerAttributes(aa, d, m)) hecho = true; break; }
+                }
+            }
+            return hecho;
+        } catch (Throwable t) { return false; }
+    }
+    @PluginMethod public void usbDirecto(PluginCall call) {
+        ui(call, () -> {
+            usbDirecto = call.getBoolean("on", false);
+            JSObject o = new JSObject(); o.put("ok", aplicarUsbDirecto(usbDirecto)); o.put("api", Build.VERSION.SDK_INT); call.resolve(o);
+        });
+    }
+    @PluginMethod public void colchon(PluginCall call) {
+        getContext().getSharedPreferences("onda_motor", Context.MODE_PRIVATE).edit().putInt("colchon", Math.max(100, Math.min(3000, call.getInt("ms", 400)))).apply(); call.resolve();
+    }
     @PluginMethod public void fundido(PluginCall call) {
         ui(call, () -> {
             fundidoMs = Math.max(0, Math.min(12000, (int) Math.round(call.getData().optDouble("seg", 0) * 1000)));
@@ -197,7 +224,7 @@ public class MotorPlugin extends Plugin {
             if (cbRuta == null) {
                 AudioManager am = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
                 cbRuta = new android.media.AudioDeviceCallback() {
-                    @Override public void onAudioDevicesAdded(AudioDeviceInfo[] a) { anunciarRuta(); }
+                    @Override public void onAudioDevicesAdded(AudioDeviceInfo[] a) { if (usbDirecto) aplicarUsbDirecto(true); anunciarRuta(); }
                     @Override public void onAudioDevicesRemoved(AudioDeviceInfo[] a) { anunciarRuta(); }
                 };
                 am.registerAudioDeviceCallback(cbRuta, h);

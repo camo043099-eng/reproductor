@@ -132,10 +132,12 @@ export class ReproductorNativo extends EventTarget {
   ponerTonoAjuste(fg, qg, fa, qa) { this.tonoAj = { fg, qg, fa, qa }; this._eq(); }
   ponerTransiciones(fadeMs, brechaMs) { this._trans = { fadeMs, brechaMs }; return this.N.transiciones({ fadeMs, brechaMs }); }
   ponerRGAjustes(sube, pre, sin) { this._rga = { sube, pre, sin }; return this.N.rgAjustes({ sube, pre, sin }); }
+  ponerUsbDirecto(on) { this._usb = !!on; return this.N.usbDirecto({ on: !!on }); }
+  ponerColchon(ms) { this._colchon = ms; return this.N.colchon({ ms }); }
   ponerFundido(seg) { return this.N.fundido({ seg }); }
   escucharRuta() { return this.N.rutaEscuchar(); }
   ponerAvanzado(o) { return this.N.avanzado(o); }
-  aplicarTodo() { if (this._trans) this.N.transiciones(this._trans); if (this._rga) this.N.rgAjustes(this._rga); this.ponerEspacial(); this._eq(); this.N.rg({ modo: this.rgModo }); this.N.velocidad({ v: this.velocidad }); this.N.repetir({ modo: this.repetir }); }
+  aplicarTodo() { if (this._usb) this.N.usbDirecto({ on: true }); if (this._trans) this.N.transiciones(this._trans); if (this._rga) this.N.rgAjustes(this._rga); this.ponerEspacial(); this._eq(); this.N.rg({ modo: this.rgModo }); this.N.velocidad({ v: this.velocidad }); this.N.repetir({ modo: this.repetir }); }
 
   dormir(minutos) {
     clearTimeout(this._tSueno); this._dormirEn = 0;

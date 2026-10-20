@@ -195,6 +195,10 @@
     <p class="suave pequeno solo-nativo" hidden>Acorta los silencios largos dentro de las canciones.</p>
 <div class="campo solo-nativo" hidden><span>Hi-Res puro (24 bits sin procesar)</span><label class="interruptor"><input type="checkbox" id="aj-hires"><span></span></label></div>
 <p class="suave pequeno solo-nativo" hidden id="aj-hires-nota">Los FLAC de 24 bits salen tal cual, sin ecualizador, sin ondas y sin ajuste de volumen. Se aplica al volver a abrir Onda.</p>
+    <div class="campo solo-nativo" hidden><span>USB directo sin mezcla (bit-perfect)</span><label class="interruptor"><input type="checkbox" id="aj-usbdir"><span></span></label></div>
+    <p class="suave pequeno solo-nativo" hidden>Para un DAC o auriculares USB: el sonido sale sin que Android lo mezcle ni lo cambie. Necesita Android 14 o más. Si quieres sonido exacto, apaga el ecualizador y los efectos.</p>
+    <div class="campo solo-nativo" hidden><span>Colchón de audio</span><select id="aj-colchon"><option value="150">Pequeño (150 ms)</option><option value="250">Medio (250 ms)</option><option value="400">Normal (400 ms)</option><option value="800">Grande (800 ms)</option><option value="1500">Máximo (1,5 s)</option></select></div>
+    <p class="suave pequeno solo-nativo" hidden>Más grande evita cortes si el teléfono va justo; más pequeño responde más rápido al tocar. Se aplica al volver a abrir Onda.</p>
     <div class="campo solo-nativo" hidden><span>Detener la música al cerrar la app desde recientes</span><label class="interruptor"><input type="checkbox" id="aj-detener"><span></span></label></div>
     <div class="campo solo-nativo" hidden><span>Mejorar MP3 de baja calidad (menos de 320 kbps)</span><select id="aj-realce"><option value="0">Apagado</option><option value="suave">Suave (recomendado)</option><option value="medio">Medio (más brillo)</option></select></div>
     <p class="suave pequeno solo-nativo" hidden>Regenera un poco de brillo y claridad en los agudos que el MP3 recortó. No devuelve lo que se perdió: es una mejora, no magia. Solo actúa en MP3/AAC/OGG de menos de 320 kbps; FLAC y archivos buenos no se tocan.</p>
