@@ -259,6 +259,20 @@ public class MotorPlugin extends Plugin {
         boolean on = call.getBoolean("on", false);
         getContext().getSharedPreferences("onda_motor", Context.MODE_PRIVATE).edit().putBoolean("hires", on).apply(); call.resolve();
     }
+    /** diagnóstico en vivo (se consulta cada segundo desde Ajustes → Audio): ¿el DSP recibe audio ahora? */
+    @PluginMethod public void diagnostico(PluginCall call) {
+        ui(call, () -> {
+            JSObject o = new JSObject();
+            o.put("configurado", EqProcesador.configurado);
+            o.put("entrada", EqProcesador.entradaTxt);
+            o.put("salida", EqProcesador.salida16 ? "16-bit PCM" : "32-bit Float");
+            o.put("bloques", EqProcesador.bloques);
+            o.put("msDesdeBloque", EqProcesador.ultimoBloque == 0 ? -1 : System.currentTimeMillis() - EqProcesador.ultimoBloque);
+            o.put("sonando", Motor.jugador != null && Motor.jugador.isPlaying());
+            o.put("hiResPuro", getContext().getSharedPreferences("onda_motor", Context.MODE_PRIVATE).getBoolean("hires", false));
+            call.resolve(o);
+        });
+    }
     /** datos reales del procesamiento para la pantalla de información de audio */
     @PluginMethod public void infoAudio(PluginCall call) {
         JSObject o = new JSObject();

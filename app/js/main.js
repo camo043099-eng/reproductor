@@ -445,6 +445,18 @@ function ponerLargo(el, texto) {
   el.textContent = ""; const sp = document.createElement("span"); sp.className = "desl"; sp.textContent = texto; el.append(sp);
   requestAnimationFrame(() => { const d = sp.scrollWidth - el.clientWidth; if (d > 4) { sp.style.setProperty("--dx", -d - 6 + "px"); sp.style.setProperty("--dur", Math.max(3, d / 32).toFixed(1) + "s"); sp.classList.add("va"); } });
 }
+// diagnóstico del DSP en vivo: muestra si el procesador de Java recibe audio ahora mismo
+function pintarDiagnostico() {
+  const el = $("#diag-audio"); if (!el || !MOTOR || !reproductor?.diagnostico || !el.offsetParent) return;
+  reproductor.diagnostico().then((d) => {
+    const estado = !d.sonando ? "en pausa"
+      : !d.configurado ? "procesador no configurado"
+      : d.msDesdeBloque >= 0 && d.msDesdeBloque < 1000 ? "activo: recibe audio"
+      : "INACTIVO: no recibe audio (posible bypass)";
+    el.textContent = `In: ${d.entrada || "—"} · Out: ${d.salida} · DSP ${estado} · bloques ${d.bloques} · Hi-Res puro ${d.hiResPuro ? "sí" : "no"}`;
+  }).catch(() => {});
+}
+setInterval(pintarDiagnostico, 1000);
 let ultimoRealce = -1;
 function aplicarRealce() {                                                // solo para MP3/AAC/OGG de menos de 320 kbps
   if (!MOTOR || !reproductor?.ponerRealce) return; const s = reproductor.actual, m = E.aj.realce || "0";

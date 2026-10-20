@@ -42,6 +42,7 @@ export class ReproductorNativo extends EventTarget {
   /** nivel de graves/total (0..1) enviado por el motor, con pequeño retraso para coincidir con lo que se oye */
   ponerRitmo(on) { this._ritmo = !!on; return this.N.ritmo({ on: !!on }); }
   infoAudio() { return this.N.infoAudio(); }
+  diagnostico() { return this.N.diagnostico(); }
   pedirBateria() { return this.N.bateria(); }
   abrirAutoinicio() { return this.N.autoinicio(); }
   ponerAlCerrar(detener) { return this.N.alCerrar({ detener: !!detener }); }

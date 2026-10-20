@@ -17,6 +17,9 @@ public final class EqProcesador extends BaseAudioProcessor {
     private float[] tmp = new float[0];
     /** nivel del audio (0..1) para animar la carátula al ritmo: graves y total del último bloque */
     public static volatile float nivelBajo = 0, nivelTotal = 0;
+    /** diagnóstico en vivo: bloques recibidos desde que empezó, y si el procesador está configurado (vivo) */
+    public static volatile long bloques = 0;
+    public static volatile boolean configurado = false;
     /** datos para la pantalla "Información de audio" */
     public static volatile String entradaTxt = ""; public static volatile int entradaHz = 0, entradaCanales = 0; public static volatile long ultimoBloque = 0;
     /** solo se miden las bandas cuando el efecto de ondas está a la vista (ahorra procesador) */
@@ -30,7 +33,7 @@ public final class EqProcesador extends BaseAudioProcessor {
 
     @Override
     protected AudioFormat onConfigure(AudioFormat in) throws UnhandledAudioFormatException {
-        enc = in.encoding; entradaHz = in.sampleRate; entradaCanales = in.channelCount; entradaTxt = enc == C.ENCODING_PCM_16BIT ? "PCM 16 bits" : enc == C.ENCODING_PCM_24BIT ? "PCM 24 bits" : enc == C.ENCODING_PCM_32BIT ? "PCM 32 bits" : enc == C.ENCODING_PCM_FLOAT ? "PCM flotante 32 bits" : "otro";
+        configurado = true; enc = in.encoding; entradaHz = in.sampleRate; entradaCanales = in.channelCount; entradaTxt = enc == C.ENCODING_PCM_16BIT ? "PCM 16 bits" : enc == C.ENCODING_PCM_24BIT ? "PCM 24 bits" : enc == C.ENCODING_PCM_32BIT ? "PCM 32 bits" : enc == C.ENCODING_PCM_FLOAT ? "PCM flotante 32 bits" : "otro";
         if (enc != C.ENCODING_PCM_16BIT && enc != C.ENCODING_PCM_24BIT && enc != C.ENCODING_PCM_32BIT && enc != C.ENCODING_PCM_FLOAT) throw new UnhandledAudioFormatException(in);
         nucleo.configurar(in.sampleRate, in.channelCount); lpK = 1 - Math.exp(-2 * Math.PI * 140.0 / Math.max(8000, in.sampleRate)); for (int i = 0; i < 7; i++) kb[i] = 1 - Math.exp(-2 * Math.PI * CORTES[i] / Math.max(8000, in.sampleRate));
         return new AudioFormat(in.sampleRate, in.channelCount, salida16 ? C.ENCODING_PCM_16BIT : C.ENCODING_PCM_FLOAT);
@@ -41,7 +44,7 @@ public final class EqProcesador extends BaseAudioProcessor {
         int bytes = enc == C.ENCODING_PCM_16BIT ? 2 : enc == C.ENCODING_PCM_24BIT ? 3 : 4;
         int n = input.remaining() / bytes;
         if (n == 0) return;
-        ultimoBloque = System.currentTimeMillis();
+        ultimoBloque = System.currentTimeMillis(); bloques++;
         if (tmp.length < n) tmp = new float[n];
         ByteBuffer in = input.duplicate().order(ByteOrder.LITTLE_ENDIAN);
         int p = input.position();
@@ -67,5 +70,5 @@ public final class EqProcesador extends BaseAudioProcessor {
     }
 
     @Override protected void onFlush() { nucleo.reiniciar(); }
-    @Override protected void onReset() { nucleo.reiniciar(); }
+    @Override protected void onReset() { nucleo.reiniciar(); configurado = false; }
 }
