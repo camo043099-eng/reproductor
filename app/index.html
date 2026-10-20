@@ -22,8 +22,8 @@
 
 <div class="app" id="app">
   <header class="cabeza">
-    <h1 id="titulo-vista">Onda</h1>
-    <div class="cabeza-botones">
+    <div class="cabeza-izq"><button class="ib" id="b-bib-atras" type="button" hidden aria-label="Volver a la biblioteca"></button><h1 id="titulo-vista">Onda</h1></div>
+    <div class="cabeza-botones" hidden>
       <button class="ib" id="b-agregar" type="button" aria-label="Agregar música"></button>
       <button class="ib" id="b-ajustes" type="button" aria-label="Ajustes"></button>
     </div>
@@ -49,6 +49,7 @@
   <button type="button" data-v="inicio" aria-current="page"><i></i><span>Inicio</span></button>
   <button type="button" data-v="buscar"><i></i><span>Buscar</span></button>
   <button type="button" data-v="biblioteca"><i></i><span>Biblioteca</span></button>
+  <button type="button" data-menu id="nav-menu"><i></i><span>Menú</span></button>
 </nav>
 
 <!-- mini reproductor -->
@@ -125,6 +126,7 @@
     <div class="campo"><label for="eq-agudo">Agudos <b id="eq-agudo-v">0 dB</b></label><input type="range" id="eq-agudo" min="-12" max="12" step="0.5" value="0"></div>
     <div class="campo"><label for="eq-bal">Balance <b id="eq-bal-v">centro</b></label><input type="range" id="eq-bal" min="-100" max="100" step="5" value="0"></div>
   </div>
+  <div class="acciones-detalle" id="eq-reset-fila"><button class="boton" id="eq-reset" type="button">Restablecer ecualizador</button></div>
   <div class="acciones-detalle solo-nativo" id="eq-io" hidden><button class="boton primario" id="eq-buscar" type="button">Buscar mis audífonos</button><button class="boton" id="eq-importar" type="button">Importar perfil (AutoEQ)</button><button class="boton" id="eq-exportar" type="button">Exportar / compartir</button></div>
   <div id="eq-bus-caja" hidden>
     <p class="suave pequeno">Escribe el modelo de tus audífonos (ej.: KZ EDX Pro) y toca el que sea. Onda baja la receta y la aplica sola. Necesita internet.</p>
@@ -187,6 +189,8 @@
     <p class="vacio" id="aj-nada" hidden>No encontré ese ajuste.</p>
     <div class="aj-pag" data-pag="audio" hidden>
       <h3 class="sub aj-tit-pag">Audio</h3>
+    <button class="boton" id="aj-reset-perfiles" type="button">Restablecer perfiles de sonido por salida</button>
+    <button class="boton" id="aj-reset-audio" type="button">Restablecer todo el sonido</button>
     <div class="campo solo-nativo" hidden><span>Saltar silencios</span><label class="interruptor"><input type="checkbox" id="aj-silencio"><span></span></label></div>
     <p class="suave pequeno solo-nativo" hidden>Acorta los silencios largos dentro de las canciones.</p>
 <div class="campo solo-nativo" hidden><span>Hi-Res puro (24 bits sin procesar)</span><label class="interruptor"><input type="checkbox" id="aj-hires"><span></span></label></div>

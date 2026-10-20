@@ -509,3 +509,22 @@ html #eq-bandas.b31 .banda { flex: 0 0 38px; }
 .eq-fila .quitar { padding: 8px 0; border-radius: 10px; background: rgba(255,255,255,.08); }
 .eq-fila-t { display: grid; grid-template-columns: 64px 1fr 1fr 1fr 34px; gap: 6px; font-size: .68rem; color: var(--tx2); text-align: center; padding-top: 4px; }
 .pts { display: block; width: 4px; height: 21px; margin: 0 auto; background: radial-gradient(circle at 50% 50%, currentColor 1.8px, transparent 2.3px) 0 0 / 4px 7px repeat-y; }
+
+/* v0.9.39 — interfaz más simple: biblioteca por categorías, menú, carátulas siempre cuadradas */
+.cabeza-izq { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.cabeza-izq .ib { width: 40px; height: 40px; margin-left: -8px; }
+.nav button[hidden] { display: none; }
+.carril .tarjeta img, .carril .tarjeta .sinport { width: 142px; height: 142px; aspect-ratio: 1 / 1; }
+.carril .tarjeta.grande img, .carril .tarjeta.grande .sinport { width: 176px; height: 176px; }
+.tarjeta img, .tarjeta .sinport { aspect-ratio: 1 / 1; height: auto; min-height: 0; max-height: none; }
+.rejilla > .tarjeta:nth-child(-n+14) { animation: none !important; }
+.cats { display: grid; gap: 10px; padding: 6px 12px 12px; }
+.cat { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 14px 16px; border-radius: 18px; background: var(--sup, #1f1f23); }
+.cat i { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: rgba(255,255,255,.08); color: var(--ac2, #fff); flex: 0 0 auto; }
+.cat i svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.cat b { display: block; font-size: 1.0625rem; font-weight: 600; }
+.cat small { display: block; color: var(--tx2); font-size: .8125rem; margin-top: 1px; }
+.cat > span { flex: 1; min-width: 0; }
+.hoja:not(.completa) .hoja-top { background: linear-gradient(color-mix(in srgb, var(--t) 20%, rgba(8,8,12,1)) 88%, transparent); padding-bottom: 14px; margin-bottom: -2px; }
+#hoja-aj:not([hidden]), #hoja-eq:not([hidden]) { will-change: auto; }
+.aj-pag { content-visibility: auto; contain-intrinsic-size: auto 700px; }

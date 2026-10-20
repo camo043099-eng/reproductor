@@ -1,5 +1,11 @@
 import subprocess, sys, time, os
 from playwright.sync_api import sync_playwright
+
+def bib(pg, cat):
+    pg.click("#nav [data-v=biblioteca]"); pg.wait_for_timeout(250)
+    if not pg.query_selector(".cat[data-t]"): pg.click("#nav [data-v=biblioteca]"); pg.wait_for_timeout(250)
+    pg.click(f".cat[data-t={cat}]")
+
 R = os.path.dirname(os.path.abspath(__file__)); APP = os.path.join(R, "..", "app"); FX = os.path.join(R, "fixtures")
 srv = subprocess.Popen([sys.executable, "-m", "http.server", "8767", "-d", APP], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1)
 errs = []
@@ -20,7 +26,7 @@ try:
         pg.on("pageerror", lambda e: errs.append("web: " + str(e)))
         pg.goto("http://localhost:8767/"); pg.wait_for_selector(".vacio")
         pg.set_input_files("#f-audio", [f"{FX}/prueba.flac", f"{FX}/prueba.mp3", f"{FX}/sin_etiquetas.wav"]); pg.wait_for_function("window.__onda.E.canciones.length==3", timeout=15000)
-        pg.click("#nav [data-v=biblioteca]"); pg.wait_for_selector("#contenido .fila >> nth=2")
+        bib(pg, "canciones"); pg.wait_for_selector("#contenido .fila >> nth=2")
         x, y = centro(pg, "#contenido .fila >> nth=0"); arrastrar(pg, x - 60, y, x + 120, y)          # derecha: a continuación
         pg.wait_for_timeout(300); assert pg.evaluate("window.__onda.reproductor.cola.length") == 1, "deslizar a la derecha no puso la canción"
         x, y = centro(pg, "#contenido .fila >> nth=1"); arrastrar(pg, x + 100, y, x - 100, y)         # izquierda: favorita
@@ -57,9 +63,8 @@ try:
         ctx = b.new_context(viewport={"width": 390, "height": 800}); ctx.add_init_script(init); pn = ctx.new_page()
         pn.on("pageerror", lambda e: errs.append("nativo: " + str(e)))
         pn.goto("http://localhost:8767/"); pn.wait_for_function("window.__onda && window.__onda.E.canciones.length==3", timeout=8000)
-        pn.click("#nav [data-v=biblioteca]"); pn.wait_for_selector("#contenido .fila >> nth=2")
-        assert pn.is_visible("[data-t=carpetas]"), "no sale la pestaña Carpetas"
-        pn.click("[data-t=carpetas]"); pn.wait_for_selector("[data-det=carpeta]"); pn.click("[data-t=canciones]")
+        pn.click("#nav [data-v=biblioteca]"); pn.wait_for_selector(".cat[data-t=carpetas]")
+        bib(pn, "carpetas"); pn.wait_for_selector("[data-det=carpeta]"); bib(pn, "canciones"); pn.wait_for_selector("#contenido .fila >> nth=2")
         pn.click("#contenido .fila >> nth=1"); pn.wait_for_selector("#mini:not([hidden])")
         c = pn.evaluate("window.__llamadas.find(x=>x[0]=='cargar')[1]"); assert c["indice"] == 1 and len(c["items"]) == 3 and c["sonar"], c
         pn.evaluate("window.__oy.estado({sonando:true,pos:5000,dur:201000,indice:1})"); pn.evaluate("window.__oy.tiempo({pos:6000,dur:201000,indice:1})")
@@ -78,6 +83,7 @@ try:
         assert pn.locator("#eq-bandas .banda").count() == 31; pn.click("#eq-nb [data-n='10']"); assert pn.locator("#eq-bandas .banda").count() == 10; print("eq avanzado OK")
         pn.click("#eq-modo [data-m=param]"); pn.click("#eq-buscar"); pn.fill("#eq-bus", "kz edx"); pn.wait_for_selector("#eq-bus-res button"); pn.click("#eq-bus-res button")
         pn.wait_for_function("window.__llamadas.some(x=>x[0]=='eq' && x[1].filtros && x[1].filtros.length==2 && x[1].filtros[1][0]==8000 && x[1].pre==-3)"); print("buscador audifonos OK")
+        pn.click("#eq-reset"); pn.wait_for_function("window.__llamadas.filter(x=>x[0]=='eq').slice(-1)[0][1].bandas && window.__llamadas.filter(x=>x[0]=='eq').slice(-1)[0][1].bandas.every(v=>v==0)"); print("restablecer eq OK")
         pn.click("#hoja-eq [data-cerrar]"); pn.wait_for_selector("#hoja-eq", state="hidden")
         pn.click("#r-letra"); pn.wait_for_selector("#letra-cuerpo p[data-i]"); assert pn.locator("#letra-cuerpo p").count() == 2, pn.inner_html("#letra-cuerpo")
         pn.evaluate("window.__oy.tiempo({pos:5500,dur:203000,indice:2})"); pn.wait_for_selector("#letra-cuerpo p.actual"); assert pn.inner_text("#letra-cuerpo p.actual") == "segunda"
@@ -90,6 +96,9 @@ try:
         pn.evaluate("(() => { const o = window.__onda, s = o.E.canciones[0], h = o.hist(); h.m[o.claveC(s)] = { n: 4, u: Date.now(), ms: 120000 }; h.d[new Date().toISOString().slice(0,10)] = 120000; h.tot = 120000; })()")
         pn.click("#nav [data-v=biblioteca]"); pn.click("#nav [data-v=inicio]"); pn.wait_for_selector(".tiles .tile")
         assert "Más escuchadas" in pn.inner_text(".tiles"), pn.inner_text(".tiles"); assert pn.locator(".mix").count() >= 0
+        pn.click("#nav-menu"); pn.wait_for_selector("#menu-op button"); assert "Ajustes" in pn.inner_text("#menu-op") and "Ecualizador" in pn.inner_text("#menu-op")
+        pn.click("#menu-op button >> text=Restablecer sonido"); pn.wait_for_selector("#menu-op button >> text=Perfiles de sonido por salida"); pn.click("#menu-op button >> text=Perfiles de sonido por salida"); pn.wait_for_selector("#aviso:not([hidden])"); print("menu y restablecer OK")
+        pn.click("#nav-menu"); pn.click("#menu-op button >> text=Ajustes"); pn.wait_for_selector("#hoja-aj.ver"); pn.click("#aj-atras"); pn.wait_for_selector("#hoja-aj", state="hidden")
         pn.click("[data-estadisticas]"); pn.wait_for_selector("#hoja-stats.ver .num"); assert pn.locator("#stats-cuerpo .num").count() == 4; pn.click("#hoja-stats [data-cerrar]"); pn.wait_for_selector("#hoja-stats", state="hidden")
         print("inicio + actividad OK")
         pn.wait_for_selector("text=Hecho para ti"); pn.click(".mix[data-k^='__mix:'] >> nth=0"); pn.wait_for_selector("#det-lista .fila, #det-lista li"); assert pn.locator("[data-renovar-mixes]").count() == 1

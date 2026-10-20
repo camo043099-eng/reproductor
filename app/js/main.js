@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.38";
+const VERSION = "0.9.39";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -25,7 +25,7 @@ const I = {
   letra: svg('<rect x="3" y="5" width="18" height="14" rx="3.5"/><path d="M7 10.5h4M13 10.5h4M7 14.5h7"/>'), volver: svg('<path d="M15 5l-7 7 7 7"/>'), mas3: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.800"/><circle cx="12" cy="12" r="1.800"/><circle cx="12" cy="19" r="1.800"/></svg>',
 };
 const ponerIconos = () => {
-  const m = { "#b-agregar": I.mas, "#b-ajustes": I.ajustes, "#mini-sig": I.sig, "#r-cola": I.cola, "#r-azar": I.azar, "#r-ant": I.ant, "#r-sig": I.sig, "#r-rep": I.rep, "#r-fav": I.fav, "#r-eq": I.eq, "#r-sueno": I.luna, "#r-lista": I.lista, "#r-letra": I.letra };
+  const m = { "#b-bib-atras": I.volver, "#b-agregar": I.mas, "#b-ajustes": I.ajustes, "#mini-sig": I.sig, "#r-cola": I.cola, "#r-azar": I.azar, "#r-ant": I.ant, "#r-sig": I.sig, "#r-rep": I.rep, "#r-fav": I.fav, "#r-eq": I.eq, "#r-sueno": I.luna, "#r-lista": I.lista, "#r-letra": I.letra };
   for (const [k, v] of Object.entries(m)) $(k).innerHTML = v;
   document.querySelectorAll("[data-cerrar]").forEach((b) => { b.innerHTML = I.abajo; });
 };
@@ -36,7 +36,7 @@ const colador = new Intl.Collator("es", { sensitivity: "base", numeric: true });
 const normal = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 // ── estado ──
-const E = { version: 0, vista: "inicio", canciones: [], listas: [], tab: "canciones", orden: "titulo", q: "", detalle: null, aj: {} };
+const E = { version: 0, vista: "inicio", canciones: [], listas: [], tab: "canciones", bibRaiz: true, orden: "titulo", q: "", detalle: null, aj: {} };
 const porId = new Map();
 const urlsPort = new Map();                                              // clave de álbum → URL o null
 let reproductor;
@@ -210,7 +210,7 @@ function vacio() {
 }
 let listaActual = [];                                                      // canciones mostradas, para tocar y seguir en la cola
 const saludo = () => { const h = new Date().getHours(); return h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches"; };
-const IN = { inicio: svg('<path d="M4 11l8-7 8 7v9a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1z"/>'), buscar: I.buscar, biblioteca: svg('<path d="M5 4v16M10 4v16M15 5l4 14"/>') };
+const IN = { menu: svg('<path d="M4 7h16M4 12h16M4 17h16"/>'), inicio: svg('<path d="M4 11l8-7 8 7v9a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1z"/>'), buscar: I.buscar, biblioteca: svg('<path d="M5 4v16M10 4v16M15 5l4 14"/>') };
 function animarCambio() { const c = $("#contenido"); c.classList.remove("entra"); void c.offsetWidth; c.classList.add("entra"); }
 // Caché de vistas: al salir de Canciones/Álbumes/Artistas/Carpetas la lista ya dibujada se guarda (no se destruye) y al volver aparece al instante, en el mismo lugar.
 const vistasCache = new Map(); let vistaActual = null;
@@ -233,16 +233,18 @@ function marcarVista(clave, indice) { $("#contenido").dataset.vista = clave; vis
 function dibujar() {
   guardarVistaActual(); delete $("#contenido").dataset.vista; tokenPintado++;
   const v = E.vista;
-  $("#titulo-vista").textContent = v === "inicio" ? saludo() : v === "buscar" ? "Buscar" : "Tu biblioteca";
-  $("#buscador").hidden = !(v === "buscar" || (v === "biblioteca" && !E.detalle)); $("#q").placeholder = v === "buscar" ? "¿Qué quieres escuchar?" : "Buscar en tu biblioteca…"; $("#indice").hidden = true; $("#pestanas").hidden = v !== "biblioteca"; $("#barra-orden").hidden = true;
+  const raiz = v === "biblioteca" && E.bibRaiz && !E.detalle;
+  $("#titulo-vista").textContent = v === "inicio" ? saludo() : v === "buscar" ? "Buscar" : raiz ? "Biblioteca" : (TIT_TAB[E.tab] || "Biblioteca");
+  $("#b-bib-atras").hidden = !(v === "biblioteca" && !raiz && !E.detalle);
+  $("#buscador").hidden = !(v === "buscar" || (v === "biblioteca" && !E.detalle && !raiz)); $("#q").placeholder = v === "buscar" ? "¿Qué quieres escuchar?" : "Buscar en " + (TIT_TAB[E.tab] || "biblioteca").toLowerCase() + "…"; $("#indice").hidden = true; $("#pestanas").hidden = true; $("#barra-orden").hidden = true;
   { const t = document.querySelector("[data-t=carpetas]"); if (t) t.hidden = !E.canciones.some((x) => x.carpeta); }
-  document.querySelectorAll("#nav button").forEach((b) => { const a = b.dataset.v === v; a ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"); b.firstElementChild.innerHTML = IN[b.dataset.v]; });
+  document.querySelectorAll("#nav button").forEach((b) => { if (!b.dataset.v) { b.firstElementChild.innerHTML = IN.menu; return; } const a = b.dataset.v === v; a ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"); b.firstElementChild.innerHTML = IN[b.dataset.v]; });
   if (v !== "biblioteca" && !E.canciones.length) { $("#contenido").innerHTML = vacio(); return; }
   if (E.detalle && v !== "biblioteca") {                                  // un detalle abierto desde Inicio o Buscar se queda en esa pestaña
     $("#buscador").hidden = true; $("#pestanas").hidden = true; $("#barra-orden").hidden = true; $("#titulo-vista").textContent = v === "inicio" ? saludo() : "Buscar";
     return dibujarDetalle($("#contenido"), E.detalle);
   }
-  if (v === "inicio") return dibujarInicio(); if (v === "buscar") return dibujarBuscar(); dibujarBiblioteca();
+  if (v === "inicio") return dibujarInicio(); if (v === "buscar") return dibujarBuscar(); if (raiz) return dibujarRaiz(); dibujarBiblioteca();
 }
 let listasInicio = { fav: [], rec: [], ult: [], mas: [] };
 function dibujarInicio() {
@@ -328,6 +330,16 @@ function montarIndice(items, texto) {
   ind.onpointermove = (e) => { if (ind.classList.contains("tocando")) ir(e.clientY); };
   const fin = () => { ind.classList.remove("tocando"); bur.hidden = true; };
   ind.onpointerup = fin; ind.onpointercancel = fin;
+}
+const TIT_TAB = { canciones: "Canciones", albumes: "Álbumes", artistas: "Artistas", carpetas: "Carpetas", listas: "Listas" };
+const IC_CAT = { canciones: svg('<path d="M9 18V6l10-2v12"/><circle cx="6.500" cy="18" r="2.500"/><circle cx="16.500" cy="16" r="2.500"/>'), albumes: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.500"/>'), artistas: svg('<circle cx="12" cy="8" r="3.500"/><path d="M5 20c0-4 3-6 7-6s7 2 7 6"/>'), carpetas: svg('<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>'), listas: I.lista };
+function dibujarRaiz() {
+  const c = $("#contenido"); indiceUlt = null; $("#resumen").textContent = "";
+  if (!E.canciones.length) { c.innerHTML = vacio(); return; }
+  const nAlb = albumesReales([...agrupar((s) => s.alb)]).length, nArt = agrupar((s) => normal(s.albumArtista || s.artista)).size, nFav = E.canciones.filter((s) => s.fav).length;
+  const hayCarp = E.canciones.some((x) => x.carpeta), nCarp = hayCarp ? agrupar((s) => s.carpeta || "").size : 0;
+  const filas = [["canciones", "Canciones", `${E.canciones.length} canciones`], ["albumes", "Álbumes", `${nAlb} álbumes`], ["artistas", "Artistas", `${nArt} artistas`], ...(hayCarp ? [["carpetas", "Carpetas", `${nCarp} carpetas`]] : []), ["listas", "Listas", `${nFav} favoritas · ${E.listas.length} listas`]];
+  c.innerHTML = `<div class="cats">${filas.map(([k, n, d]) => `<button class="cat" type="button" data-t="${k}"><i>${IC_CAT[k]}</i><span><b>${n}</b><small>${d}</small></span></button>`).join("")}</div>`;
 }
 function dibujarBiblioteca() {
   const c = $("#contenido"), q = normal(E.q.trim()), d = E.detalle;
@@ -632,8 +644,8 @@ function ajMostrar(k) {
   h.scrollTop = 0; const c = h.querySelector(".ajustes"); if (c) c.scrollTop = 0;
 }
 function abrirAjustes(pag) {
-  mostrarEspacio(); $("#aj-version").textContent = "v" + VERSION; ajMostrar(pag || null);
-  if (!pila.includes("hoja-aj")) abrir("hoja-aj");
+  ajMostrar(pag || null); if (!pila.includes("hoja-aj")) abrir("hoja-aj");
+  requestAnimationFrame(() => setTimeout(() => { $("#aj-version").textContent = "v" + VERSION; mostrarEspacio(); }, 0));       // lo pesado, después de que la hoja ya se vea
 }
 function ajBuscar(q) {
   const h = $("#hoja-aj"); q = sinAcentos(q.trim());
@@ -751,6 +763,7 @@ let salirListo = false;
 function atras(porHistorial) {
   if (pila.length) { if (pila[pila.length - 1] === "hoja-aj" && ajPag) { ajMostrar(null); if (porHistorial) history.pushState({ hoja: "hoja-aj" }, ""); return; } cerrar(pila[pila.length - 1], porHistorial); return; }
   if (E.detalle) { E.detalle = null; dibujar(); return; }
+  if (E.vista === "biblioteca" && !E.bibRaiz) { E.bibRaiz = true; if (E.q) { E.q = ""; $("#q").value = ""; } dibujar(); animarCambio(); if (porHistorial) history.pushState({ s: 1 }, ""); return; }
   if (E.vista !== "inicio") { E.vista = "inicio"; dibujar(); animarCambio(); window.scrollTo(0, 0); if (porHistorial) history.pushState({ s: 1 }, ""); return; }
   if (!salirListo) { salirListo = true; avisar("Desliza otra vez para salir", 2000); setTimeout(() => { salirListo = false; if (porHistorial) history.pushState({ s: 1 }, ""); }, 2000); return; }
   if (!porHistorial) { const A = plug("App"); (A?.minimizeApp || A?.exitApp)?.call(A); }              // la música sigue sonando
@@ -771,7 +784,11 @@ function menu(titulo, opciones) {
   const c = $("#menu-op"); c.innerHTML = "";
   for (const o of opciones) {
     const b = document.createElement("button"); b.type = "button"; b.textContent = o.t; if (o.cls) b.className = o.cls;
-    b.addEventListener("click", async () => { cerrar("hoja-menu"); await o.f(); }); c.append(b);
+    b.addEventListener("click", async () => {
+      // cerrar la hoja hace history.back(); si se abre otra hoja antes de que termine, el historial se desordena y "atrás" sale de la app
+      const listo = new Promise((ok) => { const f = () => ok(); addEventListener("popstate", f, { once: true }); setTimeout(ok, 250); });
+      cerrar("hoja-menu"); await listo; await o.f();
+    }); c.append(b);
   }
   if (pila.includes("hoja-menu")) return; abrir("hoja-menu");
 }
@@ -990,6 +1007,35 @@ async function mostrarEspacio() {
   $("#aj-espacio").textContent = e.cupo ? `${mb(e.usado)} de ${mb(e.cupo)}` : mb(e.usado);
 }
 
+// ── menú (reemplaza los dos iconos sueltos de arriba) ──
+function abrirMenu() {
+  menu("Menú", [
+    { t: "Ajustes", f: () => abrirAjustes() },
+    { t: "Ecualizador", f: () => { mostrarEq(); abrir("hoja-eq"); } },
+    { t: "Apariencia y fondo de pantalla", f: () => abrirAjustes("apariencia") },
+    { t: "Agregar música", f: () => $("#b-agregar").click() },
+    { t: "Estadísticas", f: () => abrirStats() },
+    { t: "Restablecer sonido…", f: () => confirmarReset() },
+  ]);
+}
+// ── restablecer sonido ──
+function restablecerEq() {
+  const R = reproductor;
+  R.usarPreset("Plano"); R.ponerPreamp?.(0);
+  if (MOTOR && R.eqModo !== undefined) { R.ponerFiltros?.([]); R.ponerTono?.(0, 0, 0); R.ponerModoEq?.("grafico", 10); }
+  R.velocidad !== 1 && R.ponerVelocidad?.(1);
+}
+function restablecerPerfiles() { E.aj.perfiles = {}; guardarAjustes(); }
+function confirmarReset() {
+  menu("¿Qué quieres restablecer?", [
+    { t: "Solo el ecualizador (queda plano)", f: () => { restablecerEq(); if (pila.includes("hoja-eq")) mostrarEq(); guardarAjustes(); avisar("Ecualizador restablecido"); } },
+    { t: "Perfiles de sonido por salida", f: () => { restablecerPerfiles(); avisar("Perfiles por salida borrados"); } },
+    { t: "Todo el sonido (ecualizador, perfiles y efectos)", f: () => { restablecerEq(); restablecerPerfiles(); R_ESP(); if (pila.includes("hoja-eq")) mostrarEq(); guardarAjustes(); avisar("Sonido restablecido"); } },
+    { t: "Cancelar", f: () => {} },
+  ]);
+}
+function R_ESP() { const R = reproductor; if (MOTOR) { R.ancho = 0; R.env = 0; R.graves = 0; R.ponerEspacial?.(); } E.aj.realce = "0"; aplicarRealce(); }
+
 // ── eventos de la interfaz ──
 function enlazar() {
   const R = reproductor;
@@ -1011,18 +1057,24 @@ function enlazar() {
   R.addEventListener("dormido", () => avisar("Temporizador: música apagada. Buenas noches."));
   R.addEventListener("sueno", () => { if (pila.includes("hoja-sueno")) dibujarSueno(); });
 
-  $("#nav").addEventListener("click", (e) => { const b = e.target.closest("button[data-v]"); if (!b) return; while (pila.length) cerrar(pila[pila.length - 1]); E.vista = b.dataset.v; E.detalle = null; if (E.q) { E.q = ""; $("#q").value = ""; } document.querySelectorAll("#nav button").forEach((x) => { x === b ? x.setAttribute("aria-current", "page") : x.removeAttribute("aria-current"); }); window.scrollTo(0, 0); requestAnimationFrame(() => setTimeout(() => { dibujar(); if (E.vista === "buscar") $("#q").focus({ preventScroll: true }); }, 0)); });
+  $("#nav").addEventListener("click", (e) => { const b = e.target.closest("button[data-v]"); if (!b) return; while (pila.length) cerrar(pila[pila.length - 1]); if (b.dataset.v === "biblioteca" && E.vista === "biblioteca") E.bibRaiz = true; E.vista = b.dataset.v; E.detalle = null; if (E.q) { E.q = ""; $("#q").value = ""; } document.querySelectorAll("#nav button").forEach((x) => { x === b ? x.setAttribute("aria-current", "page") : x.removeAttribute("aria-current"); }); window.scrollTo(0, 0); requestAnimationFrame(() => setTimeout(() => { dibujar(); if (E.vista === "buscar") $("#q").focus({ preventScroll: true }); }, 0)); });
+  $("#nav-menu").addEventListener("click", () => abrirMenu());
+  $("#b-bib-atras").addEventListener("click", () => { E.bibRaiz = true; E.detalle = null; if (E.q) { E.q = ""; $("#q").value = ""; } dibujar(); animarCambio(); window.scrollTo(0, 0); });
   { let tq = 0; $("#q").addEventListener("input", (e) => { E.q = e.target.value; clearTimeout(tq); tq = setTimeout(dibujar, 140); }); }
   $("#b-agregar").addEventListener("click", () => (MOTOR ? iniciarNativo(true) : menu("Agregar música", [
     { t: "Elegir canciones", f: () => $("#f-audio").click() }, { t: "Elegir una carpeta completa", f: elegirCarpeta }])));
   $("#b-ajustes").addEventListener("click", () => abrirAjustes());
+  $("#eq-reset").addEventListener("click", () => { restablecerEq(); mostrarEq(); guardarAjustes(); avisar("Ecualizador restablecido"); });
+  $("#aj-reset-perfiles").addEventListener("click", () => { restablecerPerfiles(); avisar("Perfiles por salida borrados"); });
+  $("#aj-reset-audio").addEventListener("click", () => { restablecerEq(); restablecerPerfiles(); R_ESP(); sincronizarAjustes(); guardarAjustes(); avisar("Sonido restablecido"); });
   for (const id of ["#f-audio", "#f-carpeta"]) $(id).addEventListener("change", (e) => { const l = [...e.target.files]; e.target.value = ""; importar(l); });
   $("#pestanas").addEventListener("click", (e) => { const b = e.target.closest("button[data-t]"); if (!b) return; E.tab = b.dataset.t; E.detalle = null; dibujar(); animarCambio(); });
   $("#orden").addEventListener("change", (e) => { E.orden = e.target.value; dibujar(); guardarAjustes(); });
 
   $("#contenido").addEventListener("click", async (e) => {
+    const ct = e.target.closest(".cat[data-t]"); if (ct) { E.tab = ct.dataset.t; E.bibRaiz = false; E.detalle = null; dibujar(); animarCambio(); window.scrollTo(0, 0); return; }
     if (e.target.closest("[data-agregar]")) return MOTOR ? iniciarNativo(true) : $("#b-agregar").click();
-    const ir = e.target.closest("[data-ir]"); if (ir) { E.vista = "biblioteca"; E.tab = ir.dataset.ir; E.detalle = null; dibujar(); animarCambio(); return; }
+    const ir = e.target.closest("[data-ir]"); if (ir) { E.vista = "biblioteca"; E.bibRaiz = false; E.tab = ir.dataset.ir; E.detalle = null; dibujar(); animarCambio(); return; }
     if (e.target.closest("[data-estadisticas]")) return abrirStats();
     if (e.target.closest("[data-personalizar]")) { abrirAjustes("apariencia"); return; }
     if (e.target.closest("[data-renovar-mixes]")) { mixesDeHoy(true).then(() => { avisar("Mixes renovados"); dibujar(); }); return; }
@@ -1031,7 +1083,7 @@ function enlazar() {
     if (e.target.closest("[data-mezclar]")) return tocar(ordenar(E.canciones), 0, true);
     const gq = e.target.closest("[data-q]"); if (gq) { E.q = gq.dataset.q; $("#q").value = E.q; dibujar(); return; }
     const cl = e.target.closest("[data-lista]"); if (cl) return tocar(listasInicio[cl.dataset.lista], +cl.dataset.i);
-    const det = e.target.closest("[data-det]"); if (det) { if (E.vista !== "inicio" && E.vista !== "buscar") E.vista = "biblioteca"; E.tab = det.dataset.det === "artista" ? "artistas" : det.dataset.det === "album" ? "albumes" : det.dataset.det === "carpeta" ? "carpetas" : "listas"; E.detalle = { tipo: det.dataset.det, k: det.dataset.k }; history.pushState({ det: 1 }, ""); dibujar(); animarCambio(); $("#contenido").scrollIntoView(); return; }
+    const det = e.target.closest("[data-det]"); if (det) { if (E.vista !== "inicio" && E.vista !== "buscar") { E.vista = "biblioteca"; E.bibRaiz = false; } E.tab = det.dataset.det === "artista" ? "artistas" : det.dataset.det === "album" ? "albumes" : det.dataset.det === "carpeta" ? "carpetas" : "listas"; E.detalle = { tipo: det.dataset.det, k: det.dataset.k }; history.pushState({ det: 1 }, ""); dibujar(); animarCambio(); $("#contenido").scrollIntoView(); return; }
     if (e.target.closest("[data-volver]")) return history.back();
     if (e.target.closest("[data-nueva-lista]")) { await nuevaLista(); return; }
     if (e.target.closest("[data-borrar-lista]")) { const l = E.listas.find((x) => x.id === E.detalle.k); if (l && confirm(`¿Borrar la lista “${l.nombre}”?`)) { await db.borrar("listas", l.id); E.listas = E.listas.filter((x) => x !== l); E.detalle = null; dibujar(); } return; }
@@ -1150,7 +1202,7 @@ function enlazar() {
       try {
         const r = leerAutoEQ(await textoAuto(urlPerfilAutoEQ(e).slice(AUTOEQ_BASE.length))); if (!r.filtros.length) return avisar("Ese modelo no tiene perfil disponible. Prueba con otra fuente de la lista.", 4500);
         R.preampDb = Math.max(-12, Math.min(12, r.pre)); R.ponerFiltros(r.filtros); R.ponerModoEq("param"); $("#eq-bus-caja").hidden = true; mostrarEq(); guardar();
-        avisar(`Listo: perfil de ${e.n} (${e.s}) aplicado, ${r.filtros.length} filtros.`, 4500);
+        avisar(`Listo: perfil de ${e.n} (${e.s}) aplicado y guardado.`, 4500);
       } catch (_) { avisar("No pude bajar el perfil. Revisa tu internet.", 4000); }
     });
     $("#eq-importar").addEventListener("click", () => { $("#eq-io-caja").hidden = !$("#eq-io-caja").hidden; });
