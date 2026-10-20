@@ -457,6 +457,18 @@ function pintarDiagnostico() {
   }).catch(() => {});
 }
 setInterval(pintarDiagnostico, 1000);
+// Hi-Res puro: el modo solo se lee al crear el reproductor, así que el bypass real es el que había al arrancar
+const AVISO_HIRES = "El modo Hi-Res puro hace un bypass interno de Android y desactiva el ecualizador y crossfeed.";
+let hiresArranque = null;
+function pintarHiRes() {
+  if (!MOTOR) return;
+  if (hiresArranque === null) hiresArranque = !!E.aj.hires;           // lo que está sonando ahora mismo
+  const activo = hiresArranque, pendiente = !!E.aj.hires !== activo;
+  const texto = E.aj.hires ? AVISO_HIRES + (pendiente ? " Se aplicará al volver a abrir Onda." : "") : "";
+  for (const id of ["eq-aviso-hires", "aj-hires-aviso"]) { const el = $("#" + id); el.textContent = texto; el.hidden = !texto; }
+  $("#hoja-eq").classList.toggle("hires-bypass", activo);
+  $("#eq-on").disabled = activo; $("#aj-crossfeed").disabled = activo; $("#aj-fase").disabled = activo;
+}
 let ultimoRealce = -1;
 function aplicarRealce() {                                                // solo para MP3/AAC/OGG de menos de 320 kbps
   if (!MOTOR || !reproductor?.ponerRealce) return; const s = reproductor.actual, m = E.aj.realce || "0";
@@ -795,6 +807,7 @@ function aplicarAvanzados() {
     reproductor.ponerTonoAjuste?.(+a.tfg || 120, +a.tqg || 0.7, +a.tfa || 6000, +a.tqa || 0.7);
     reproductor.ponerCrossfeed?.(+a.crossfeed || 0)?.catch?.(() => {}); reproductor.ponerFase?.(!!a.fase)?.catch?.(() => {}); }
   if (MOTOR && reproductor) { const o = { silencio: !!a.silencio, ruido: a.ruido !== false }; if (tocadoEnfoque || a.enfoque === false) o.enfoque = a.enfoque !== false; reproductor.ponerAvanzado(o).catch(() => {}); }
+  pintarHiRes();
 }
 
 // ── toques: onda de vidrio, animación del icono y vibración corta ──

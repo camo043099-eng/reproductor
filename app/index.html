@@ -110,6 +110,7 @@
 <!-- ecualizador -->
 <section class="hoja" id="hoja-eq" hidden role="dialog" aria-label="Ecualizador">
   <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span>Ecualizador</span><label class="interruptor"><input type="checkbox" id="eq-on" checked><span></span></label></div>
+  <p class="aviso-hires suave pequeno solo-nativo" id="eq-aviso-hires" hidden></p>
   <div class="seg solo-nativo" id="eq-modo" hidden role="group" aria-label="Tipo de ecualizador"><button data-m="grafico">Gráfico</button><button data-m="param">Paramétrico</button></div>
   <canvas id="eq-curva" width="640" height="150" aria-label="Curva de respuesta del ecualizador"></canvas>
   <div id="eq-vista-g">
@@ -194,6 +195,7 @@
     <div class="campo solo-nativo" hidden><span>Saltar silencios</span><label class="interruptor"><input type="checkbox" id="aj-silencio"><span></span></label></div>
     <p class="suave pequeno solo-nativo" hidden>Acorta los silencios largos dentro de las canciones.</p>
 <div class="campo solo-nativo" hidden><span>Hi-Res puro (24 bits sin procesar)</span><label class="interruptor"><input type="checkbox" id="aj-hires"><span></span></label></div>
+<p class="aviso-hires suave pequeno solo-nativo" id="aj-hires-aviso" hidden></p>
 <p class="suave pequeno solo-nativo" hidden id="diag-audio">Diagnóstico del DSP: —</p>
 <p class="suave pequeno solo-nativo" hidden id="aj-hires-nota">Los FLAC de 24 bits salen tal cual, sin ecualizador, sin ondas y sin ajuste de volumen. Se aplica al volver a abrir Onda.</p>
     <div class="campo solo-nativo" hidden><span>USB directo sin mezcla (bit-perfect)</span><label class="interruptor"><input type="checkbox" id="aj-usbdir"><span></span></label></div>

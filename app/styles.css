@@ -634,3 +634,7 @@ html.sinlbl { --nav: 52px; } html.sinlbl .nav button span { display: none; }
 .opciones button:has(.op-ic) { display: flex; align-items: center; gap: 14px; }
 .op-ic { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: rgba(255,255,255,.09); color: var(--ac2); flex: 0 0 auto; }
 .op-ic svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Hi-Res puro activo: el ecualizador no actúa, así que se ve atenuado y no responde */
+#hoja-eq.hires-bypass > *:not(.hoja-top):not(.aviso-hires) { opacity: .35; pointer-events: none; }
+.aviso-hires { color: var(--ac2); padding: 8px 12px; margin: 6px 0; border-radius: 14px; background: rgba(255,255,255,.08); }

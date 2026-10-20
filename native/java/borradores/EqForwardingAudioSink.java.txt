@@ -1,0 +1,54 @@
+// BORRADOR — NO COMPILADO. Extensión .java.txt a propósito: no entra en la compilación actual.
+// Objetivo: que el ecualizador (NucleoEq) siga aplicándose aunque la salida sea float (Hi-Res puro),
+// donde DefaultAudioSink descarta los AudioProcessor (ver issue google/ExoPlayer#6749).
+//
+// Antes de implementarlo hay que VERIFICAR contra la versión de Media3 del proyecto:
+//   1. Las firmas exactas de la interfaz AudioSink (handleBuffer, configure, getFormatSupport, etc.).
+//      Dependen de la versión de androidx.media3; no se han comprobado aquí.
+//   2. Si el buffer que llega a handleBuffer() está en 16, 24 o 32 bits, o ya en float.
+//      Hay que convertirlo a float antes de procesar y de vuelta al formato que espera el sink base.
+//   3. Que el ByteBuffer se consume (position avanza) como exige el contrato de AudioSink.
+//   4. Que el flujo de fin de pista (playToEndOfStream / isEnded) y el de flush/reset llamen a nucleo.reiniciar().
+//   5. Que la configuración de salida (configure) anuncie el formato que realmente sale hacia el AudioTrack.
+//
+// Uso previsto (al implementarlo, en Motor.construir):
+//   AudioSink base = new DefaultAudioSink.Builder(c).setEnableFloatOutput(true)...build();
+//   AudioSink sink = new EqForwardingAudioSink(base, ep);
+//   ... y pasar `sink` en lugar de `base` desde buildAudioSink(...).
+
+package com.camo.onda;
+
+import androidx.media3.common.util.UnstableApi;
+// import androidx.media3.exoplayer.audio.ForwardingAudioSink;   // ← existe en Media3; confirmar la versión
+// import java.nio.ByteBuffer;
+
+@UnstableApi
+public final class EqForwardingAudioSink /* extends ForwardingAudioSink */ {
+
+    private final EqProcesador eq;     // el mismo procesador que ya usamos (contiene NucleoEq)
+
+    public EqForwardingAudioSink(Object base /* AudioSink */, EqProcesador eq) {
+        this.eq = eq;
+        // super(base);  // ← reemplazar Object por AudioSink al implementar
+    }
+
+    /**
+     * Pasa un bloque por el ecualizador antes de entregarlo al sink base.
+     * Esqueleto: convierte a float, procesa y vuelve a escribir en el buffer.
+     *
+     * @param buffer   datos de entrada (formato del reproductor)
+     * @param bytes    cuántos bytes hay disponibles
+     * @param bitsPorMuestra 16, 24, 32 o 32 (float)
+     * @param float32  true si la entrada ya es float de 32 bits
+     */
+    // public boolean handleBuffer(ByteBuffer buffer, long presentationTimeUs, int encodedAccessUnitCount) { ... }
+    void procesarBloque(java.nio.ByteBuffer buffer, int bytes, int bitsPorMuestra, boolean float32) {
+        // TODO: convertir a float en un arreglo temporal (como hace EqProcesador.queueInput),
+        //       llamar a eq.nucleo.procesar(tmp, n) y devolver los datos en el formato de salida.
+        // La lógica de conversión ya está probada en EqProcesador.queueInput(); reutilizarla.
+        throw new UnsupportedOperationException("borrador: no implementado");
+    }
+
+    /** Reinicia filtros y estado al hacer flush o reset, como ya hace EqProcesador. */
+    public void reiniciar() { eq.nucleo.reiniciar(); }
+}
