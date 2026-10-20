@@ -103,7 +103,7 @@ try:
         print("inicio + actividad OK")
         pn.wait_for_selector("text=Hecho para ti"); pn.click(".mix[data-k^='__mix:'] >> nth=0"); pn.wait_for_selector("#det-lista .fila, #det-lista li"); assert pn.locator("[data-renovar-mixes]").count() == 1
         pn.click("[data-renovar-mixes]"); pn.wait_for_selector("#det-lista li, #det-lista .fila"); pn.click("[data-volver]"); print("mixes del dia OK")
-        pn.click("#nav [data-v=buscar]"); pn.wait_for_selector(".genero"); assert pn.locator(".genero img").count() >= 1, "sin caratulas en generos"; print("generos con caratula OK")
+        pn.click("#nav [data-v=buscar]"); pn.wait_for_selector("#contenido .vacio, #contenido .estante"); assert pn.locator(".genero").count() == 0, "Buscar aun muestra generos"; print("buscar sin generos OK")
         pn.click("#nav [data-v=inicio]"); pn.wait_for_selector(".tiles"); assert pn.locator("[data-portadas]").count() >= 1, "falta boton de caratulas"; print("boton caratulas OK")
         pn.evaluate("(() => { const s = document.querySelector('#aj-fondo'); s.value = 'portada'; s.dispatchEvent(new Event('change', {bubbles: true})); })()")
         assert pn.evaluate("document.documentElement.dataset.fondo") == "portada"; assert pn.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--ac2').trim()") != "", "acento automatico"; print("fondo + acento OK")

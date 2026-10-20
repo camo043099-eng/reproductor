@@ -7,22 +7,27 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.40";
+const VERSION = "0.9.41";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+const D = (d) => `<g class="d">${d}</g>`;                                  // capa suave de color (estilo propio de Onda: trazo + relleno tenue)
 const I = {
-  buscar: svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'), mas: svg('<path d="M12 5v14M5 12h14"/>'),
-  ajustes: svg('<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.200"/><circle cx="9" cy="17" r="2.200"/>'),
-  play: svg('<path d="M8 5v14l11-7z"/>'), pausa: svg('<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>'),
-  sig: svg('<path d="M6 5v14l9-7zM17 5h2v14h-2z"/>'), ant: svg('<path d="M18 5v14l-9-7zM5 5h2v14H5z"/>'),
-  abajo: svg('<path d="M6 9l6 6 6-6"/>'), cola: svg('<path d="M4 6h11M4 12h7M4 18h7"/><path d="M15 13.5l6 3.5-6 3.5z" fill="currentColor"/>'),
+  buscar: svg(D('<circle cx="11" cy="11" r="7"/>') + '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'), mas: svg('<path d="M12 5v14M5 12h14"/>'),
+  ajustes: svg(D('<circle cx="15" cy="7" r="2.600"/><circle cx="9" cy="17" r="2.600"/>') + '<path d="M4 7h8M18 7h2M4 17h2M12 17h8"/><circle cx="15" cy="7" r="2.600"/><circle cx="9" cy="17" r="2.600"/>'),
+  play: svg('<path d="M8 5.500v13l11-6.500z" fill="currentColor" stroke="currentColor" stroke-width="2.200"/>'),
+  pausa: svg('<rect x="6.500" y="5" width="4" height="14" rx="1.500" fill="currentColor" stroke="none"/><rect x="13.500" y="5" width="4" height="14" rx="1.500" fill="currentColor" stroke="none"/>'),
+  sig: svg('<path d="M6 6l9 6-9 6z" fill="currentColor" stroke="currentColor" stroke-width="2"/><rect x="17" y="5.500" width="2.500" height="13" rx="1.250" fill="currentColor" stroke="none"/>'),
+  ant: svg('<path d="M18 6l-9 6 9 6z" fill="currentColor" stroke="currentColor" stroke-width="2"/><rect x="4.500" y="5.500" width="2.500" height="13" rx="1.250" fill="currentColor" stroke="none"/>'),
+  abajo: svg('<path d="M6 9l6 6 6-6"/>'), cola: svg('<path d="M4 6h11M4 12h7M4 18h7"/><path d="M15 13.500l6 3.500-6 3.500z" fill="currentColor"/>'),
   azar: svg('<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>'),
   rep: svg('<path d="M17 2l4 4-4 4M3 11V9a3 3 0 013-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 01-3 3H3"/>'),
-  fav: svg('<path d="M12 20s-7-4.5-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.500-7 10-7 10z"/>'),
-  eq: svg('<path d="M5 4v16M12 4v16M19 4v16M3 14h4M10 8h4M17 15h4"/>'),
-  luna: svg('<path d="M20 14.500A8 8 0 019.500 4 8 8 0 1020 14.500z"/>'), lista: svg('<path d="M4 6h12M4 12h12M4 18h7M18 15v6M15 18h6"/>'),
-  letra: svg('<rect x="3" y="5" width="18" height="14" rx="3.5"/><path d="M7 10.5h4M13 10.5h4M7 14.5h7"/>'), volver: svg('<path d="M15 5l-7 7 7 7"/>'), mas3: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.800"/><circle cx="12" cy="12" r="1.800"/><circle cx="12" cy="19" r="1.800"/></svg>',
+  fav: svg(D('<path d="M12 20s-7-4.500-7-10a4 4 0 017-2.600A4 4 0 0119 10c0 5.500-7 10-7 10z"/>') + '<path d="M12 20s-7-4.500-7-10a4 4 0 017-2.600A4 4 0 0119 10c0 5.500-7 10-7 10z"/>'),
+  eq: svg(D('<circle cx="6" cy="12" r="2.500"/><circle cx="12" cy="16" r="2.500"/><circle cx="18" cy="9" r="2.500"/>') + '<path d="M6 4v5.500M6 14.500V20M12 4v9.500M12 18.500V20M18 4v2.500M18 11.500V20"/><circle cx="6" cy="12" r="2.500"/><circle cx="12" cy="16" r="2.500"/><circle cx="18" cy="9" r="2.500"/>'),
+  luna: svg(D('<path d="M20 14.500A8 8 0 019.500 4 8 8 0 1020 14.500z"/>') + '<path d="M20 14.500A8 8 0 019.500 4 8 8 0 1020 14.500z"/><path d="M17.500 3.500v3M16 5h3"/>'),
+  lista: svg('<path d="M4 6h12M4 12h12M4 18h7M18 15v6M15 18h6"/>'),
+  reloj: svg(D('<circle cx="12" cy="12" r="8.500"/>') + '<circle cx="12" cy="12" r="8.500"/><path d="M12 7.500V12l3 2"/>'),
+  letra: svg(D('<rect x="3" y="5" width="18" height="14" rx="3.500"/>') + '<rect x="3" y="5" width="18" height="14" rx="3.500"/><path d="M7 10.500h4M13 10.500h4M7 14.500h7"/>'), volver: svg('<path d="M15 5l-7 7 7 7"/>'), mas3: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.800"/><circle cx="12" cy="12" r="1.800"/><circle cx="12" cy="19" r="1.800"/></svg>',
 };
 const ponerIconos = () => {
   const m = { "#b-bib-atras": I.volver, "#b-agregar": I.mas, "#b-ajustes": I.ajustes, "#mini-sig": I.sig, "#r-cola": I.cola, "#r-azar": I.azar, "#r-ant": I.ant, "#r-sig": I.sig, "#r-rep": I.rep, "#r-fav": I.fav, "#r-eq": I.eq, "#r-sueno": I.luna, "#r-lista": I.lista, "#r-letra": I.letra };
@@ -61,7 +66,7 @@ const SIN = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w
 const vigia = "IntersectionObserver" in window ? new IntersectionObserver((es) => {
   for (const e of es) if (e.isIntersecting) { vigia.unobserve(e.target); hidratar(e.target); }
 }, { rootMargin: "200px" }) : null;
-async function hidratar(img) { const u = await portadaUrl(img.dataset.alb); if (u) img.src = u; }
+async function hidratar(img) { const u = await portadaUrl(img.dataset.alb); if (u && img.src !== u) img.src = u; }
 function imagenes(raiz) { raiz.querySelectorAll("img[data-alb]:not([data-obs])").forEach((i) => { i.dataset.obs = "1"; if (!i.dataset.alb) return; if (vigia) vigia.observe(i); else hidratar(i); }); }
 const imgsDe = (alb) => document.querySelectorAll(`img[data-alb="${CSS.escape(alb)}"]`);
 
@@ -84,7 +89,7 @@ function pintar(c, items, f, envoltura) {
 }
 const nom = (s) => String((s && (s.titulo || s.nombre)) || "").replace(/_/g, " ").replace(/\s{2,}/g, " ").trim();   // solo para mostrar: los _ de nombres de archivo se ven como espacios
 const nombrePlaca = (s) => (s.album && !albumGenerico(s.album) ? s.album : (s.titulo || s.nombre));
-const imgHtml = (s, cls = "") => `<img class="${cls}" src="${placa(nombrePlaca(s))}" data-alb="${esc(s.alb || "")}" alt="" loading="lazy" decoding="async">`;
+const imgHtml = (s, cls = "") => `<img class="${cls}" src="${(s.alb && urlsPort.get(s.alb)) || placa(nombrePlaca(s))}" data-alb="${esc(s.alb || "")}" alt="" loading="lazy" decoding="async">`;
 
 // ── aviso ──
 let tAviso;
@@ -209,8 +214,13 @@ function vacio() {
   return `<div class="vacio"><p><b>Tu biblioteca está vacía</b></p><p>Agrega canciones o una carpeta de música desde tu teléfono. Los archivos se copian dentro de la app y funcionan sin internet.</p><button class="boton primario" data-agregar type="button">Agregar música</button></div>`;
 }
 let listaActual = [];                                                      // canciones mostradas, para tocar y seguir en la cola
-const saludo = () => { const h = new Date().getHours(); return h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches"; };
-const IN = { menu: svg('<path d="M4 7h16M4 12h16M4 17h16"/>'), inicio: svg('<path d="M4 11l8-7 8 7v9a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1z"/>'), buscar: I.buscar, biblioteca: svg('<path d="M5 4v16M10 4v16M15 5l4 14"/>') };
+const saludo = () => { const h = new Date().getHours(), n = (E.aj?.nombre || "").trim().split(/\s+/)[0]; return (h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches") + (n ? ", " + n : ""); };
+const IN = {
+  menu: svg(D('<rect x="4" y="4" width="7" height="7" rx="2.200"/>') + '<rect x="4" y="4" width="7" height="7" rx="2.200"/><rect x="13" y="4" width="7" height="7" rx="2.200"/><rect x="4" y="13" width="7" height="7" rx="2.200"/><rect x="13" y="13" width="7" height="7" rx="2.200"/>'),
+  inicio: svg(D('<path d="M4 11l8-7 8 7v9a1 1 0 01-1 1H5a1 1 0 01-1-1z"/>') + '<path d="M4 11l8-7 8 7v9a1 1 0 01-1 1h-4v-5.500a1 1 0 00-1-1h-4a1 1 0 00-1 1V21H5a1 1 0 01-1-1z"/>'),
+  buscar: I.buscar,
+  biblioteca: svg(D('<path d="M15.500 6.500l3.800-1 3 12.500-3.800 1z"/>') + '<rect x="3.500" y="4" width="4" height="16" rx="1.200"/><rect x="9.500" y="4" width="4" height="16" rx="1.200"/><path d="M15.500 6.500l3.800-1 3 12.500-3.800 1z"/>'),
+};
 function animarCambio() { const c = $("#contenido"); c.classList.remove("entra"); void c.offsetWidth; c.classList.add("entra"); }
 // Caché de vistas: al salir de Canciones/Álbumes/Artistas/Carpetas la lista ya dibujada se guarda (no se destruye) y al volver aparece al instante, en el mismo lugar.
 const vistasCache = new Map(); let vistaActual = null;
@@ -238,7 +248,7 @@ function dibujar() {
   $("#b-bib-atras").hidden = !(v === "biblioteca" && !raiz && !E.detalle);
   $("#buscador").hidden = !(v === "buscar" || (v === "biblioteca" && !E.detalle && !raiz)); $("#q").placeholder = v === "buscar" ? "¿Qué quieres escuchar?" : "Buscar en " + (TIT_TAB[E.tab] || "biblioteca").toLowerCase() + "…"; $("#indice").hidden = true; $("#pestanas").hidden = true; $("#barra-orden").hidden = true;
   { const t = document.querySelector("[data-t=carpetas]"); if (t) t.hidden = !E.canciones.some((x) => x.carpeta); }
-  document.querySelectorAll("#nav button").forEach((b) => { if (!b.dataset.v) { b.firstElementChild.innerHTML = IN.menu; return; } const a = b.dataset.v === v; a ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"); b.firstElementChild.innerHTML = IN[b.dataset.v]; });
+  document.querySelectorAll("#nav button").forEach((b) => { if (!b.dataset.v) { if (!b.firstElementChild.firstChild) b.firstElementChild.innerHTML = IN.menu; return; } const a = b.dataset.v === v; a ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"); if (!b.firstElementChild.firstChild) b.firstElementChild.innerHTML = IN[b.dataset.v]; });
   if (v !== "biblioteca" && !E.canciones.length) { $("#contenido").innerHTML = vacio(); return; }
   if (E.detalle && v !== "biblioteca") {                                  // un detalle abierto desde Inicio o Buscar se queda en esa pestaña
     $("#buscador").hidden = true; $("#pestanas").hidden = true; $("#barra-orden").hidden = true; $("#titulo-vista").textContent = v === "inicio" ? saludo() : "Buscar";
@@ -266,6 +276,7 @@ function dibujarInicio() {
   if (mas.length) tiles.push(tile("lista", "__mas", ic(I.fav.replace("<svg", '<svg fill="currentColor"'), "#ffb44d"), "Más escuchadas"));
   if (ult.length) tiles.push(tile("lista", "__ult", ic(I.lista.replace("<svg", '<svg fill="none" stroke="currentColor" stroke-width="1.6"'), "#4da3ff"), "Escuchadas hace poco"));
   for (const a of (albsUlt.length ? albsUlt : albs)) { if (tiles.length >= 8) break; tiles.push(`<button class="tile" type="button" data-det="album" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.album || "Sin álbum")}</b></button>`); }
+  const S = (k) => E.aj[k] !== false;
   const estante = (t, h) => h ? `<section class="estante"><h3>${t}</h3><div class="carril">${h}</div></section>` : "";
   const cancion = (s, i, lista) => `<button class="tarjeta" type="button" data-lista="${lista}" data-i="${i}">${imgHtml(s)}<b>${esc(nom(s))}</b><span>${esc(s.artista || "")}</span></button>`;
   const albumTarjeta = (a, grande) => `<button class="tarjeta${grande ? " grande" : ""}" type="button" data-det="album" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.album || "Sin álbum")}</b><span>${esc(a.s.albumArtista || a.s.artista || "")}</span></button>`;
@@ -276,16 +287,16 @@ function dibujarInicio() {
     ...generos.slice(0, 5).map(([g]) => `<button class="chip" data-det="lista" data-k="${esc("__gen:" + g)}" type="button">${esc(g)}</button>`),
     `<button class="chip" data-ir="canciones" type="button">Canciones</button>`, `<button class="chip" data-ir="albumes" type="button">Álbumes</button>`, `<button class="chip" data-ir="artistas" type="button">Artistas</button>`, `<button class="chip" data-ir="listas" type="button">Listas</button>`];
   c.innerHTML = `<div class="fichas">${fichas.join("")}</div>
-  <div class="tiles">${tiles.join("")}</div>
-  ${estante("Vuelve a tu música", albsUlt.slice(0, 10).map((a) => albumTarjeta(a, true)).join(""))}
-  ${mh.length ? `<section class="estante"><h3>Hecho para ti</h3>${MIXES.aprendiendo ? `<p class="nota-mix">Escucha más música y aprenderé tus gustos.</p>` : ""}<div class="carril">${paraTi}</div></section>` : ""}
-  ${estante("Tus mixes", mixes)}
-  ${estante("Escuchadas hace poco", listasInicio.ult.map((s, i) => cancion(s, i, "ult")).join(""))}
-  ${estante("Más escuchadas", listasInicio.mas.map((s, i) => cancion(s, i, "mas")).join(""))}
-  ${estante("Agregado recientemente", albs.slice(0, 12).map((a) => albumTarjeta(a)).join(""))}
-  ${estante("Tus favoritas", listasInicio.fav.map((s, i) => cancion(s, i, "fav")).join(""))}
-  ${estante("Canciones nuevas", listasInicio.rec.map((s, i) => cancion(s, i, "rec")).join(""))}
-  ${estante("Artistas", arts.map((a) => `<button class="tarjeta redonda" type="button" data-det="artista" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.albumArtista || a.s.artista || "Desconocido")}</b><span>${a.n} canciones</span></button>`).join(""))}`;
+  ${S("inTiles") ? `<div class="tiles">${tiles.join("")}</div>` : ""}
+  ${S("inVuelve") ? estante("Vuelve a tu música", albsUlt.slice(0, 10).map((a) => albumTarjeta(a, true)).join("")) : ""}
+  ${S("inMixes") ? mh.length ? `<section class="estante"><h3>Hecho para ti</h3>${MIXES.aprendiendo ? `<p class="nota-mix">Escucha más música y aprenderé tus gustos.</p>` : ""}<div class="carril">${paraTi}</div></section>` : "" : ""}
+  ${S("inMixes") ? estante("Tus mixes", mixes) : ""}
+  ${S("inEscuchadas") ? estante("Escuchadas hace poco", listasInicio.ult.map((s, i) => cancion(s, i, "ult")).join("")) : ""}
+  ${S("inEscuchadas") ? estante("Más escuchadas", listasInicio.mas.map((s, i) => cancion(s, i, "mas")).join("")) : ""}
+  ${S("inNuevas") ? estante("Agregado recientemente", albs.slice(0, 12).map((a) => albumTarjeta(a)).join("")) : ""}
+  ${S("inFav") ? estante("Tus favoritas", listasInicio.fav.map((s, i) => cancion(s, i, "fav")).join("")) : ""}
+  ${S("inNuevas") ? estante("Canciones nuevas", listasInicio.rec.map((s, i) => cancion(s, i, "rec")).join("")) : ""}
+  ${S("inArtistas") ? estante("Artistas", arts.map((a) => `<button class="tarjeta redonda" type="button" data-det="artista" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.albumArtista || a.s.artista || "Desconocido")}</b><span>${a.n} canciones</span></button>`).join("")) : ""}`;
   $("#resumen").textContent = ""; imagenes(c);
   if (!mh.length && E.canciones.length) mixesDeHoy().then((m) => { if (m.mixes.length && E.vista === "inicio" && !E.detalle) dibujarInicio(); });
 }
@@ -299,9 +310,12 @@ function dibujarBuscar() {
   refrescarConPortada(true);
   const c = $("#contenido"), q = normal(E.q.trim());
   if (!q) {
-    const g = conteoGeneros();
-    const tonos = (t) => { let h = 0; for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; };
-    c.innerHTML = g.size ? `<h3 class="sub">Explorar todo</h3><div class="generos">${[...g].sort((a, b) => b[1] - a[1]).map(([t, n]) => `<button type="button" class="genero" data-det="lista" data-k="${esc("__gen:" + t)}" style="--h:${tonos(t)}">${imgHtml(cancionDeGenero(t))}<b>${esc(t)}</b><span>${n} canciones</span></button>`).join("")}</div>` : `<div class="vacio">Escribe el nombre de una canción, un artista o un álbum.</div>`;
+    const ult = ultimasEscuchadas().slice(0, 20), mas = masEscuchadas().slice(0, 20), fav = E.canciones.filter((s) => s.fav).slice(0, 20);
+    listasInicio = { ...listasInicio, ult, mas, fav };
+    const tarj = (s, i, l) => `<button class="tarjeta" type="button" data-lista="${l}" data-i="${i}">${imgHtml(s)}<b>${esc(nom(s))}</b><span>${esc(s.artista || "")}</span></button>`;
+    const sec = (t, ico, arr, l, k) => arr.length ? `<section class="estante"><h3><i class="ico-t">${ico}</i>${t}${k ? `<button type="button" class="ver-todo" data-det="lista" data-k="${k}">Ver todo</button>` : ""}</h3><div class="carril">${arr.map((x, i) => tarj(x, i, l)).join("")}</div></section>` : "";
+    const h = sec("Escuchadas hace poco", I.reloj, ult, "ult", "__ult") + sec("Más escuchadas", I.eq, mas, "mas", "__mas") + sec("Tus favoritas", I.fav, fav, "fav", "__fav");
+    c.innerHTML = h || `<div class="vacio">Escribe el nombre de una canción, un artista o un álbum.<br>Aquí verás lo que escuchas, lo más sonado y tus favoritas.</div>`; imagenes(c);
     return;
   }
   listaActual = ordenar(E.canciones.filter((s) => coincide(s, q)));
@@ -318,12 +332,13 @@ function montarIndice(items, texto) {
   const letra = (t) => { const ch = normal(String(t || "").trim()).charAt(0).toUpperCase(); return /[A-Z]/.test(ch) ? ch : "#"; };
   if (items.length < 25) { ind.hidden = true; return; }
   const primero = new Map(); items.forEach((x, i) => { const l = letra(texto(x)); if (!primero.has(l)) primero.set(l, i); });
-  const letras = [...primero.keys()].sort((a, b) => (a === "#") - (b === "#") || a.localeCompare(b));
-  ind.innerHTML = letras.map((l) => `<span>${l}</span>`).join(""); ind.hidden = false;
+  const letras = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
+  ind.innerHTML = letras.map((l) => `<span${primero.has(l) ? "" : ' class="vacia"'}>${l}</span>`).join(""); ind.hidden = false;
   const bur = $("#burbuja"); let ultima = "";
   const ir = (y) => {
-    const r = ind.getBoundingClientRect(), k = Math.max(0, Math.min(letras.length - 1, Math.floor(((y - r.top) / r.height) * letras.length))), l = letras[k];
-    if (l === ultima) return; ultima = l; bur.textContent = l; bur.hidden = false; vibra(8);
+    const r = ind.getBoundingClientRect(), k = Math.max(0, Math.min(letras.length - 1, Math.floor(((y - r.top) / r.height) * letras.length)));
+    let l = letras[k]; if (!primero.has(l)) { for (let d = 1; d < letras.length; d++) { const a = letras[k - d], b = letras[k + d]; if (a && primero.has(a)) { l = a; break; } if (b && primero.has(b)) { l = b; break; } } }
+    if (!primero.has(l) || l === ultima) return; ultima = l; bur.textContent = l; bur.hidden = false; vibra(8);
     forzarPintado(); const cont = c.querySelector("[data-tandas]"), el = cont && cont.children[primero.get(l)]; if (el) el.scrollIntoView({ block: "start" });
   };
   ind.onpointerdown = (e) => { ind.setPointerCapture(e.pointerId); ind.classList.add("tocando"); ultima = ""; ir(e.clientY); e.preventDefault(); };
@@ -332,7 +347,13 @@ function montarIndice(items, texto) {
   ind.onpointerup = fin; ind.onpointercancel = fin;
 }
 const TIT_TAB = { canciones: "Canciones", albumes: "Álbumes", artistas: "Artistas", carpetas: "Carpetas", listas: "Listas" };
-const IC_CAT = { canciones: svg('<path d="M9 18V6l10-2v12"/><circle cx="6.500" cy="18" r="2.500"/><circle cx="16.500" cy="16" r="2.500"/>'), albumes: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.500"/>'), artistas: svg('<circle cx="12" cy="8" r="3.500"/><path d="M5 20c0-4 3-6 7-6s7 2 7 6"/>'), carpetas: svg('<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>'), listas: I.lista };
+const IC_CAT = {
+  canciones: svg(D('<circle cx="6.500" cy="18" r="2.500"/><circle cx="16.500" cy="16" r="2.500"/>') + '<path d="M9 18V6l10-2v12"/><circle cx="6.500" cy="18" r="2.500"/><circle cx="16.500" cy="16" r="2.500"/>'),
+  albumes: svg(D('<circle cx="12" cy="12" r="8"/>') + '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.500"/>'),
+  artistas: svg(D('<circle cx="12" cy="8" r="3.500"/>') + '<circle cx="12" cy="8" r="3.500"/><path d="M5 20c0-4 3-6 7-6s7 2 7 6"/>'),
+  carpetas: svg(D('<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>') + '<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>'),
+  listas: svg(D('<rect x="3" y="4" width="14" height="4" rx="1.500"/>') + '<path d="M4 6h12M4 12h12M4 18h7M18 15v6M15 18h6"/>'),
+};
 function dibujarRaiz() {
   const c = $("#contenido"); indiceUlt = null; $("#resumen").textContent = "";
   if (!E.canciones.length) { c.innerHTML = vacio(); return; }
@@ -543,7 +564,7 @@ function perfilesSalida() {
   const p = (E.aj.perfiles ||= {}); if (E.aj.eqSalida && MOTOR && reproductor.ruta) p[reproductor.ruta] = { b: reproductor.bandasDb.slice(), p: reproductor.preampDb, x: reproductor.estadoEq ? reproductor.estadoEq() : undefined };
   return p;
 }
-async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn || !!reproductor._sinEq, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", realce: E.aj.realce || "0", ritmo: E.aj.ritmo || "cd", ritmoLat: E.aj.ritmoLat || "260", ritmoEst: E.aj.ritmoEst || "onda", blur: E.aj.blur !== false, eqSalida: !!E.aj.eqSalida, anim: !!E.aj.anim, inicioBib: !!E.aj.inicioBib, progreso: E.aj.progreso !== false, saltos: E.aj.saltos !== false, hires: !!E.aj.hires, detener: !!E.aj.detener, ritmoFps: E.aj.ritmoFps || "60", contar: E.aj.contar || "auto", largoMin: E.aj.largoMin || "20", fadePlay: E.aj.fadePlay ?? "250", brecha: E.aj.brecha || "0", tfg: E.aj.tfg || "120", tqg: E.aj.tqg || "0.7", tfa: E.aj.tfa || "6000", tqa: E.aj.tqa || "0.7", rgPre: E.aj.rgPre || "0", rgSin: E.aj.rgSin || "0", rgSube: !!E.aj.rgSube, retrasoBt: E.aj.retrasoBt || "0", sinEqAlt: !!E.aj.sinEqAlt, sugerir: E.aj.sugerir !== false, sugeridos: E.aj.sugeridos || [], perfiles: perfilesSalida() }, eqx: reproductor.estadoEq ? reproductor.estadoEq() : undefined }, "config").catch(() => {}); }
+async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn || !!reproductor._sinEq, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", realce: E.aj.realce || "0", ritmo: E.aj.ritmo || "cd", ritmoLat: E.aj.ritmoLat || "260", ritmoEst: E.aj.ritmoEst || "onda", blur: E.aj.blur !== false, eqSalida: !!E.aj.eqSalida, anim: !!E.aj.anim, inicioBib: !!E.aj.inicioBib, progreso: E.aj.progreso !== false, saltos: E.aj.saltos !== false, hires: !!E.aj.hires, detener: !!E.aj.detener, ritmoFps: E.aj.ritmoFps || "60", contar: E.aj.contar || "auto", largoMin: E.aj.largoMin || "20", fadePlay: E.aj.fadePlay ?? "250", brecha: E.aj.brecha || "0", tfg: E.aj.tfg || "120", tqg: E.aj.tqg || "0.7", tfa: E.aj.tfa || "6000", tqa: E.aj.tqa || "0.7", rgPre: E.aj.rgPre || "0", rgSin: E.aj.rgSin || "0", rgSube: !!E.aj.rgSube, retrasoBt: E.aj.retrasoBt || "0", sinEqAlt: !!E.aj.sinEqAlt, sugerir: E.aj.sugerir !== false, navLbl: E.aj.navLbl !== false, pantalla: !!E.aj.pantalla, animN: E.aj.animN || "1", densidad: E.aj.densidad || "comoda", forma: E.aj.forma || "redondeada", texto: E.aj.texto || "1", nombre: E.aj.nombre || "", inTiles: E.aj.inTiles !== false, inVuelve: E.aj.inVuelve !== false, inMixes: E.aj.inMixes !== false, inEscuchadas: E.aj.inEscuchadas !== false, inNuevas: E.aj.inNuevas !== false, inFav: E.aj.inFav !== false, inArtistas: E.aj.inArtistas !== false, sugeridos: E.aj.sugeridos || [], perfiles: perfilesSalida() }, eqx: reproductor.estadoEq ? reproductor.estadoEq() : undefined }, "config").catch(() => {}); }
 let tSes = 0;
 async function guardarSesion(fuerza) {
   const ahora = Date.now(); if (!fuerza && ahora - tSes < 4000) return; tSes = ahora;
@@ -717,10 +738,17 @@ $("#r-m10").addEventListener("click", () => reproductor.buscar(Math.max(0, repro
 $("#r-p10").addEventListener("click", () => reproductor.buscar(Math.min((reproductor.duracion || 1e9) - 1, reproductor.tiempo + 10)));
 
 // ── ajustes avanzados ──
-const TOGGLES = [["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false], ["aj-anim", "anim", false], ["aj-iniciobib", "inicioBib", false], ["aj-progreso", "progreso", true], ["aj-saltos", "saltos", true], ["aj-hires", "hires", false], ["aj-detener", "detener", false], ["aj-rgsube", "rgSube", false], ["aj-sineqalt", "sinEqAlt", false], ["aj-sugerir", "sugerir", true]];
-const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-realce", "realce", "0"], ["aj-ritmo", "ritmo", "cd"], ["aj-ritmolat", "ritmoLat", "260"], ["aj-ritmoest", "ritmoEst", "onda"], ["aj-ritmofps", "ritmoFps", "60"], ["aj-contar", "contar", "auto"], ["aj-largo", "largoMin", "20"], ["aj-fadeplay", "fadePlay", "250"], ["aj-brecha", "brecha", "0"], ["aj-tfg", "tfg", "120"], ["aj-tqg", "tqg", "0.7"], ["aj-tfa", "tfa", "6000"], ["aj-tqa", "tqa", "0.7"], ["aj-rgpre", "rgPre", "0"], ["aj-rgsin", "rgSin", "0"], ["aj-retrasobt", "retrasoBt", "0"]];
+const TOGGLES = [["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false], ["aj-anim", "anim", false], ["aj-iniciobib", "inicioBib", false], ["aj-progreso", "progreso", true], ["aj-saltos", "saltos", true], ["aj-hires", "hires", false], ["aj-detener", "detener", false], ["aj-rgsube", "rgSube", false], ["aj-sineqalt", "sinEqAlt", false], ["aj-sugerir", "sugerir", true], ["aj-navlbl", "navLbl", true], ["aj-pantalla", "pantalla", false], ["aj-intiles", "inTiles", true], ["aj-invuelve", "inVuelve", true], ["aj-inmixes", "inMixes", true], ["aj-inesc", "inEscuchadas", true], ["aj-innuevas", "inNuevas", true], ["aj-infav", "inFav", true], ["aj-inartistas", "inArtistas", true]];
+const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-realce", "realce", "0"], ["aj-ritmo", "ritmo", "cd"], ["aj-ritmolat", "ritmoLat", "260"], ["aj-ritmoest", "ritmoEst", "onda"], ["aj-ritmofps", "ritmoFps", "60"], ["aj-contar", "contar", "auto"], ["aj-largo", "largoMin", "20"], ["aj-fadeplay", "fadePlay", "250"], ["aj-brecha", "brecha", "0"], ["aj-tfg", "tfg", "120"], ["aj-tqg", "tqg", "0.7"], ["aj-tfa", "tfa", "6000"], ["aj-tqa", "tqa", "0.7"], ["aj-rgpre", "rgPre", "0"], ["aj-rgsin", "rgSin", "0"], ["aj-retrasobt", "retrasoBt", "0"], ["aj-animn", "animN", "1"], ["aj-densidad", "densidad", "comoda"], ["aj-forma", "forma", "redondeada"], ["aj-texto", "texto", "1"]];
 let tocadoEnfoque = false;
+let _wl = null;
+async function pantallaEncendida() {
+  const quiere = !!E.aj.pantalla && pila.includes("hoja-rep");
+  try { if (quiere && !_wl && navigator.wakeLock) { _wl = await navigator.wakeLock.request("screen"); _wl.addEventListener?.("release", () => { _wl = null; }); } else if (!quiere && _wl) { await _wl.release(); _wl = null; } } catch (e) { _wl = null; }
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) pantallaEncendida(); });
 function sincronizarAjustes() {
+  { const n = $("#aj-nombre"); if (n) n.value = E.aj.nombre || ""; }
   for (const [id, clave, def] of TOGGLES) $("#" + id).checked = E.aj[clave] === undefined ? def : !!E.aj[clave];
   for (const [id, clave, def] of SELECTS) $("#" + id).value = E.aj[clave] ?? def;
   document.querySelectorAll("#hoja-aj select").forEach((x) => x._pintar?.());
@@ -728,7 +756,10 @@ function sincronizarAjustes() {
 }
 function aplicarAvanzados() {
   const r = document.documentElement, a = E.aj;
-  r.classList.add("solido", "plano", "sinblur"); r.classList.toggle("sinanim", !!a.anim); r.classList.toggle("sinchips", a.chips === false); window.__vibrar = a.vib !== false;
+  r.classList.add("solido", "plano", "sinblur");
+  r.classList.toggle("compacta", a.densidad === "compacta"); r.classList.toggle("sinlbl", a.navLbl === false);
+  r.dataset.forma = a.forma || "redondeada"; r.style.setProperty("--am", String(+a.animN || 1)); r.style.fontSize = ((+a.texto || 1) * 16) + "px";
+  pantallaEncendida(); r.classList.toggle("sinanim", !!a.anim || a.animN === "0"); r.classList.toggle("sinchips", a.chips === false); window.__vibrar = a.vib !== false;
   aplicarColores(); $("#aj-fondo-img").hidden = a.fondo !== "imagen";
   r.style.setProperty("--lt", a.letraTam || "1");
   if (typeof ritmoEncender === "function" && reproductor) { ritmoApagar(); if (pila.includes("hoja-rep")) ritmoEncender(); else { const e2 = document.querySelector("#hoja-rep .portada-grande"); if (e2) { e2.classList.toggle("circulo", a.ritmo !== "off"); e2.classList.toggle("cd", (a.ritmo || "cd") === "cd"); } } }
@@ -753,10 +784,10 @@ function chorroCorazones(el) {
 const pila = []; let ignorarPop = 0;
 function abrir(id) {
   const h = $("#" + id); clearTimeout(h._t); h.hidden = false; void h.offsetWidth; h.classList.add("ver"); pila.push(id);
-  if (h.classList.contains("corta")) $("#fondo").hidden = false; history.pushState({ hoja: id }, ""); h.focus?.();
+  if (h.classList.contains("corta")) $("#fondo").hidden = false; history.pushState({ hoja: id }, ""); h.focus?.(); if (id === "hoja-rep") pantallaEncendida();
 }
 function cerrar(id, desdeHistorial) {
-  const k = pila.lastIndexOf(id); if (k < 0) return; if (id === "hoja-rep") { vizApagar(); ritmoApagar(); } pila.splice(k, 1); { const h = $("#" + id); h.classList.remove("ver"); clearTimeout(h._t); h._t = setTimeout(() => { h.hidden = true; }, 420); }
+  const k = pila.lastIndexOf(id); if (k < 0) return; if (id === "hoja-rep") { vizApagar(); ritmoApagar(); } pila.splice(k, 1); if (id === "hoja-rep") pantallaEncendida(); { const h = $("#" + id); h.classList.remove("ver"); clearTimeout(h._t); h._t = setTimeout(() => { h.hidden = true; }, 420); }
   if (!pila.some((x) => $("#" + x).classList.contains("corta"))) $("#fondo").hidden = true;
   if (!desdeHistorial) { ignorarPop++; history.back(); }
   if (id === "hoja-rep") { vizApagar(); ritmoApagar(); }
@@ -786,7 +817,7 @@ function menu(titulo, opciones) {
   $("#menu-titulo").textContent = titulo;
   const c = $("#menu-op"); c.innerHTML = "";
   for (const o of opciones) {
-    const b = document.createElement("button"); b.type = "button"; b.textContent = o.t; if (o.cls) b.className = o.cls;
+    const b = document.createElement("button"); b.type = "button"; if (o.i) { const ic = document.createElement("i"); ic.className = "op-ic"; ic.innerHTML = o.i; b.append(ic, document.createTextNode(o.t)); } else b.textContent = o.t; if (o.cls) b.className = o.cls;
     b.addEventListener("click", async () => {
       // cerrar la hoja hace history.back(); si se abre otra hoja antes de que termine, el historial se desordena y "atrás" sale de la app
       const listo = new Promise((ok) => { const f = () => ok(); addEventListener("popstate", f, { once: true }); setTimeout(ok, 250); });
@@ -833,8 +864,15 @@ async function borrarCancion(s) {
 // ── cola ──
 const listaDelDetalle = () => (E.detalle?.tipo === "lista" && E.detalle.k !== "__fav" ? E.listas.find((x) => x.id === E.detalle.k) : null);
 function dibujarCola() {
-  const lt = reproductor.listaEnOrden(), u = $("#cola-lista"), ini = Math.max(0, Math.min(reproductor.pos - 15, lt.length - 260)), l = lt.slice(ini, ini + 260);   // solo la ventana cercana: una cola de miles no se dibuja entera
-  u.innerHTML = (ini ? `<li class="suave pequeno" style="padding:8px">${ini} canciones anteriores en la cola</li>` : "") + l.map((s, j) => { const i = ini + j; return `<li class="fila${i === reproductor.pos ? " sonando" : ""}" data-pos="${i}">${imgHtml(s)}<span class="info"><b>${esc(nom(s))}</b><span>${esc(s.artista || "")}</span></span>${i === reproductor.pos ? "" : `<button class="mas" type="button" data-sube="${i}" aria-label="Subir">▲</button><button class="mas" type="button" data-baja="${i}" aria-label="Bajar">▼</button><button class="mas" type="button" data-quita="${i}" aria-label="Quitar">✕</button>`}</li>`; }).join("") + (ini + l.length < lt.length ? `<li class="suave pequeno" style="padding:8px">${lt.length - ini - l.length} canciones más en la cola</li>` : "");
+  const lt = reproductor.listaEnOrden(), u = $("#cola-lista"), pos = reproductor.pos, ini = Math.max(0, Math.min(pos - 15, lt.length - 260)), l = lt.slice(ini, ini + 260);   // solo la ventana cercana: una cola de miles no se dibuja entera
+  const fila = (s, i) => `<li class="cq${i < pos ? " ya" : ""}" data-pos="${i}">${imgHtml(s)}<span class="info"><b>${esc(nom(s))}</b><span>${esc(s.artista || "")}</span></span><span class="cq-bt"><button type="button" data-sube="${i}" aria-label="Subir">${I.abajo.replace("<svg", '<svg style="transform:rotate(180deg)"')}</button><button type="button" data-baja="${i}" aria-label="Bajar">${I.abajo}</button><button type="button" data-quita="${i}" aria-label="Quitar"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></button></span></li>`;
+  let h = "", antes = l.filter((_, j) => ini + j < pos), ahora = lt[pos], luego = l.filter((_, j) => ini + j > pos);
+  if (ini) h += `<li class="cq-nota">${ini} canciones anteriores</li>`;
+  if (antes.length) h += `<li class="cq-tit">Ya sonaron</li>` + antes.map((s, j) => fila(s, ini + j)).join("");
+  if (ahora) h += `<li class="cq-tit">Sonando ahora</li><li class="cq ahora" data-pos="${pos}">${imgHtml(ahora)}<span class="info"><b>${esc(nom(ahora))}</b><span>${esc(ahora.artista || "")}</span></span><span class="cq-barras" aria-hidden="true"><i></i><i></i><i></i></span></li>`;
+  if (luego.length) h += `<li class="cq-tit">A continuación<small>${lt.length - pos - 1} canciones</small></li>` + luego.map((s, j) => fila(s, pos + 1 + j)).join("");
+  if (ini + l.length < lt.length) h += `<li class="cq-nota">${lt.length - ini - l.length} canciones más en la cola</li>`;
+  u.innerHTML = h || `<li class="cq-nota">La cola está vacía</li>`;
   imagenes(u);
 }
 
@@ -1013,12 +1051,12 @@ async function mostrarEspacio() {
 // ── menú (reemplaza los dos iconos sueltos de arriba) ──
 function abrirMenu() {
   menu("Menú", [
-    { t: "Ajustes", f: () => abrirAjustes() },
-    { t: "Ecualizador", f: () => { mostrarEq(); abrir("hoja-eq"); } },
-    { t: "Apariencia y fondo de pantalla", f: () => abrirAjustes("apariencia") },
-    { t: "Agregar música", f: () => $("#b-agregar").click() },
-    { t: "Estadísticas", f: () => abrirStats() },
-    { t: "Restablecer sonido…", f: () => confirmarReset() },
+    { t: "Ajustes", i: I.ajustes, f: () => abrirAjustes() },
+    { t: "Ecualizador", i: I.eq, f: () => { mostrarEq(); abrir("hoja-eq"); } },
+    { t: "Apariencia y fondo de pantalla", i: I.luna, f: () => abrirAjustes("apariencia") },
+    { t: "Agregar música", i: I.mas, f: () => $("#b-agregar").click() },
+    { t: "Estadísticas", i: I.reloj, f: () => abrirStats() },
+    { t: "Restablecer sonido…", i: I.rep, f: () => confirmarReset() },
   ]);
 }
 // ── restablecer sonido ──
@@ -1066,13 +1104,14 @@ function enlazar() {
   R.addEventListener("dormido", () => avisar("Temporizador: música apagada. Buenas noches."));
   R.addEventListener("sueno", () => { if (pila.includes("hoja-sueno")) dibujarSueno(); });
 
-  $("#nav").addEventListener("click", (e) => { const b = e.target.closest("button[data-v]"); if (!b) return; while (pila.length) cerrar(pila[pila.length - 1]); if (b.dataset.v === "biblioteca" && E.vista === "biblioteca") E.bibRaiz = true; E.vista = b.dataset.v; E.detalle = null; if (E.q) { E.q = ""; $("#q").value = ""; } document.querySelectorAll("#nav button").forEach((x) => { x === b ? x.setAttribute("aria-current", "page") : x.removeAttribute("aria-current"); }); window.scrollTo(0, 0); requestAnimationFrame(() => setTimeout(() => { dibujar(); if (E.vista === "buscar") $("#q").focus({ preventScroll: true }); }, 0)); });
+  $("#nav").addEventListener("click", (e) => { const b = e.target.closest("button[data-v]"); if (!b) return; if (!pila.length && b.dataset.v === E.vista && !E.detalle && !E.q && (b.dataset.v === "inicio" || b.dataset.v === "buscar")) { window.scrollTo({ top: 0, behavior: "smooth" }); return; } while (pila.length) cerrar(pila[pila.length - 1]); if (b.dataset.v === "biblioteca" && E.vista === "biblioteca") E.bibRaiz = true; E.vista = b.dataset.v; E.detalle = null; if (E.q) { E.q = ""; $("#q").value = ""; } document.querySelectorAll("#nav button").forEach((x) => { x === b ? x.setAttribute("aria-current", "page") : x.removeAttribute("aria-current"); }); window.scrollTo(0, 0); requestAnimationFrame(() => setTimeout(() => { dibujar(); animarCambio(); if (E.vista === "buscar") $("#q").focus({ preventScroll: true }); }, 0)); });
   $("#nav-menu").addEventListener("click", () => abrirMenu());
   $("#b-bib-atras").addEventListener("click", () => { E.bibRaiz = true; E.detalle = null; if (E.q) { E.q = ""; $("#q").value = ""; } dibujar(); animarCambio(); window.scrollTo(0, 0); });
   { let tq = 0; $("#q").addEventListener("input", (e) => { E.q = e.target.value; clearTimeout(tq); tq = setTimeout(dibujar, 140); }); }
   $("#b-agregar").addEventListener("click", () => (MOTOR ? iniciarNativo(true) : menu("Agregar música", [
     { t: "Elegir canciones", f: () => $("#f-audio").click() }, { t: "Elegir una carpeta completa", f: elegirCarpeta }])));
   $("#b-ajustes").addEventListener("click", () => abrirAjustes());
+  $("#aj-nombre")?.addEventListener("input", (e) => { E.aj.nombre = e.target.value.slice(0, 24); if (E.vista === "inicio") $("#titulo-vista").textContent = saludo(); clearTimeout(E._tn); E._tn = setTimeout(guardarAjustes, 500); });
   $("#eq-reset").addEventListener("click", () => { restablecerEq(); mostrarEq(); guardarAjustes(); avisar("Ecualizador restablecido"); });
   $("#aj-reset-perfiles").addEventListener("click", () => { restablecerPerfiles(); avisar("Perfiles por salida borrados"); });
   $("#aj-reset-audio").addEventListener("click", () => { restablecerEq(); restablecerPerfiles(); R_ESP(); sincronizarAjustes(); guardarAjustes(); avisar("Sonido restablecido"); });
@@ -1152,7 +1191,7 @@ function enlazar() {
   });
 
   $("#cola-lista").addEventListener("click", (e) => {
-    const f = e.target.closest(".fila"); if (!f) return;
+    const f = e.target.closest(".cq"); if (!f) return;
     const sube = e.target.closest("[data-sube]"), baja = e.target.closest("[data-baja]"), quita = e.target.closest("[data-quita]");
     if (sube) R.mover(+sube.dataset.sube, -1); else if (baja) R.mover(+baja.dataset.baja, 1); else if (quita) R.quitarDeCola(+quita.dataset.quita);
     else R.irA(R.orden[+f.dataset.pos]);
@@ -1289,7 +1328,7 @@ function gestos() {
   filas($("#contenido"), ".fila[data-id]",
     (f) => { const s = porId.get(f.dataset.id); alternarFav(s).then(() => avisar(s.fav ? "Agregada a favoritas" : "Quitada de favoritas", 1400)); },
     (f) => { const s = porId.get(f.dataset.id); if (!R.actual) tocar([s], 0); else { R.siguienteLuego(s); avisar("Sonará a continuación", 1400); } });
-  filas($("#cola-lista"), ".fila[data-pos]", (f) => R.quitarDeCola(+f.dataset.pos), null);
+  filas($("#cola-lista"), ".cq[data-pos]", (f) => R.quitarDeCola(+f.dataset.pos), null);
   // mantener pulsada una canción abre sus opciones
   let lp = null;
   const limpiar = () => { if (lp) { clearTimeout(lp.t); lp = null; } };
