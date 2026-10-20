@@ -79,6 +79,7 @@ public class MotorPlugin extends Plugin {
         ui(call, () -> {
             Motor.fadeMs = Math.max(0, Math.min(2000, call.getData().optInt("fadeMs", 0)));
             brechaMs = Math.max(0, Math.min(10000, call.getData().optInt("brechaMs", 0)));
+            if (Motor.fadeMs == 0 && !Motor.rampaActiva()) { Motor.fTransp = 1f; Motor.mezclar(); }
             if (!finCancionSueno) Motor.jugador.setPauseAtEndOfMediaItems(brechaMs > 0);
             call.resolve();
         });
@@ -172,6 +173,10 @@ public class MotorPlugin extends Plugin {
         @Override public void run() {
             ExoPlayer p = Motor.jugador;
             if (p != null && p.isPlaying()) {
+                // red de seguridad: si por cualquier motivo el volumen interno quedó bajo sin que nada lo esté moviendo, se restablece
+                if (!Motor.rampaActiva() && Motor.fTransp < 1f) { Motor.fTransp = 1f; Motor.mezclar(); }
+                if (!fadeSueno && apagar == null && Motor.fSueno < 1f) { Motor.fSueno = 1f; Motor.mezclar(); }
+                if (fundidoMs == 0 && !cruzando && Motor.fFund < 1f) { Motor.fFund = 1f; Motor.mezclar(); }
                 long ahora = android.os.SystemClock.uptimeMillis(), pos = p.getCurrentPosition(), dur = p.getDuration();
                 boolean enFundido = false;
                 if (fundidoMs > 0 && !fadeSueno && cruceMs == 0) {                       // fundido: el final de una canción baja suave y la siguiente sube suave

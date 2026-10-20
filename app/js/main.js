@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.44";
+const VERSION = "0.9.45";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -1098,7 +1098,7 @@ function confirmarReset() {
     { t: "Cancelar", f: () => {} },
   ]);
 }
-function R_ESP() { const R = reproductor; if (MOTOR) { R.ancho = 0; R.env = 0; R.graves = 0; R.ponerEspacial?.(); } E.aj.realce = "0"; Object.assign(E.aj, { fadePlay: "250", brecha: "0", tfg: "120", tqg: "0.7", tfa: "6000", tqa: "0.7", rgPre: "0", rgSin: "0", rgSube: false, retrasoBt: "0", sinEqAlt: false }); aplicarAvanzados(); aplicarRealce(); }
+function R_ESP() { const R = reproductor; if (MOTOR) { R.ancho = 0; R.env = 0; R.graves = 0; R.ponerEspacial?.(); } E.aj.realce = "0"; Object.assign(E.aj, { fadePlay: "250", brecha: "0", tfg: "120", tqg: "0.7", tfa: "6000", tqa: "0.7", rgPre: "0", rgSin: "0", rgSube: false, retrasoBt: "0", sinEqAlt: false, colchon: "400", cruce: "0", usbDir: false }); aplicarAvanzados(); aplicarRealce(); }
 
 // ── eventos de la interfaz ──
 function enlazar() {

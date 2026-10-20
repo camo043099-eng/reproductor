@@ -29,6 +29,7 @@ public final class Motor {
     private static final android.os.Handler hm = new android.os.Handler(android.os.Looper.getMainLooper());
     private static Runnable rampa = null;
     public static void mezclar() { ExoPlayer p = jugador; if (p != null) p.setVolume(Math.max(0f, Math.min(1f, fFund * fTransp * fSueno))); }
+    public static boolean rampaActiva() { return rampa != null; }
     private static void parar() { if (rampa != null) { hm.removeCallbacks(rampa); rampa = null; } }
     private static void rampar(final float a, final float b, final int ms, final Runnable fin) {
         parar(); final long t0 = android.os.SystemClock.uptimeMillis();
