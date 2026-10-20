@@ -96,6 +96,20 @@ public final class NucleoEq {
         pasaTodo = !algunaBanda && Math.abs(gananciaDb) < 0.001 && ancho < 0.001 && Math.abs(balance) < 0.005;
         sucio = false;
     }
+    /**
+     * Calcula un filtro biquad (Audio EQ Cookbook, Robert Bristow-Johnson) y guarda sus 5 coeficientes
+     * ya divididos por a0 en coef[slot]. tipo: PICO, EST_GRAVE (low shelf) o EST_AGUDO (high shelf).
+     * Nota: el procesamiento en vivo se recalcula desde ff/fg/fq/ft en recalcular(); para cambiar filtros
+     * en vivo usa ponerFiltros(). Este método sirve para cálculo directo y pruebas.
+     */
+    public synchronized void calcularFiltroBiquad(int slot, int tipo, double f0, double dbGain, double Q) {
+        if (slot < 0 || slot >= SLOTS) throw new IllegalArgumentException("slot fuera de rango: " + slot);
+        if (tipo != PICO && tipo != EST_GRAVE && tipo != EST_AGUDO) throw new IllegalArgumentException("tipo de filtro desconocido: " + tipo);
+        double f = Math.max(15, Math.min(hz / 2.0 - 1, f0));
+        double g = Math.max(-18, Math.min(18, dbGain));
+        double q = Math.max(0.1, Math.min(18, Q));
+        calcular(slot, f, g, q, tipo);
+    }
     /** fórmulas del "Audio EQ Cookbook" (Robert Bristow-Johnson): estante grave, picos y estante agudo */
     private void calcular(int i, double fr, double gd, double qq, int tipo) {
         double A = Math.pow(10, gd / 40), w = 2 * Math.PI * fr / hz, cs = Math.cos(w), sn = Math.sin(w);
