@@ -73,6 +73,16 @@ public class MotorPlugin extends Plugin {
     private int envFuerza = 0, gravesFuerza = 0;
     private int fallosAudio = 0;
     private boolean ritmoOn = false;
+    private int brechaMs = 0; private int brechaTok = 0; private boolean finCancionSueno = false;
+    private void brechaOn() { ExoPlayer p = Motor.jugador; if (p != null && brechaMs > 0 && !finCancionSueno) p.setPauseAtEndOfMediaItems(true); }
+    @PluginMethod public void transiciones(PluginCall call) {
+        ui(call, () -> {
+            Motor.fadeMs = Math.max(0, Math.min(2000, call.getData().optInt("fadeMs", 0)));
+            brechaMs = Math.max(0, Math.min(10000, call.getData().optInt("brechaMs", 0)));
+            if (!finCancionSueno) Motor.jugador.setPauseAtEndOfMediaItems(brechaMs > 0);
+            call.resolve();
+        });
+    }
     private int fundidoMs = 0; private boolean fadeSueno = false; private long ultimaEmision = 0;
     private android.media.AudioDeviceCallback cbRuta = null;
     private boolean sinEfectos = false;
@@ -123,7 +133,7 @@ public class MotorPlugin extends Plugin {
                     float v = 1f;
                     if (dur != C.TIME_UNSET && dur > fundidoMs * 3L) { long falta = dur - pos; if (falta < fundidoMs) v = Math.min(v, curva(falta / (float) fundidoMs)); }
                     if (pos < fundidoMs) v = Math.min(v, curva(pos / (float) fundidoMs));
-                    p.setVolume(v); enFundido = v < 1f;
+                    Motor.fFund = v; Motor.mezclar(); enFundido = v < 1f;
                 }
                 if (ahora - ultimaEmision >= 240) {
                     ultimaEmision = ahora;
@@ -171,7 +181,7 @@ public class MotorPlugin extends Plugin {
     @PluginMethod public void fundido(PluginCall call) {
         ui(call, () -> {
             fundidoMs = Math.max(0, Math.min(12000, (int) Math.round(call.getData().optDouble("seg", 0) * 1000)));
-            if (fundidoMs == 0 && !fadeSueno) Motor.jugador.setVolume(1f);
+            if (fundidoMs == 0) { Motor.fFund = 1f; Motor.mezclar(); }
             call.resolve();
         });
     }
@@ -179,7 +189,8 @@ public class MotorPlugin extends Plugin {
     private void anunciarRuta() {
         boolean bt = false, cable = false, usb = false;
         for (AudioDeviceInfo d : salidasDisponibles()) { int x = d.getType(); if (x == 7 || x == 8 || x == 26 || x == 27 || x == 30) bt = true; else if (x == 3 || x == 4) cable = true; else if (x == 11 || x == 22) usb = true; }
-        JSObject o = new JSObject(); o.put("tipo", bt ? "bluetooth" : usb ? "usb" : cable ? "cable" : "altavoz"); emitir("ruta", o);
+        String nom = ""; for (AudioDeviceInfo d : salidasDisponibles()) { int x = d.getType(); if ((bt && (x == 7 || x == 8 || x == 26 || x == 27 || x == 30)) || (!bt && usb && (x == 11 || x == 22)) || (!bt && !usb && cable && (x == 3 || x == 4))) { CharSequence n = d.getProductName(); if (n != null) { nom = n.toString(); break; } } }
+        JSObject o = new JSObject(); o.put("tipo", bt ? "bluetooth" : usb ? "usb" : cable ? "cable" : "altavoz"); o.put("nombre", nom); emitir("ruta", o);
     }
     @PluginMethod public void rutaEscuchar(PluginCall call) {
         ui(call, () -> {
@@ -212,16 +223,27 @@ public class MotorPlugin extends Plugin {
     private List<MediaItem> items(JSArray a) throws Exception {
         List<MediaItem> l = new ArrayList<>(); for (int i = 0; i < a.length(); i++) l.add(item(a.getJSONObject(i))); return l;
     }
+    private boolean rgSube = false; private double rgPre = 0, rgSin = 0;
     private void aplicarGanancia() {
         ExoPlayer p = Motor.jugador; if (p == null) return;
         double db = 0; MediaItem it = p.getCurrentMediaItem();
         double[] g = it == null ? null : rg.get(it.mediaId);
-        if (g != null && !"off".equals(modoRg)) {
-            double pista = g[0], album = g[1];
-            double v = "album".equals(modoRg) ? (Double.isNaN(album) ? pista : album) : (Double.isNaN(pista) ? album : pista);
-            if (!Double.isNaN(v)) db = Math.min(v, 0);                        // sin conocer el pico, nunca sube el volumen (solo lo baja): evita bajos que saturan
+        if (!"off".equals(modoRg)) {
+            boolean hay = false;
+            if (g != null) {
+                double pista = g[0], album = g[1];
+                double v = "album".equals(modoRg) ? (Double.isNaN(album) ? pista : album) : (Double.isNaN(pista) ? album : pista);
+                if (!Double.isNaN(v)) { hay = true; db = rgSube ? Math.min(v, 12) : Math.min(v, 0); }   // por defecto solo baja el volumen (evita saturar)
+            }
+            db += hay ? rgPre : rgSin;
         }
         gananciaAplicadaDb = db + preampDb; Motor.eq.nucleo.ponerGananciaDb(db + preampDb);
+    }
+    @PluginMethod public void rgAjustes(PluginCall call) {
+        ui(call, () -> {
+            rgSube = call.getBoolean("sube", false); rgPre = Math.max(-12, Math.min(12, call.getData().optDouble("pre", 0))); rgSin = Math.max(-12, Math.min(12, call.getData().optDouble("sin", 0)));
+            aplicarGanancia(); call.resolve();
+        });
     }
     private static double leerDb(String t) {
         if (t == null) return Double.NaN;
@@ -262,7 +284,13 @@ public class MotorPlugin extends Plugin {
         }
         @Override public void onTracksChanged(Tracks t) { }
         @Override public void onPlayWhenReadyChanged(boolean listo, int motivo) {
-            if (motivo == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM) { Motor.jugador.setPauseAtEndOfMediaItems(false); emitir("dormido", null); }
+            if (motivo == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM) {
+                if (finCancionSueno) { finCancionSueno = false; Motor.jugador.setPauseAtEndOfMediaItems(brechaMs > 0); emitir("dormido", null); }
+                else if (brechaMs > 0) {                                           // silencio entre pistas: espera y sigue sola
+                    final int tok = ++brechaTok;
+                    h.postDelayed(() -> { ExoPlayer q = Motor.jugador; if (q != null && tok == brechaTok && !q.getPlayWhenReady()) Motor.reproducirSuave(); }, brechaMs);
+                } else { Motor.jugador.setPauseAtEndOfMediaItems(false); }
+            }
             else emitir("estado", estadoActual());
         }
         @Override public void onPlayerError(PlaybackException e) {
@@ -475,11 +503,11 @@ public class MotorPlugin extends Plugin {
             } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
         });
     }
-    @PluginMethod public void alternar(PluginCall call) { ui(call, () -> { ExoPlayer p = Motor.jugador; if (p.isPlaying()) p.pause(); else { if (p.getPlaybackState() == Player.STATE_ENDED) p.seekTo(0, 0); p.play(); } call.resolve(); }); }
-    @PluginMethod public void pausa(PluginCall call) { ui(call, () -> { Motor.jugador.pause(); call.resolve(); }); }
-    @PluginMethod public void siguiente(PluginCall call) { ui(call, () -> { ExoPlayer p = Motor.jugador; if (p.hasNextMediaItem()) p.seekToNextMediaItem(); else p.seekTo(0, 0); p.play(); call.resolve(); }); }
+    @PluginMethod public void alternar(PluginCall call) { ui(call, () -> { ExoPlayer p = Motor.jugador; brechaTok++; if (p.isPlaying()) Motor.pausarSuave(); else { if (p.getPlaybackState() == Player.STATE_ENDED) p.seekTo(0, 0); Motor.reproducirSuave(); } call.resolve(); }); }
+    @PluginMethod public void pausa(PluginCall call) { ui(call, () -> { brechaTok++; Motor.pausarSuave(); call.resolve(); }); }
+    @PluginMethod public void siguiente(PluginCall call) { ui(call, () -> { ExoPlayer p = Motor.jugador; if (p.hasNextMediaItem()) p.seekToNextMediaItem(); else p.seekTo(0, 0); brechaTok++; Motor.reproducirSuave(); call.resolve(); }); }
     @PluginMethod public void anterior(PluginCall call) { ui(call, () -> { Motor.jugador.seekToPrevious(); call.resolve(); }); }
-    @PluginMethod public void irA(PluginCall call) { ui(call, () -> { ExoPlayer p = Motor.jugador; p.seekTo(call.getInt("indice", 0), 0); p.play(); call.resolve(); }); }
+    @PluginMethod public void irA(PluginCall call) { ui(call, () -> { ExoPlayer p = Motor.jugador; p.seekTo(call.getInt("indice", 0), 0); brechaTok++; Motor.reproducirSuave(); call.resolve(); }); }
     @PluginMethod public void buscar(PluginCall call) { ui(call, () -> { Motor.jugador.seekTo(call.getData().optLong("ms", 0)); call.resolve(); }); }
     @PluginMethod public void repetir(PluginCall call) {
         ui(call, () -> { String m = call.getString("modo", "no"); Motor.jugador.setRepeatMode("uno".equals(m) ? Player.REPEAT_MODE_ONE : "todo".equals(m) ? Player.REPEAT_MODE_ALL : Player.REPEAT_MODE_OFF); call.resolve(); });
@@ -550,6 +578,7 @@ public class MotorPlugin extends Plugin {
                     JSArray b = call.getArray("bandas"); double[] db = new double[10]; for (int i = 0; b != null && i < 10 && i < b.length(); i++) db[i] = b.getDouble(i);
                     Motor.eq.nucleo.ponerBandas(db, on);
                 }
+                Motor.eq.nucleo.ponerTonoAjuste(call.getData().optDouble("fg", 120), call.getData().optDouble("qg", 0.7), call.getData().optDouble("fa", 6000), call.getData().optDouble("qa", 0.7));
                 Motor.eq.nucleo.ponerTono(call.getData().optDouble("grave", 0), call.getData().optDouble("agudo", 0), call.getData().optDouble("bal", 0));
                 preampDb = call.getData().optDouble("pre", 0); aplicarGanancia(); call.resolve();
             } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
@@ -585,19 +614,19 @@ public class MotorPlugin extends Plugin {
     // ───────── temporizador de sueño ─────────
     private void cancelarSueno() {
         if (apagar != null) { h.removeCallbacks(apagar); apagar = null; }
-        fadeSueno = false; ExoPlayer p = Motor.jugador; if (p != null) { p.setPauseAtEndOfMediaItems(false); p.setVolume(1f); }
+        fadeSueno = false; ExoPlayer p = Motor.jugador; if (p != null) { p.setPauseAtEndOfMediaItems(false); finCancionSueno = false; brechaOn(); Motor.fSueno = 1f; Motor.mezclar(); }
     }
     @PluginMethod public void dormir(PluginCall call) {
         ui(call, () -> {
             cancelarSueno(); ExoPlayer p = Motor.jugador;
-            if (call.getBoolean("cancion", false)) { p.setPauseAtEndOfMediaItems(true); call.resolve(); return; }
+            if (call.getBoolean("cancion", false)) { finCancionSueno = true; p.setPauseAtEndOfMediaItems(true); call.resolve(); return; }
             double min = call.getData().optDouble("minutos", 0); if (min <= 0) { call.resolve(); return; }
             apagar = new Runnable() {
                 int paso = 0;
                 @Override public void run() {
                     ExoPlayer q = Motor.jugador; if (q == null) return; paso++; fadeSueno = true;
-                    if (paso < 30) { q.setVolume(1f - paso / 30f); h.postDelayed(this, 200); }
-                    else { q.pause(); q.setVolume(1f); fadeSueno = false; apagar = null; emitir("dormido", null); }
+                    if (paso < 30) { Motor.fSueno = 1f - paso / 30f; Motor.mezclar(); h.postDelayed(this, 200); }
+                    else { q.pause(); Motor.fSueno = 1f; Motor.mezclar(); fadeSueno = false; apagar = null; emitir("dormido", null); }
                 }
             };
             h.postDelayed(apagar, (long) (min * 60000) - 6000 > 0 ? (long) (min * 60000) - 6000 : 0);

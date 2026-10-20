@@ -49,6 +49,9 @@ public class PruebaEq {
         pf.procesar(ru2, ru2.length); boolean estF = true; for (float v : ru2) if (Float.isNaN(v) || Float.isInfinite(v) || Math.abs(v) > 1) estF = false; ok(estF, "32 filtros extremos: estable y sin pasar de 1");
         NucleoEq to = new NucleoEq(); to.configurar(hz, 2); to.ponerTono(6, 0, 0); float[] g5 = seno(60, 0.2, hz, 44100), g6 = g5.clone(); to.procesar(g6, g6.length);
         ok(rms(g6, 40000) > rms(g5, 40000) * 0.9 && rms(g6, 40000) < rms(g5, 40000) * 3, "tono: graves +6 dB suben los graves (con margen)");
+        { NucleoEq tA1 = new NucleoEq(), tA2 = new NucleoEq(); tA1.configurar(hz, 2); tA2.configurar(hz, 2); tA1.ponerTono(6, 0, 0); tA2.ponerTono(6, 0, 0); tA2.ponerTonoAjuste(300, 0.7, 6000, 0.7);
+          float[] s1 = seno(200, 0.2, hz, 44100), s2 = s1.clone(); tA1.procesar(s1, s1.length); tA2.procesar(s2, s2.length);
+          ok(rms(s2, 40000) > rms(s1, 40000) * 1.05, "tono: subir la frecuencia de graves refuerza más los 200 Hz"); boolean tFin = true; for (float v : s2) if (Float.isNaN(v) || Math.abs(v) > 1) tFin = false; ok(tFin, "tono ajustable: estable"); }
         NucleoEq ba = new NucleoEq(); ba.configurar(hz, 2); ba.ponerTono(0, 0, 0.5); float[] b1 = seno(1000, 0.3, hz, 4410), b2 = b1.clone(); ba.procesar(b2, b2.length);
         ok(Math.abs(b2[4000] - b1[4000] * 0.5) < 1e-4 || Math.abs(b2[4000]) <= Math.abs(b1[4000]), "balance: baja el canal izquierdo, el derecho intacto");
     }

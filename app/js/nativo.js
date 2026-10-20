@@ -21,7 +21,7 @@ export class ReproductorNativo extends EventTarget {
     on("detalles", (e) => { const s = this.lista.find((x) => x.id === e.id); if (!s) return; if (e.sampleRate) s.sampleRate = e.sampleRate; if (e.bits) s.bits = e.bits; if (e.canales) s.canales = e.canales; if (e.bitrate) s.bitrate = e.bitrate; this._emitir("detalles", s); });
     on("error", (e) => this._emitir("error", { mensaje: e.mensaje }));
     on("nivel", (e) => { (this._cola ||= []).push({ t: performance.now(), b: e.b, r: e.r, x: e.x }); if (this._cola.length > 80) this._cola.shift(); });
-    on("ruta", (e) => { this.ruta = e.tipo; this._emitir("ruta", e.tipo); });
+    on("ruta", (e) => { this.ruta = e.tipo; this.rutaNombre = e.nombre || ""; this._emitir("ruta", e.tipo); this._emitir("dispositivo", { tipo: e.tipo, nombre: e.nombre || "" }); });
     on("letra", (e) => { this.letras[e.id] = e.texto; this._emitir("letra", e.id); });
     on("dormido", () => { this._dormirEn = 0; this._sonando = false; this._emitir("dormido"); this._emitir("estado"); });
   }
@@ -92,7 +92,7 @@ export class ReproductorNativo extends EventTarget {
 
   // ── sonido ──
   _eq() {
-    const base = { on: this.eqOn, pre: this.preampDb, grave: this.grave, agudo: this.agudo, bal: this.bal }, fl = (l) => l.map((x) => [x.f, x.g, x.q, x.t]);
+    const t = this.tonoAj || {}, base = { on: this.eqOn, pre: this.preampDb, grave: this.grave, agudo: this.agudo, bal: this.bal, fg: t.fg || 120, qg: t.qg || 0.7, fa: t.fa || 6000, qa: t.qa || 0.7 }, fl = (l) => l.map((x) => [x.f, x.g, x.q, x.t]);
     if (this.eqModo === "param") this.N.eq(this.filtros.length ? { ...base, filtros: fl(this.filtros) } : { ...base, bandas: new Array(10).fill(0) });
     else if (this.eqNb === 31) this.N.eq({ ...base, filtros: fl(filtrosGrafico(this.g31, 31)) });
     else this.N.eq({ ...base, bandas: this.bandasDb });
@@ -129,10 +129,13 @@ export class ReproductorNativo extends EventTarget {
       this._emitir("estado"); this._emitir("tiempo");
     } catch (_) { /* sin respuesta */ }
   }
+  ponerTonoAjuste(fg, qg, fa, qa) { this.tonoAj = { fg, qg, fa, qa }; this._eq(); }
+  ponerTransiciones(fadeMs, brechaMs) { this._trans = { fadeMs, brechaMs }; return this.N.transiciones({ fadeMs, brechaMs }); }
+  ponerRGAjustes(sube, pre, sin) { this._rga = { sube, pre, sin }; return this.N.rgAjustes({ sube, pre, sin }); }
   ponerFundido(seg) { return this.N.fundido({ seg }); }
   escucharRuta() { return this.N.rutaEscuchar(); }
   ponerAvanzado(o) { return this.N.avanzado(o); }
-  aplicarTodo() { this.ponerEspacial(); this._eq(); this.N.rg({ modo: this.rgModo }); this.N.velocidad({ v: this.velocidad }); this.N.repetir({ modo: this.repetir }); }
+  aplicarTodo() { if (this._trans) this.N.transiciones(this._trans); if (this._rga) this.N.rgAjustes(this._rga); this.ponerEspacial(); this._eq(); this.N.rg({ modo: this.rgModo }); this.N.velocidad({ v: this.velocidad }); this.N.repetir({ modo: this.repetir }); }
 
   dormir(minutos) {
     clearTimeout(this._tSueno); this._dormirEn = 0;

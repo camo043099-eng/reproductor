@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.39";
+const VERSION = "0.9.40";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -543,7 +543,7 @@ function perfilesSalida() {
   const p = (E.aj.perfiles ||= {}); if (E.aj.eqSalida && MOTOR && reproductor.ruta) p[reproductor.ruta] = { b: reproductor.bandasDb.slice(), p: reproductor.preampDb, x: reproductor.estadoEq ? reproductor.estadoEq() : undefined };
   return p;
 }
-async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", realce: E.aj.realce || "0", ritmo: E.aj.ritmo || "cd", ritmoLat: E.aj.ritmoLat || "260", ritmoEst: E.aj.ritmoEst || "onda", blur: E.aj.blur !== false, eqSalida: !!E.aj.eqSalida, anim: !!E.aj.anim, inicioBib: !!E.aj.inicioBib, progreso: E.aj.progreso !== false, saltos: E.aj.saltos !== false, hires: !!E.aj.hires, detener: !!E.aj.detener, ritmoFps: E.aj.ritmoFps || "60", contar: E.aj.contar || "auto", largoMin: E.aj.largoMin || "20", perfiles: perfilesSalida() }, eqx: reproductor.estadoEq ? reproductor.estadoEq() : undefined }, "config").catch(() => {}); }
+async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn || !!reproductor._sinEq, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", realce: E.aj.realce || "0", ritmo: E.aj.ritmo || "cd", ritmoLat: E.aj.ritmoLat || "260", ritmoEst: E.aj.ritmoEst || "onda", blur: E.aj.blur !== false, eqSalida: !!E.aj.eqSalida, anim: !!E.aj.anim, inicioBib: !!E.aj.inicioBib, progreso: E.aj.progreso !== false, saltos: E.aj.saltos !== false, hires: !!E.aj.hires, detener: !!E.aj.detener, ritmoFps: E.aj.ritmoFps || "60", contar: E.aj.contar || "auto", largoMin: E.aj.largoMin || "20", fadePlay: E.aj.fadePlay ?? "250", brecha: E.aj.brecha || "0", tfg: E.aj.tfg || "120", tqg: E.aj.tqg || "0.7", tfa: E.aj.tfa || "6000", tqa: E.aj.tqa || "0.7", rgPre: E.aj.rgPre || "0", rgSin: E.aj.rgSin || "0", rgSube: !!E.aj.rgSube, retrasoBt: E.aj.retrasoBt || "0", sinEqAlt: !!E.aj.sinEqAlt, sugerir: E.aj.sugerir !== false, sugeridos: E.aj.sugeridos || [], perfiles: perfilesSalida() }, eqx: reproductor.estadoEq ? reproductor.estadoEq() : undefined }, "config").catch(() => {}); }
 let tSes = 0;
 async function guardarSesion(fuerza) {
   const ahora = Date.now(); if (!fuerza && ahora - tSes < 4000) return; tSes = ahora;
@@ -717,8 +717,8 @@ $("#r-m10").addEventListener("click", () => reproductor.buscar(Math.max(0, repro
 $("#r-p10").addEventListener("click", () => reproductor.buscar(Math.min((reproductor.duracion || 1e9) - 1, reproductor.tiempo + 10)));
 
 // ── ajustes avanzados ──
-const TOGGLES = [["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false], ["aj-anim", "anim", false], ["aj-iniciobib", "inicioBib", false], ["aj-progreso", "progreso", true], ["aj-saltos", "saltos", true], ["aj-hires", "hires", false], ["aj-detener", "detener", false]];
-const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-realce", "realce", "0"], ["aj-ritmo", "ritmo", "cd"], ["aj-ritmolat", "ritmoLat", "260"], ["aj-ritmoest", "ritmoEst", "onda"], ["aj-ritmofps", "ritmoFps", "60"], ["aj-contar", "contar", "auto"], ["aj-largo", "largoMin", "20"]];
+const TOGGLES = [["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false], ["aj-anim", "anim", false], ["aj-iniciobib", "inicioBib", false], ["aj-progreso", "progreso", true], ["aj-saltos", "saltos", true], ["aj-hires", "hires", false], ["aj-detener", "detener", false], ["aj-rgsube", "rgSube", false], ["aj-sineqalt", "sinEqAlt", false], ["aj-sugerir", "sugerir", true]];
+const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-realce", "realce", "0"], ["aj-ritmo", "ritmo", "cd"], ["aj-ritmolat", "ritmoLat", "260"], ["aj-ritmoest", "ritmoEst", "onda"], ["aj-ritmofps", "ritmoFps", "60"], ["aj-contar", "contar", "auto"], ["aj-largo", "largoMin", "20"], ["aj-fadeplay", "fadePlay", "250"], ["aj-brecha", "brecha", "0"], ["aj-tfg", "tfg", "120"], ["aj-tqg", "tqg", "0.7"], ["aj-tfa", "tfa", "6000"], ["aj-tqa", "tqa", "0.7"], ["aj-rgpre", "rgPre", "0"], ["aj-rgsin", "rgSin", "0"], ["aj-retrasobt", "retrasoBt", "0"]];
 let tocadoEnfoque = false;
 function sincronizarAjustes() {
   for (const [id, clave, def] of TOGGLES) $("#" + id).checked = E.aj[clave] === undefined ? def : !!E.aj[clave];
@@ -732,7 +732,10 @@ function aplicarAvanzados() {
   aplicarColores(); $("#aj-fondo-img").hidden = a.fondo !== "imagen";
   r.style.setProperty("--lt", a.letraTam || "1");
   if (typeof ritmoEncender === "function" && reproductor) { ritmoApagar(); if (pila.includes("hoja-rep")) ritmoEncender(); else { const e2 = document.querySelector("#hoja-rep .portada-grande"); if (e2) { e2.classList.toggle("circulo", a.ritmo !== "off"); e2.classList.toggle("cd", (a.ritmo || "cd") === "cd"); } } }
-  if (MOTOR && reproductor) { reproductor.ponerFundido(+a.fundido || 0).catch(() => {}); aplicarRealce(); reproductor.ponerAlCerrar?.(!!a.detener)?.catch(() => {}); }
+  if (MOTOR && reproductor) { reproductor.ponerFundido(+a.fundido || 0).catch(() => {}); aplicarRealce(); reproductor.ponerAlCerrar?.(!!a.detener)?.catch(() => {});
+    reproductor.ponerTransiciones?.(+(a.fadePlay ?? 250) || 0, Math.round((+a.brecha || 0) * 1000))?.catch?.(() => {});
+    reproductor.ponerRGAjustes?.(!!a.rgSube, +a.rgPre || 0, +a.rgSin || 0)?.catch?.(() => {});
+    reproductor.ponerTonoAjuste?.(+a.tfg || 120, +a.tqg || 0.7, +a.tfa || 6000, +a.tqa || 0.7); }
   if (MOTOR && reproductor) { const o = { silencio: !!a.silencio, ruido: a.ruido !== false }; if (tocadoEnfoque || a.enfoque === false) o.enfoque = a.enfoque !== false; reproductor.ponerAvanzado(o).catch(() => {}); }
 }
 
@@ -1034,7 +1037,7 @@ function confirmarReset() {
     { t: "Cancelar", f: () => {} },
   ]);
 }
-function R_ESP() { const R = reproductor; if (MOTOR) { R.ancho = 0; R.env = 0; R.graves = 0; R.ponerEspacial?.(); } E.aj.realce = "0"; aplicarRealce(); }
+function R_ESP() { const R = reproductor; if (MOTOR) { R.ancho = 0; R.env = 0; R.graves = 0; R.ponerEspacial?.(); } E.aj.realce = "0"; Object.assign(E.aj, { fadePlay: "250", brecha: "0", tfg: "120", tqg: "0.7", tfa: "6000", tqa: "0.7", rgPre: "0", rgSin: "0", rgSube: false, retrasoBt: "0", sinEqAlt: false }); aplicarAvanzados(); aplicarRealce(); }
 
 // ── eventos de la interfaz ──
 function enlazar() {
@@ -1050,8 +1053,14 @@ function enlazar() {
   R.addEventListener("letra", (e) => { if (pila.includes("hoja-letra") && R.actual && R.actual.id === e.detail && letraAct && !letraAct.sinc) cargarLetra(R.actual); });
   R.addEventListener("ruta", (e) => {                                      // ecualizador distinto para cada salida (altavoz, Bluetooth, cable…)
     const nombres = { altavoz: "altavoz del teléfono", bluetooth: "Bluetooth", usb: "USB", cable: "audífonos con cable" };
+    { const sin = !!E.aj.sinEqAlt && e.detail === "altavoz"; if (sin && R.eqOn) { R._sinEq = true; R.eqOn = false; R._eq(); } else if (!sin && R._sinEq) { R._sinEq = false; R.eqOn = true; R._eq(); } if (pila.includes("hoja-eq")) mostrarEq(); }
     if (!E.aj.eqSalida) return; const pf = (E.aj.perfiles || {})[e.detail];
     if (pf && pf.b && pf.b.length === BANDAS.length) { R.bandasDb = pf.b.slice(); R.preampDb = pf.p || 0; if (pf.x && R.cargarEstadoEq) R.cargarEstadoEq(pf.x); else R._eq(); if (pila.includes("hoja-eq")) mostrarEq(); avisar("Ecualizador de " + (nombres[e.detail] || e.detail)); }
+  });
+  R.addEventListener("dispositivo", (e) => {                               // audífonos nuevos: sugiere buscar su perfil de AutoEQ (una sola vez por aparato)
+    const { tipo, nombre } = e.detail || {}; if (!nombre || E.aj.sugerir === false || !["bluetooth", "usb", "cable"].includes(tipo)) return;
+    const vistos = (E.aj.sugeridos ||= []); if (vistos.includes(nombre)) return; vistos.push(nombre); if (vistos.length > 30) vistos.shift(); guardarAjustes();
+    avisar(`Conectaste “${nombre}”. Busca su perfil en Ecualizador → Buscar mis audífonos.`, 5200);
   });
   R.addEventListener("error", (e) => avisar(e.detail.mensaje));
   R.addEventListener("dormido", () => avisar("Temporizador: música apagada. Buenas noches."));
@@ -1538,7 +1547,7 @@ function ponerDesfaseLetra(d) {
 function actualizarLetra(salto) {
   if (!pila.includes("hoja-letra") || !letraAct.lineas.length) return;
   bucleLetra();
-  const i = lineaActual(letraAct.lineas, tEst() + ADELANTO_LETRA + (letraAct.off || 0)); if (i === letraAct.idx) return;
+  const i = lineaActual(letraAct.lineas, tEst() + ADELANTO_LETRA - (reproductor.ruta === "bluetooth" ? (+E.aj.retrasoBt || 0) / 1000 : 0) + (letraAct.off || 0)); if (i === letraAct.idx) return;
   letraAct.idx = i; const ps = $("#letra-cuerpo").children;
   for (let k = 0; k < ps.length; k++) { ps[k].classList.toggle("actual", k === i); ps[k].classList.toggle("pasada", k < i); }
   if (i >= 0) ps[i].scrollIntoView({ block: "center", behavior: salto ? "auto" : "smooth" });

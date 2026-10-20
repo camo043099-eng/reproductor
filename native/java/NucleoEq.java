@@ -45,6 +45,9 @@ public final class NucleoEq {
         for (int i = nf; i < MAXF; i++) fg[i] = 0;
         eqOn = activo; sucio = true;
     }
+    private double tfG = 120, tqG = 0.7, tfA = 6000, tqA = 0.7;
+    /** frecuencia y ancho (Q) de los controles de tono */
+    public synchronized void ponerTonoAjuste(double fg, double qg, double fa, double qa) { tfG = Math.max(30, Math.min(400, fg)); tqG = Math.max(0.3, Math.min(2, qg)); tfA = Math.max(2000, Math.min(16000, fa)); tqA = Math.max(0.3, Math.min(2, qa)); sucio = true; }
     public synchronized void ponerTono(double grave, double agudo, double bal) { tonoGrave = Math.max(-12, Math.min(12, grave)); tonoAgudo = Math.max(-12, Math.min(12, agudo)); balance = Math.max(-1, Math.min(1, bal)); sucio = true; }
     public synchronized void ponerAncho(double a) { ancho = Math.max(0, Math.min(1, a)); sucio = true; }
     public synchronized void ponerGananciaDb(double db) { gananciaDb = Math.max(-24, Math.min(12, db)); sucio = true; }
@@ -54,7 +57,7 @@ public final class NucleoEq {
         for (int i = 0; i < SLOTS; i++) {
             double f, g, q; int t;
             if (i < MAXF) { if (i >= nf) { coef[i][0] = 1; coef[i][1] = coef[i][2] = coef[i][3] = coef[i][4] = 0; continue; } f = ff[i]; g = fg[i]; q = fq[i]; t = ft[i]; }
-            else if (i == MAXF) { f = 120; g = tonoGrave; q = 0.7; t = EST_GRAVE; } else { f = 6000; g = tonoAgudo; q = 0.7; t = EST_AGUDO; }
+            else if (i == MAXF) { f = tfG; g = tonoGrave; q = tqG; t = EST_GRAVE; } else { f = tfA; g = tonoAgudo; q = tqA; t = EST_AGUDO; }
             if (!eqOn || Math.abs(g) < 0.01 || f >= hz / 2.0) { coef[i][0] = 1; coef[i][1] = coef[i][2] = coef[i][3] = coef[i][4] = 0; continue; }
             algunaBanda = true; calcular(i, f, g, q, t);
         }
