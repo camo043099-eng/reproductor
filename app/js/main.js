@@ -761,6 +761,7 @@ function sincronizarAjustes() {
   { const n = $("#aj-nombre"); if (n) n.value = E.aj.nombre || ""; }
   for (const [id, clave, def] of TOGGLES) $("#" + id).checked = E.aj[clave] === undefined ? def : !!E.aj[clave];
   for (const [id, clave, def] of SELECTS) $("#" + id).value = E.aj[clave] ?? def;
+  $("#aj-fase").checked = !!E.aj.fase; $("#aj-crossfeed").value = +E.aj.crossfeed || 0; $("#aj-crossfeed-v").textContent = (+E.aj.crossfeed || 0).toFixed(2);
   document.querySelectorAll("#hoja-aj select").forEach((x) => x._pintar?.());
   aplicarAvanzados();
 }
@@ -779,7 +780,8 @@ function aplicarAvanzados() {
     if (!!a.usbDir !== !!reproductor._usb) reproductor.ponerUsbDirecto?.(!!a.usbDir)?.catch?.(() => {});
     if (+(a.colchon || 400) !== (reproductor._colchon ?? 400)) reproductor.ponerColchon?.(+(a.colchon || 400))?.catch?.(() => {});
     if (+(a.cruce || 0) !== (reproductor._cruce ?? 0)) reproductor.ponerCruce?.(+(a.cruce || 0))?.catch?.(() => {});
-    reproductor.ponerTonoAjuste?.(+a.tfg || 120, +a.tqg || 0.7, +a.tfa || 6000, +a.tqa || 0.7); }
+    reproductor.ponerTonoAjuste?.(+a.tfg || 120, +a.tqg || 0.7, +a.tfa || 6000, +a.tqa || 0.7);
+    reproductor.ponerCrossfeed?.(+a.crossfeed || 0)?.catch?.(() => {}); reproductor.ponerFase?.(!!a.fase)?.catch?.(() => {}); }
   if (MOTOR && reproductor) { const o = { silencio: !!a.silencio, ruido: a.ruido !== false }; if (tocadoEnfoque || a.enfoque === false) o.enfoque = a.enfoque !== false; reproductor.ponerAvanzado(o).catch(() => {}); }
 }
 
@@ -1100,7 +1102,7 @@ function confirmarReset() {
     { t: "Cancelar", f: () => {} },
   ]);
 }
-function R_ESP() { const R = reproductor; if (MOTOR) { R.ancho = 0; R.env = 0; R.graves = 0; R.ponerEspacial?.(); } E.aj.realce = "0"; Object.assign(E.aj, { fadePlay: "250", brecha: "0", tfg: "120", tqg: "0.7", tfa: "6000", tqa: "0.7", rgPre: "0", rgSin: "0", rgSube: false, retrasoBt: "0", sinEqAlt: false, colchon: "400", cruce: "0", usbDir: false }); aplicarAvanzados(); aplicarRealce(); }
+function R_ESP() { const R = reproductor; if (MOTOR) { R.ancho = 0; R.env = 0; R.graves = 0; R.ponerEspacial?.(); } E.aj.realce = "0"; Object.assign(E.aj, { fadePlay: "250", brecha: "0", tfg: "120", tqg: "0.7", tfa: "6000", tqa: "0.7", rgPre: "0", rgSin: "0", rgSube: false, retrasoBt: "0", sinEqAlt: false, colchon: "400", cruce: "0", usbDir: false, crossfeed: 0, fase: false }); $("#aj-crossfeed").value = 0; $("#aj-crossfeed-v").textContent = "0.00"; aplicarAvanzados(); aplicarRealce(); }
 
 // ── eventos de la interfaz ──
 function enlazar() {
@@ -1191,6 +1193,9 @@ function enlazar() {
   $("#f-imagen").addEventListener("change", async (e) => { const f = e.target.files[0]; e.target.value = ""; if (!f || !imagenPara) return; const m = await miniatura(f); if (m) { await ponerPortada(imagenPara.alb, m); avisar("Portada cambiada", 1800); } else avisar("No pude leer esa imagen."); });
   $("#aj-salida").addEventListener("click", elegirSalida);
   $("#aj-portadas").addEventListener("click", () => descargarFaltantes(true));
+  $("#aj-crossfeed").addEventListener("input", (e) => { $("#aj-crossfeed-v").textContent = (+e.target.value).toFixed(2); });
+  $("#aj-crossfeed").addEventListener("change", (e) => { E.aj.crossfeed = +e.target.value; aplicarAvanzados(); guardarAjustes(); });
+  $("#aj-fase").addEventListener("change", (e) => { E.aj.fase = e.target.checked; aplicarAvanzados(); guardarAjustes(); avisar(e.target.checked ? "Fase invertida activada" : "Fase normal", 2000); });
   for (const [id, clave, def] of TOGGLES) $("#" + id).addEventListener("change", async (e) => { E.aj[clave] = e.target.checked; if (clave === "enfoque") tocadoEnfoque = true; if (clave === "usbDir" && MOTOR) { reproductor.ponerUsbDirecto(e.target.checked).then((r) => avisar(!e.target.checked ? "USB directo apagado" : r.ok ? "USB directo activado" : r.api < 34 ? "Tu Android es anterior a la versión 14: no se puede" : "No hay un DAC USB compatible conectado")).catch(() => {}); }
     if (clave === "hires" && MOTOR) { reproductor.ponerHiRes(e.target.checked).catch(() => {}); avisar("Se aplica al volver a abrir Onda.", 3500); } if (clave === "saltos" || clave === "progreso" || clave === "largoMin") setTimeout(actualizarSaltos, 0); aplicarAvanzados(); guardarAjustes(); if (clave === "sistema") { await cargarTodo(); dibujar(); } });
   for (const [id, clave] of SELECTS) $("#" + id).addEventListener("change", async (e) => { E.aj[clave] = e.target.value; aplicarAvanzados(); guardarAjustes(); if (clave === "colchon") avisar("Se aplica al volver a abrir Onda"); if (clave === "minSeg") { await cargarTodo(); dibujar(); } if (clave === "largoMin") actualizarSaltos(); });

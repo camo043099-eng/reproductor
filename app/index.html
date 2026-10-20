@@ -202,6 +202,11 @@
     <div class="campo solo-nativo" hidden><span>Detener la música al cerrar la app desde recientes</span><label class="interruptor"><input type="checkbox" id="aj-detener"><span></span></label></div>
     <div class="campo solo-nativo" hidden><span>Mejorar MP3 de baja calidad (menos de 320 kbps)</span><select id="aj-realce"><option value="0">Apagado</option><option value="suave">Suave (recomendado)</option><option value="medio">Medio (más brillo)</option></select></div>
     <p class="suave pequeno solo-nativo" hidden>Regenera un poco de brillo y claridad en los agudos que el MP3 recortó. No devuelve lo que se perdió: es una mejora, no magia. Solo actúa en MP3/AAC/OGG de menos de 320 kbps; FLAC y archivos buenos no se tocan.</p>
+    <h3 class="sub solo-nativo" hidden>Auriculares y fase</h3>
+    <div class="campo solo-nativo" hidden><label for="aj-crossfeed">Crossfeed (IEM) <b id="aj-crossfeed-v">0.00</b></label><input type="range" id="aj-crossfeed" min="0" max="0.6" step="0.05" value="0"></div>
+    <p class="suave pequeno solo-nativo" hidden>Mezcla un poco de graves y medios del canal contrario, para que en auriculares cerrados el sonido no se sienta tan dentro de la cabeza. 0 lo apaga.</p>
+    <div class="campo solo-nativo" hidden><span>Invertir fase</span><label class="interruptor"><input type="checkbox" id="aj-fase"><span></span></label></div>
+    <p class="suave pequeno solo-nativo" hidden>Invierte la polaridad de toda la señal. Solo hace falta en algunos rips de vinilo antiguos; déjalo apagado normalmente.</p>
     <div class="campo solo-nativo" hidden><span>Fundido entre canciones</span><select id="aj-fundido"><option value="0">Sin fundido</option><option value="2">2 segundos</option><option value="4">4 segundos</option><option value="6">6 segundos</option><option value="8">8 segundos</option><option value="10">10 segundos</option><option value="12">12 segundos</option></select></div>
 <p class="suave pequeno solo-nativo" hidden>El cambio de canción sin pausa (gapless) siempre está activo; el fundido baja y sube el volumen entre canciones.</p>
     <h3 class="sub solo-nativo" hidden>Transiciones</h3>

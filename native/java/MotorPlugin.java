@@ -236,6 +236,24 @@ public class MotorPlugin extends Plugin {
     @PluginMethod public void realce(PluginCall call) {
         try { if (Motor.eq != null) Motor.eq.nucleo.ponerRealce(call.getDouble("mezcla", 0.0)); call.resolve(); } catch (Throwable e) { call.resolve(); }
     }
+    /** Crossfeed para auriculares cerrados (IEM): mezcla de 0 a 0,6 de graves y medios del canal opuesto */
+    @PluginMethod public void crossfeed(PluginCall call) {
+        try {
+            double m = call.getDouble("mezcla", 0.0);
+            if (Motor.eq != null) Motor.eq.nucleo.ponerCrossfeed(m);
+            if (Motor.eqB != null) Motor.eqB.nucleo.ponerCrossfeed(m);   // por si hay una mezcla entre canciones en curso
+            call.resolve();
+        } catch (Throwable e) { call.resolve(); }
+    }
+    /** Invierte la fase de toda la señal (rips de vinilo antiguos) */
+    @PluginMethod public void fase(PluginCall call) {
+        try {
+            boolean on = call.getBoolean("on", false);
+            if (Motor.eq != null) Motor.eq.nucleo.ponerFaseInvertida(on);
+            if (Motor.eqB != null) Motor.eqB.nucleo.ponerFaseInvertida(on);
+            call.resolve();
+        } catch (Throwable e) { call.resolve(); }
+    }
     /** Hi-Res puro: se guarda y se aplica al volver a abrir la app (el reproductor se crea una sola vez) */
     @PluginMethod public void hiResPuro(PluginCall call) {
         boolean on = call.getBoolean("on", false);
