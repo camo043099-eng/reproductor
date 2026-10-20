@@ -206,6 +206,29 @@ public class MotorPlugin extends Plugin {
         ui(call, () -> { ritmoOn = call.getBoolean("on", false); EqProcesador.medir = ritmoOn; h.removeCallbacks(ritmoTic); if (ritmoOn) h.post(ritmoTic); call.resolve(); });
     }
     /** qué pasa con la música al cerrar la app desde recientes */
+    // ── que el teléfono no cierre la música al quitar la app de recientes ──
+    @PluginMethod public void bateria(PluginCall call) {
+        ui(call, () -> {
+            Context c = getContext(); String pkg = c.getPackageName(); boolean ok = false;
+            try {
+                android.os.PowerManager pm = (android.os.PowerManager) c.getSystemService(Context.POWER_SERVICE);
+                if (pm != null && !pm.isIgnoringBatteryOptimizations(pkg)) {
+                    Intent i = new Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + pkg)); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); c.startActivity(i); ok = true;
+                }
+            } catch (Throwable t) { ok = false; }
+            JSObject o = new JSObject(); o.put("yaLibre", !ok && Build.VERSION.SDK_INT >= 23 && c.getSystemService(Context.POWER_SERVICE) != null && ((android.os.PowerManager) c.getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(pkg));
+            if (!ok && !o.optBoolean("yaLibre", false)) { try { Intent i = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg)); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); c.startActivity(i); } catch (Throwable t) { /* sin pantalla */ } }
+            call.resolve(o);
+        });
+    }
+    @PluginMethod public void autoinicio(PluginCall call) {
+        ui(call, () -> {
+            boolean ok = false; Context c = getContext();
+            String[][] destinos = {{"com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"}, {"com.letv.android.letvsafe", "com.letv.android.letvsafe.AutobootManageActivity"}, {"com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"}, {"com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"}};
+            for (String[] d : destinos) { try { Intent i = new Intent(); i.setClassName(d[0], d[1]); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); c.startActivity(i); ok = true; break; } catch (Throwable t) { /* ese fabricante no es */ } }
+            JSObject o = new JSObject(); o.put("ok", ok); call.resolve(o);
+        });
+    }
     @PluginMethod public void alCerrar(PluginCall call) {
         getContext().getSharedPreferences("onda_motor", Context.MODE_PRIVATE).edit().putBoolean("detener", call.getBoolean("detener", false)).apply(); call.resolve();
     }

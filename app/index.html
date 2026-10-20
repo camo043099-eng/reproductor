@@ -22,21 +22,21 @@
 
 <div class="app" id="app">
   <header class="cabeza">
-    <div class="cabeza-izq"><button class="ib" id="b-bib-atras" type="button" hidden aria-label="Volver a la biblioteca"></button><h1 id="titulo-vista">Onda</h1></div>
+    <div class="cabeza-izq"><button class="ib" id="b-bib-atras" type="button" hidden aria-label="Volver a la biblioteca"></button><h1 id="titulo-vista"></h1></div>
     <div class="cabeza-botones" hidden>
       <button class="ib" id="b-agregar" type="button" aria-label="Agregar música"></button>
       <button class="ib" id="b-ajustes" type="button" aria-label="Ajustes"></button>
     </div>
   </header>
   <div class="buscador" id="buscador" hidden><input id="q" type="search" placeholder="Buscar canciones, artistas, álbumes…" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-  <nav class="pestanas" id="pestanas" role="tablist" aria-label="Biblioteca">
+  <nav class="pestanas" id="pestanas" hidden role="tablist" aria-label="Biblioteca">
     <button role="tab" data-t="canciones" aria-selected="true">Canciones</button>
     <button role="tab" data-t="albumes" aria-selected="false">Álbumes</button>
     <button role="tab" data-t="artistas" aria-selected="false">Artistas</button>
     <button role="tab" data-t="carpetas" aria-selected="false" hidden>Carpetas</button>
     <button role="tab" data-t="listas" aria-selected="false">Listas</button>
   </nav>
-  <div class="barra-orden" id="barra-orden">
+  <div class="barra-orden" id="barra-orden" hidden>
     <span id="resumen" class="suave"></span>
     <label class="suave">Orden <select id="orden"><option value="titulo">Título</option><option value="artista">Artista</option><option value="album">Álbum</option><option value="reciente">Recientes</option></select></label>
   </div>
@@ -223,6 +223,10 @@
     <div class="campo solo-nativo" hidden><span>Mezcla real entre canciones (experimental)</span><select id="aj-cruce"><option value="0">Apagada</option><option value="3">3 segundos</option><option value="5">5 segundos</option><option value="8">8 segundos</option><option value="10">10 segundos</option></select></div>
     <p class="suave pequeno solo-nativo" hidden>Una canción entra mientras la anterior se apaga, sin silencio. Usa más batería y procesador. Si algo suena raro, apágala. No funciona junto con “Silencio entre canciones”.</p>
     <div class="campo"><span>Al terminar un álbum, seguir con el siguiente</span><label class="interruptor"><input type="checkbox" id="aj-sigalbum" checked><span></span></label></div>
+    <h3 class="sub solo-nativo" hidden>Que la música no se corte</h3>
+    <p class="suave pequeno solo-nativo" hidden>Si al quitar Onda de recientes la música se detiene, tu teléfono la está cerrando. Dale permiso aquí y, en recientes, mantén pulsada la tarjeta de Onda y toca el candado.</p>
+    <button class="boton solo-nativo" id="aj-bateria" type="button" hidden>Permitir que Onda funcione sin restricciones</button>
+    <button class="boton solo-nativo" id="aj-autoinicio" type="button" hidden>Abrir inicio automático (Xiaomi)</button>
     <div class="campo"><span>Cambio de canción casi sin pausa</span><label class="interruptor"><input type="checkbox" id="aj-gap" checked disabled><span></span></label></div>
     <div class="campo solo-nativo" hidden><span>Ecualizador distinto por salida (altavoz, Bluetooth…)</span><label class="interruptor"><input type="checkbox" id="aj-eqsalida"><span></span></label></div>
     <button class="boton" id="aj-salida" type="button" hidden>Salida de audio de Onda: Automática</button>

@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.45";
+const VERSION = "0.9.46";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -1135,6 +1135,8 @@ function enlazar() {
   $("#b-agregar").addEventListener("click", () => (MOTOR ? iniciarNativo(true) : menu("Agregar música", [
     { t: "Elegir canciones", f: () => $("#f-audio").click() }, { t: "Elegir una carpeta completa", f: elegirCarpeta }])));
   $("#b-ajustes").addEventListener("click", () => abrirAjustes());
+  $("#aj-bateria")?.addEventListener("click", () => reproductor.pedirBateria?.().then((r) => { if (r?.yaLibre) avisar("Onda ya funciona sin restricciones. Falta fijarla en recientes (candado)."); }).catch(() => avisar("No pude abrir esa pantalla")));
+  $("#aj-autoinicio")?.addEventListener("click", () => reproductor.abrirAutoinicio?.().then((r) => { if (!r?.ok) avisar("Tu teléfono no tiene esa pantalla. Busca “Inicio automático” en Ajustes del sistema."); }).catch(() => avisar("No pude abrir esa pantalla")));
   $("#aj-nombre")?.addEventListener("input", (e) => { E.aj.nombre = e.target.value.slice(0, 24); if (E.vista === "inicio") $("#titulo-vista").textContent = saludo(); clearTimeout(E._tn); E._tn = setTimeout(guardarAjustes, 500); });
   $("#eq-reset").addEventListener("click", () => { restablecerEq(); mostrarEq(); guardarAjustes(); avisar("Ecualizador restablecido"); });
   $("#aj-reset-perfiles").addEventListener("click", () => { restablecerPerfiles(); avisar("Perfiles por salida borrados"); });
