@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.47";
+const VERSION = "0.9.48";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -89,7 +89,7 @@ function pintar(c, items, f, envoltura) {
 }
 const nom = (s) => String((s && (s.titulo || s.nombre)) || "").replace(/_/g, " ").replace(/\s{2,}/g, " ").trim();   // solo para mostrar: los _ de nombres de archivo se ven como espacios
 const nombrePlaca = (s) => (s.album && !albumGenerico(s.album) ? s.album : (s.titulo || s.nombre));
-const imgHtml = (s, cls = "") => `<img class="${cls}" src="${(s.alb && urlsPort.get(s.alb)) || placa(nombrePlaca(s))}" data-alb="${esc(s.alb || "")}" alt="" loading="lazy" decoding="async">`;
+const imgHtml = (s0, cls = "") => { const s = s0 || {}; return `<img class="${cls}" src="${(s.alb && urlsPort.get(s.alb)) || placa(nombrePlaca(s))}" data-alb="${esc(s.alb || "")}" alt="" loading="lazy" decoding="async">`; };
 
 // ── aviso ──
 let tAviso;
@@ -305,7 +305,8 @@ function dibujarInicio() {
 let conPortada = new Set(), conPortadaCargado = false;
 function refrescarConPortada(redibujar) { db.claves("portadas").then((k) => { const n = conPortada.size; conPortada = new Set(k); if (redibujar && !conPortadaCargado) { conPortadaCargado = true; if (E.vista === "buscar" && !E.q && !E.detalle) dibujarBuscar(); } conPortadaCargado = true; }).catch(() => {}); }
 let _gc = null;                                                           // género → canción con carátula (una sola pasada, no una por género)
-const cancionDeGenero = (g) => { if (!_gc) { _gc = new Map(); for (const s of E.canciones) for (const x of generosDe(s)) { const a = _gc.get(x); if (!a || (!conPortada.has(a.alb) && conPortada.has(s.alb))) _gc.set(x, s); } } return _gc.get(g) || null; };
+let _gcV = -1;
+const cancionDeGenero = (g) => { if (!_gc || _gcV !== E.version) { _gcV = E.version; _gc = new Map(); for (const s of E.canciones) for (const x of generosDe(s)) { const a = _gc.get(x); if (!a || (!conPortada.has(a.alb) && conPortada.has(s.alb))) _gc.set(x, s); } } return _gc.get(g) || null; };
 function dibujarBuscar() {
   _gc = null;
   refrescarConPortada(true);
