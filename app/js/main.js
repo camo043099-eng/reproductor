@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.46";
+const VERSION = "0.9.47";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -213,6 +213,7 @@ function vacio() {
   if (MOTOR) return `<div class="vacio"><p><b>${E.sinPermiso ? "Falta el permiso para leer tu música" : "No encontré música en tu teléfono"}</b></p><p>${E.sinPermiso ? "Onda lee tus canciones directamente, sin copiarlas. Dale permiso para ver la música." : "Cuando guardes canciones en el teléfono, toca Actualizar."}</p><button class="boton primario" data-agregar type="button">${E.sinPermiso ? "Dar permiso" : "Actualizar"}</button></div>`;
   return `<div class="vacio"><p><b>Tu biblioteca está vacía</b></p><p>Agrega canciones o una carpeta de música desde tu teléfono. Los archivos se copian dentro de la app y funcionan sin internet.</p><button class="boton primario" data-agregar type="button">Agregar música</button></div>`;
 }
+let listaBase = null;                                                       // con búsqueda activa: toda la biblioteca en orden, para que la cola siga después de la canción buscada
 let listaActual = [];                                                      // canciones mostradas, para tocar y seguir en la cola
 const saludo = () => { const h = new Date().getHours(), n = (E.aj?.nombre || "").trim().split(/\s+/)[0]; return (h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches") + (n ? ", " + n : ""); };
 const IN = {
@@ -233,7 +234,7 @@ function guardarVistaActual() {
 }
 function restaurarVista(clave) {
   const h = vistasCache.get(clave); if (!h || h.version !== E.version) { vistasCache.delete(clave); return false; }
-  vistasCache.delete(clave); const c = $("#contenido"); c.replaceChildren(h.frag); c.dataset.vista = clave; listaActual = h.lista; $("#resumen").textContent = h.resumen;
+  vistasCache.delete(clave); const c = $("#contenido"); c.replaceChildren(h.frag); c.dataset.vista = clave; listaActual = h.lista; listaBase = null; $("#resumen").textContent = h.resumen;
   c.querySelectorAll(".fila.sonando").forEach((x) => x.classList.remove("sonando")); { const id = reproductor.actual?.id; if (id) { const f = c.querySelector(`.fila[data-id="${CSS.escape(id)}"]`); f?.classList.add("sonando"); } }
   c.querySelectorAll('img[data-alb]').forEach((i) => { if (i.src.startsWith("data:") && conPortada.has(i.dataset.alb)) hidratar(i); });   // carátulas que llegaron mientras la lista estaba guardada
   vistaActual = { clave, version: E.version, completa: { completa: true }, lista: listaActual, indice: h.indice };
@@ -318,7 +319,7 @@ function dibujarBuscar() {
     c.innerHTML = h || `<div class="vacio">Escribe el nombre de una canción, un artista o un álbum.<br>Aquí verás lo que escuchas, lo más sonado y tus favoritas.</div>`; imagenes(c);
     return;
   }
-  listaActual = ordenar(E.canciones.filter((s) => coincide(s, q)));
+  listaActual = ordenar(E.canciones.filter((s) => coincide(s, q))); listaBase = ordenadas();
   const albs = albumesReales([...agrupar((s) => s.alb)]).filter(([, v]) => v.some((s) => coincide(s, q))).slice(0, 10);
   const cabeza = (albs.length ? `<section class="estante"><h3>Álbumes</h3><div class="carril">${albs.map(([k, v]) => `<button class="tarjeta" type="button" data-det="album" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].album || "Sin álbum")}</b><span>${esc(v[0].albumArtista || v[0].artista || "")}</span></button>`).join("")}</div></section>` : "") +
     (listaActual.length ? `<h3 class="sub">Canciones</h3>` : `<div class="vacio">Nada coincide con “${esc(E.q)}”.</div>`);
@@ -372,7 +373,7 @@ function dibujarBiblioteca() {
   if (cl && restaurarVista(cl)) return;
   indiceUlt = null;
   if (E.tab === "canciones") {
-    listaActual = q ? ordenadas().filter((s) => coincide(s, q)) : ordenadas();
+    listaActual = q ? ordenadas().filter((s) => coincide(s, q)) : ordenadas(); listaBase = q ? ordenadas() : null;
     const dur = listaActual.reduce((a, s) => a + (s.duracion || 0), 0);
     $("#resumen").textContent = `${listaActual.length} canciones · ${fmt(dur)}`;
     pintar(c, listaActual, (s, i) => filaCancion(s, i), (h) => `<ul class="lista" data-tandas>${h}</ul>`);
@@ -415,7 +416,7 @@ function cancionesDe(d) {
   const l = E.listas.find((x) => x.id === d.k); return l ? l.ids.map((id) => porId.get(id)).filter(Boolean) : [];
 }
 function dibujarDetalle(c, d) {
-  listaActual = cancionesDe(d);
+  listaActual = cancionesDe(d); listaBase = null;
   const l = d.tipo === "lista" && !d.k.startsWith("__") ? E.listas.find((x) => x.id === d.k) : null;
   const titulo = d.k.startsWith("__mix:") ? (mixPorId(d.k.slice(6))?.nombre || "Tu mix") : d.tipo === "carpeta" ? nombreCarpeta(d.k) : d.tipo === "album" ? (listaActual[0]?.album || "Álbum") : d.tipo === "artista" ? (listaActual[0]?.albumArtista || listaActual[0]?.artista || "Artista") : l ? l.nombre : ({ __fav: "Favoritas", __mas: "Más escuchadas", __ult: "Escuchadas hace poco", __olv: "Para redescubrir", __baja: "Calidad baja" }[d.k] || (d.k.startsWith("__gen:") ? "Mix " + d.k.slice(6) : "Favoritas"));
   $("#resumen").textContent = "";
@@ -1166,6 +1167,8 @@ function enlazar() {
     const fila = e.target.closest(".fila"); if (!fila) return;
     const s = porId.get(fila.dataset.id);
     if (e.target.closest("[data-mas]")) return opcionesCancion(s, listaDelDetalle());
+    // Con una búsqueda activa, la cola es toda la biblioteca desde esa canción (como Poweramp): al terminar sigue con la siguiente, no se pausa
+    if (listaBase && E.q) { const j = listaBase.findIndex((x) => x.id === s.id); if (j >= 0) return tocar(listaBase, j); }
     tocar(listaActual, +fila.dataset.i);
   });
   $("#contenido").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.classList.contains("fila")) e.target.click(); });
