@@ -704,3 +704,12 @@ html .aj-pag > .aviso-hires { margin: 0; border-radius: 0; }
 .barra-sel .sel-acc button:disabled { opacity: 0.35; }
 .barra-sel #sel-rango.activo { background: var(--ac2); color: #000; }
 .barra-sel .sel-fila > span { min-width: 0; }
+
+/* Estilo Mornye (por defecto): acento rojo fijo (#FF453A en oscuro), selección y pestañas en ese color, bordes más redondeados y encabezados algo más ajustados. Con "Onda original" nada de esto se aplica. */
+html[data-tema="mornye"] { --ac2: #ff453a; --sw: #ff453a; --linea: rgba(255, 255, 255, 0.12); }
+html[data-tema="mornye"] h1, html[data-tema="mornye"] .sub, html[data-tema="mornye"] .estante h3 { letter-spacing: -0.02em; }
+html[data-tema="mornye"] .pestanas button[aria-selected="true"], html[data-tema="mornye"] .chip.activo { background: #ff453a; color: #fff; border-color: #ff453a; }
+html[data-tema="mornye"] .nav button[aria-current="page"] { color: #ff453a; background: rgba(255, 255, 255, 0.10); }
+html[data-tema="mornye"] .fila { border-radius: 12px; }
+html[data-tema="mornye"] .tile { border-radius: 12px; }
+html[data-tema="mornye"] .fila:active { background: rgba(255, 69, 58, 0.14); }
