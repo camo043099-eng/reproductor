@@ -16,7 +16,7 @@ jobs:
       - name: Probar el ecualizador (Java)
         run: |
           mkdir -p /tmp/jc
-          javac -d /tmp/jc native/java/NucleoEq.java tests/java/PruebaEq.java
+          javac -d /tmp/jc native/java/Reverb.java native/java/NucleoEq.java tests/java/PruebaEq.java
           java -cp /tmp/jc PruebaEq
       - run: npm install
       - run: npx cap add android

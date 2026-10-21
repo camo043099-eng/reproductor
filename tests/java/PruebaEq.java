@@ -60,5 +60,27 @@ public class PruebaEq {
         mo.procesar(mn, mn.length);
         boolean iguales = true; for (int k = 4000; k + 1 < mn.length; k += 2) if (Math.abs(mn[k] - mn[k + 1]) > 1e-6) iguales = false;
         ok(iguales && Math.abs(mn[7000] - 0.25f) < 0.02f, "mono: ambos canales iguales y con la mitad de la señal");
+        // reverb: con mezcla 0 la señal pasa idéntica
+        NucleoEq rv0 = new NucleoEq(); rv0.configurar(hz, 2); rv0.ponerReverb(0, 0.5, 0.5, 0);
+        float[] rb2 = seno(800, 0.3, hz, 44100); rv0.procesar(rb2, rb2.length);
+        NucleoEq rv00 = new NucleoEq(); rv00.configurar(hz, 2); float[] rb3 = seno(800, 0.3, hz, 44100); rv00.procesar(rb3, rb3.length);
+        ok(java.util.Arrays.equals(rb2, rb3), "reverb con mezcla 0: idéntico bit a bit");
+        // preretardo de 50 ms: nada en los primeros 50 ms (la entrada es un tono sostenido) y cola después
+        NucleoEq rp = new NucleoEq(); rp.configurar(hz, 2); rp.ponerReverb(1, 0.5, 0.5, 50);
+        float[] rpi = seno(1000, 0.3, hz, 44100); rp.procesar(rpi, rpi.length);
+        boolean antes = true; for (int k = 0; k < 4200; k++) if (Math.abs(rpi[k]) > 1e-7f) antes = false;
+        ok(antes, "preretardo 50 ms: silencio antes de los 50 ms");
+        ok(rms(rpi, 7000) > 1e-3, "preretardo 50 ms: la cola aparece después (tras el preretardo y el primer peine)");
+        // cola: con una ráfaga de 0,5 s y luego silencio, la cola decae, sin NaN y acotada
+        NucleoEq rvd = new NucleoEq(); rvd.configurar(hz, 2); rvd.ponerReverb(1, 0.5, 0.5, 0);
+        float[] rdi = new float[hz * 2 * 3]; float[] rafaga = seno(1000, 0.3, hz, hz / 2); System.arraycopy(rafaga, 0, rdi, 0, rafaga.length);
+        rvd.procesar(rdi, rdi.length);
+        boolean rvFin = true, rvAcot = true; for (float v : rdi) { if (Float.isNaN(v) || Float.isInfinite(v)) rvFin = false; if (Math.abs(v) > 1.0f) rvAcot = false; }
+        ok(rvFin && rvAcot, "reverb: cola finita y dentro de rango");
+        double temprana = 0, tardia = 0; int nt = 0, nl = 0;
+        for (int k = hz * 2 * 6 / 10; k < hz * 2 * 1; k += 2) { temprana += rdi[k] * rdi[k]; nt++; }
+        for (int k = hz * 2 * 25 / 10; k < hz * 2 * 29 / 10; k += 2) { tardia += rdi[k] * rdi[k]; nl++; }
+        double rt = Math.sqrt(temprana / nt), rl = Math.sqrt(tardia / nl);
+        ok(rl < rt * 0.5, "reverb: la cola decae con el tiempo (temprana " + rt + ", tardía " + rl + ")");
     }
 }

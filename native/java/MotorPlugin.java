@@ -233,6 +233,9 @@ public class MotorPlugin extends Plugin {
         getContext().getSharedPreferences("onda_motor", Context.MODE_PRIVATE).edit().putBoolean("detener", call.getBoolean("detener", false)).apply(); call.resolve();
     }
     /** realce de brillo para MP3/AAC de poca calidad (0 = apagado) */
+    @PluginMethod public void reverb(PluginCall call) {
+        try { if (Motor.eq != null) Motor.eq.nucleo.ponerReverb(call.getDouble("mezcla", 0.0), call.getDouble("tam", 0.5), call.getDouble("amort", 0.5), call.getDouble("pre", 0.0)); call.resolve(); } catch (Throwable e) { call.resolve(); }
+    }
     @PluginMethod public void mono(PluginCall call) {
         try { if (Motor.eq != null) Motor.eq.nucleo.ponerMono(call.getBoolean("on", false)); call.resolve(); } catch (Throwable e) { call.resolve(); }
     }

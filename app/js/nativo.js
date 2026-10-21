@@ -51,6 +51,7 @@ export class ReproductorNativo extends EventTarget {
   ponerCrossfeed(mezcla) { return this.N.crossfeed({ mezcla: +mezcla || 0 }); }
   ponerFase(on) { return this.N.fase({ on: !!on }); }
   ponerMono(on) { return this.N.mono({ on: !!on }); }
+  ponerReverb(o) { return this.N.reverb({ mezcla: +o.mezcla || 0, tam: +o.tam || 0.5, amort: +o.amort || 0.5, pre: +o.pre || 0 }); }
   ponerHiRes(on) { return this.N.hiResPuro({ on: !!on }); }
   reiniciarNivel() { this._cola = []; this._ult = null; }
   nivel(lat = 260) { const q = this._cola || [], t = performance.now() - lat; let v = null; while (q.length && q[0].t <= t) v = q.shift(); if (v) this._ult = v; return this._ult || { b: 0, r: 0, x: [0, 0, 0, 0, 0, 0, 0, 0] }; }
