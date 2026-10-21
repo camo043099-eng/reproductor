@@ -145,6 +145,7 @@ public class MotorPlugin extends Plugin {
         escuchado = Motor.jugador; escucha = new Escucha();
         escuchado.addListener(escucha);
         sesionAudio = 0; virt = null; bass = null; efectos();
+        emitir("estado", estadoActual());                                   // la pantalla nueva se entera de si ya está sonando
     }
     private void servicio() { try { getContext().startService(new Intent(getContext(), MotorServicio.class)); } catch (Exception e) { /* en segundo plano no se puede arrancar */ } }
     private void anunciarSesion(boolean abrir) {                              // así Dolby y los efectos del sistema se pueden enganchar al audio de Onda
