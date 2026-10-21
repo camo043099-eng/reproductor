@@ -553,6 +553,28 @@ public class MotorPlugin extends Plugin {
         catch (Exception e) { call.reject("No pude borrar: " + e.getMessage()); }
     }
 
+    // ───────── comprobar qué canciones siguen en el teléfono (para quitar al instante las borradas) ─────────
+    @PluginMethod public void existen(PluginCall call) {
+        try {
+            org.json.JSONArray ids = call.getArray("ids");
+            JSArray vivos = new JSArray();
+            if (ids != null && ids.length() > 0) {
+                StringBuilder sel = new StringBuilder(MediaStore.Audio.Media._ID + " IN (");
+                String[] args = new String[ids.length()];
+                for (int i = 0; i < ids.length(); i++) {
+                    String id = ids.getString(i); if (id.startsWith("ms")) id = id.substring(2);
+                    args[i] = id; sel.append(i == 0 ? "?" : ",?");
+                }
+                sel.append(")");
+                ContentResolver cr = getContext().getContentResolver();
+                try (Cursor c = cr.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, new String[]{MediaStore.Audio.Media._ID}, sel.toString(), args, null)) {
+                    while (c != null && c.moveToNext()) vivos.put("ms" + c.getLong(0));
+                }
+            }
+            JSObject o = new JSObject(); o.put("ids", vivos); call.resolve(o);
+        } catch (Exception e) { call.reject("No pude revisar: " + e.getMessage()); }
+    }
+
     private static Map<Long, String> mapaGeneros(ContentResolver cr) {
         Map<Long, String> m = new HashMap<>();
         try (Cursor g = cr.query(MediaStore.Audio.Genres.EXTERNAL_CONTENT_URI, new String[]{MediaStore.Audio.Genres._ID, MediaStore.Audio.Genres.NAME}, null, null, null)) {

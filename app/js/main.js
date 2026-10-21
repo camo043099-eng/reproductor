@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.52";
+const VERSION = "0.9.53";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -926,12 +926,26 @@ function salirSeleccion() { E.sel = null; pintarSeleccion(); document.querySelec
 async function borrarDelTelefono(lista) {
   const n = lista.length, titulo = n === 1 ? `“${lista[0].titulo || lista[0].nombre}”` : `${n} canciones`;
   menu(`¿Borrar ${titulo} del teléfono?`, [{ t: n === 1 ? "Borrar archivo del teléfono" : `Borrar ${n} archivos del teléfono`, cls: "peligro", f: async () => {
-    try { await MOTOR.borrarArchivos({ ids: lista.map((x) => x.id) }); borradoPendiente = true; if (E.sel) salirSeleccion(); avisar("Confirma en la ventana del teléfono.", 4000); }
+    try { await MOTOR.borrarArchivos({ ids: lista.map((x) => x.id) }); if (E.sel) salirSeleccion(); avisar("Confirma en la ventana del teléfono.", 4000); vigilarBorrado(lista); }
     catch (e) { avisar(String(e?.message || "").includes("permiso") ? "Sin permiso para cambiar tus archivos." : "No pude borrar el archivo.", 5000); }
   } }]);
 }
-let borradoPendiente = false;
-document.addEventListener("visibilitychange", () => { if (!document.hidden && borradoPendiente) { borradoPendiente = false; setTimeout(() => iniciarNativo(true), 600); } });
+/** Tras pedir el borrado, revisa cada segundo el teléfono y quita de la app, al instante, las canciones que ya no existen. */
+async function vigilarBorrado(lista) {
+  let pendientes = lista.slice();
+  for (let i = 0; i < 90 && pendientes.length; i++) {
+    await new Promise((r) => setTimeout(r, 1000));
+    const quitadas = [];
+    try {
+      for (let k = 0; k < pendientes.length; k += 400) {
+        const parte = pendientes.slice(k, k + 400), r = await MOTOR.existen({ ids: parte.map((x) => x.id) });
+        const vivos = new Set(r.ids || []); quitadas.push(...parte.filter((x) => !vivos.has(x.id)));
+      }
+    } catch (_) { return; }
+    for (const s of quitadas) await borrarCancion(s);
+    pendientes = pendientes.filter((x) => !quitadas.includes(x));
+  }
+}
 async function borrarCancion(s) {
   await db.borrar("canciones", s.id); await db.borrar("archivos", s.id);
   E.canciones = E.canciones.filter((x) => x.id !== s.id); E.version++; porId.delete(s.id);
