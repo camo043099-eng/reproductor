@@ -1003,7 +1003,7 @@ function ritmoEncender() {
   if (MOTOR && reproductor.ponerRitmo) reproductor.ponerRitmo(on && pila.includes("hoja-rep")).catch(() => {});
   if (!on || ritRaf) return;
   const cv = $("#r-ondas"), g = cv.getContext("2d");
-  let ritFrame = 0;
+  let ritFrame = 0, ritGeo = null, ritGeoT = 0, ritMatizT = -1e9;
   const paso = (ahora) => {
     ritRaf = requestAnimationFrame(paso);
     if (E.aj.ritmoFps === "30" && ahora - ritFrame < 30) return; ritFrame = ahora;
@@ -1018,12 +1018,14 @@ function ritmoEncender() {
     ritImp *= 0.88;
     el.style.scale = (1 + 0.075 * ritImp + 0.025 * n.b).toFixed(4); el.style.setProperty("--aro", ritImp.toFixed(3));
     // ondas de colores alrededor del círculo: anillos que salen en cada golpe + barras que cambian de color
-    const r = el.getBoundingClientRect(), o = cv.getBoundingClientRect(), cx = (r.left - o.left + r.width / 2) * dpr, cy = (r.top - o.top + r.height / 2) * dpr, R = (r.width / 2 / (1 + 0.075 * ritImp + 0.025 * n.b)) * dpr;
+    // La geometría casi no cambia (la escala se ve en cada cuadro, pero el centro y el radio base no): se lee como mucho cada 250 ms, no 60 veces por segundo
+    if (!ritGeo || ahora - ritGeoT > 250) { const r = el.getBoundingClientRect(), o = cv.getBoundingClientRect(); ritGeo = { cx: (r.left - o.left + r.width / 2) * dpr, cy: (r.top - o.top + r.height / 2) * dpr, R: (el.offsetWidth / 2) * dpr }; ritGeoT = ahora; }
+    const cx = ritGeo.cx, cy = ritGeo.cy, R = ritGeo.R;
     g.lineCap = "round";
     // 8 bandas de frecuencia (graves abajo, agudos arriba, simétricas). Los colores salen del tono de la carátula.
     const N = ritBarras.length, X = n.x || [], nivel = Math.max(n.r * 0.9, ritImp * 0.85, n.b);
     for (let k = 0; k < 8; k++) { ritMax[k] = Math.max(ritMax[k] * 0.985, X[k] || 0, 0.02); ritMed[k] += ((X[k] || 0) - ritMed[k]) * 0.05; }
-    ritMatiz = matizDeAcento();
+    if (ahora - ritMatizT > 500) { ritMatiz = matizDeAcento(); ritMatizT = ahora; }   // leer --ac2 con getComputedStyle en cada cuadro es caro; el color cambia muy de vez en cuando
     const colBanda = (k) => `hsl(${(ritMatiz + (k / 7 - 0.5) * 110 + 360) % 360} 85% ${56 + k * 1.5}%`;
     for (let i = 0; i < N; i++) {
       const u = Math.abs(i / N - 0.5) * 2, bp = Math.min(7, u * 7.001), k0 = Math.floor(bp), k1 = Math.min(7, k0 + 1), f = bp - k0;
