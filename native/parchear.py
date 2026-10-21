@@ -84,6 +84,20 @@ for n in ("ic_launcher.xml", "ic_launcher_round.xml"):
 # el fondo de la ventana de arranque (Android 12+) en el mismo color del icono
 print("icono de Onda instalado")
 
+# 4b) Iconos de temporada: la actividad de inicio pasa a ser un alias por icono (solo uno activo; lo cambia MotorPlugin.icono)
+import sys
+sys.path.insert(0, "native/icono")
+import manifiesto as mf
+for t in mf.TEMPORADAS:
+    open(res + "/mipmap-anydpi-v26/ic_onda_%s.xml" % t, "w").write(mf.xml_adaptativo(t))
+mx = open(m).read()
+if "Icono_normal" not in mx:
+    mx = mf.quitar_lanzador_de_principal(mx)
+    mx = mf.agregar_alias(mx)
+assert "Icono_normal" in mx
+open(m, "w").write(mx)
+print("iconos de temporada instalados")
+
 
 # 5) Fondo de ventana negro (evita el destello blanco al volver a la app desde otra)
 est = base + "res/values/styles.xml"

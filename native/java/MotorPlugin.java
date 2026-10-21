@@ -233,6 +233,26 @@ public class MotorPlugin extends Plugin {
         getContext().getSharedPreferences("onda_motor", Context.MODE_PRIVATE).edit().putBoolean("detener", call.getBoolean("detener", false)).apply(); call.resolve();
     }
     /** realce de brillo para MP3/AAC de poca calidad (0 = apagado) */
+    // Icono de la app por temporada: activa solo un alias de la actividad de inicio (ver native/icono/manifiesto.py)
+    @PluginMethod public void icono(PluginCall call) {
+        try {
+            String elegido = call.getString("nombre", "normal");
+            android.content.pm.PackageManager pm = getContext().getPackageManager();
+            String pkg = getContext().getPackageName();
+            for (String n : new String[]{"normal", "halloween", "navidad", "verano"}) {
+                android.content.ComponentName cn = new android.content.ComponentName(pkg, pkg + ".Icono_" + n);
+                boolean debe = n.equals(elegido);
+                int ahora = pm.getComponentEnabledSetting(cn);
+                boolean activo = ahora == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                    || (ahora == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DEFAULT && n.equals("normal"));
+                if (activo != debe) pm.setComponentEnabledSetting(cn, debe
+                    ? android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                    : android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    android.content.pm.PackageManager.DONT_KILL_APP);
+            }
+            JSObject r = new JSObject(); r.put("nombre", elegido); call.resolve(r);
+        } catch (Throwable e) { call.reject("icono: " + e.getMessage()); }
+    }
     @PluginMethod public void reverb(PluginCall call) {
         try { if (Motor.eq != null) Motor.eq.nucleo.ponerReverb(call.getDouble("mezcla", 0.0), call.getDouble("tam", 0.5), call.getDouble("amort", 0.5), call.getDouble("pre", 0.0)); call.resolve(); } catch (Throwable e) { call.resolve(); }
     }

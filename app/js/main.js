@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.62";
+const VERSION = "0.9.63";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -613,7 +613,7 @@ function perfilesSalida() {
   const p = (E.aj.perfiles ||= {}); if (E.aj.eqSalida && MOTOR && reproductor.ruta) p[reproductor.ruta] = { b: reproductor.bandasDb.slice(), p: reproductor.preampDb, x: reproductor.estadoEq ? reproductor.estadoEq() : undefined };
   return p;
 }
-async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn || !!reproductor._sinEq, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { tema: E.aj.tema || "mornye", fuente: E.aj.fuente || "inter", mono: !!E.aj.mono, rvMezcla: E.aj.rvMezcla || 0, rvTam: E.aj.rvTam ?? 50, rvAmort: E.aj.rvAmort ?? 50, rvPre: E.aj.rvPre || 0, silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", realce: E.aj.realce || "0", ritmo: E.aj.ritmo || "cd", ritmoLat: E.aj.ritmoLat || "260", ritmoEst: E.aj.ritmoEst || "onda", blur: E.aj.blur !== false, eqSalida: !!E.aj.eqSalida, anim: !!E.aj.anim, inicioBib: !!E.aj.inicioBib, progreso: E.aj.progreso !== false, saltos: E.aj.saltos !== false, hires: !!E.aj.hires, detener: !!E.aj.detener, ritmoFps: E.aj.ritmoFps || "60", contar: E.aj.contar || "auto", largoMin: E.aj.largoMin || "20", fadePlay: E.aj.fadePlay ?? "250", brecha: E.aj.brecha || "0", tfg: E.aj.tfg || "120", tqg: E.aj.tqg || "0.7", tfa: E.aj.tfa || "6000", tqa: E.aj.tqa || "0.7", rgPre: E.aj.rgPre || "0", rgSin: E.aj.rgSin || "0", rgSube: !!E.aj.rgSube, retrasoBt: E.aj.retrasoBt || "0", sinEqAlt: !!E.aj.sinEqAlt, sugerir: E.aj.sugerir !== false, navLbl: E.aj.navLbl !== false, usbDir: !!E.aj.usbDir, sigAlbum: E.aj.sigAlbum !== false, cruce: E.aj.cruce || "0", colchon: E.aj.colchon || "400", pantalla: !!E.aj.pantalla, animN: E.aj.animN || "1", densidad: E.aj.densidad || "comoda", forma: E.aj.forma || "redondeada", texto: E.aj.texto || "1", nombre: E.aj.nombre || "", inTiles: E.aj.inTiles !== false, inVuelve: E.aj.inVuelve !== false, inMixes: E.aj.inMixes !== false, inEscuchadas: E.aj.inEscuchadas !== false, inNuevas: E.aj.inNuevas !== false, inFav: E.aj.inFav !== false, inArtistas: E.aj.inArtistas !== false, sugeridos: E.aj.sugeridos || [], perfiles: perfilesSalida() }, eqx: reproductor.estadoEq ? reproductor.estadoEq() : undefined }, "config").catch(() => {}); }
+async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn || !!reproductor._sinEq, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { tema: E.aj.tema || "mornye", icono: E.aj.icono || "auto", fuente: E.aj.fuente || "inter", mono: !!E.aj.mono, rvMezcla: E.aj.rvMezcla || 0, rvTam: E.aj.rvTam ?? 50, rvAmort: E.aj.rvAmort ?? 50, rvPre: E.aj.rvPre || 0, silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", realce: E.aj.realce || "0", ritmo: E.aj.ritmo || "cd", ritmoLat: E.aj.ritmoLat || "260", ritmoEst: E.aj.ritmoEst || "onda", blur: E.aj.blur !== false, eqSalida: !!E.aj.eqSalida, anim: !!E.aj.anim, inicioBib: !!E.aj.inicioBib, progreso: E.aj.progreso !== false, saltos: E.aj.saltos !== false, hires: !!E.aj.hires, detener: !!E.aj.detener, ritmoFps: E.aj.ritmoFps || "60", contar: E.aj.contar || "auto", largoMin: E.aj.largoMin || "20", fadePlay: E.aj.fadePlay ?? "250", brecha: E.aj.brecha || "0", tfg: E.aj.tfg || "120", tqg: E.aj.tqg || "0.7", tfa: E.aj.tfa || "6000", tqa: E.aj.tqa || "0.7", rgPre: E.aj.rgPre || "0", rgSin: E.aj.rgSin || "0", rgSube: !!E.aj.rgSube, retrasoBt: E.aj.retrasoBt || "0", sinEqAlt: !!E.aj.sinEqAlt, sugerir: E.aj.sugerir !== false, navLbl: E.aj.navLbl !== false, usbDir: !!E.aj.usbDir, sigAlbum: E.aj.sigAlbum !== false, cruce: E.aj.cruce || "0", colchon: E.aj.colchon || "400", pantalla: !!E.aj.pantalla, animN: E.aj.animN || "1", densidad: E.aj.densidad || "comoda", forma: E.aj.forma || "redondeada", texto: E.aj.texto || "1", nombre: E.aj.nombre || "", inTiles: E.aj.inTiles !== false, inVuelve: E.aj.inVuelve !== false, inMixes: E.aj.inMixes !== false, inEscuchadas: E.aj.inEscuchadas !== false, inNuevas: E.aj.inNuevas !== false, inFav: E.aj.inFav !== false, inArtistas: E.aj.inArtistas !== false, sugeridos: E.aj.sugeridos || [], perfiles: perfilesSalida() }, eqx: reproductor.estadoEq ? reproductor.estadoEq() : undefined }, "config").catch(() => {}); }
 let tSes = 0;
 async function guardarSesion(fuerza) {
   const ahora = Date.now(); if (!fuerza && ahora - tSes < 4000) return; tSes = ahora;
@@ -793,7 +793,7 @@ $("#r-p10").addEventListener("click", () => reproductor.buscar(Math.min((reprodu
 
 // ── ajustes avanzados ──
 const TOGGLES = [["aj-wifi", "wifi", true], ["aj-fordef", "fordef", false], ["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false], ["aj-anim", "anim", false], ["aj-iniciobib", "inicioBib", false], ["aj-progreso", "progreso", true], ["aj-saltos", "saltos", true], ["aj-hires", "hires", false], ["aj-detener", "detener", false], ["aj-rgsube", "rgSube", false], ["aj-sineqalt", "sinEqAlt", false], ["aj-sugerir", "sugerir", true], ["aj-navlbl", "navLbl", true], ["aj-usbdir", "usbDir", false], ["aj-sigalbum", "sigAlbum", true], ["aj-pantalla", "pantalla", false], ["aj-intiles", "inTiles", true], ["aj-invuelve", "inVuelve", true], ["aj-inmixes", "inMixes", true], ["aj-inesc", "inEscuchadas", true], ["aj-innuevas", "inNuevas", true], ["aj-infav", "inFav", true], ["aj-inartistas", "inArtistas", true]];
-const SELECTS = [["aj-tema", "tema", "mornye"], ["aj-fuente", "fuente", "inter"], ["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-realce", "realce", "0"], ["aj-ritmo", "ritmo", "cd"], ["aj-ritmolat", "ritmoLat", "260"], ["aj-ritmoest", "ritmoEst", "onda"], ["aj-ritmofps", "ritmoFps", "60"], ["aj-contar", "contar", "auto"], ["aj-largo", "largoMin", "20"], ["aj-fadeplay", "fadePlay", "250"], ["aj-brecha", "brecha", "0"], ["aj-tfg", "tfg", "120"], ["aj-tqg", "tqg", "0.7"], ["aj-tfa", "tfa", "6000"], ["aj-tqa", "tqa", "0.7"], ["aj-rgpre", "rgPre", "0"], ["aj-rgsin", "rgSin", "0"], ["aj-retrasobt", "retrasoBt", "0"], ["aj-animn", "animN", "1"], ["aj-colchon", "colchon", "400"], ["aj-cruce", "cruce", "0"], ["aj-densidad", "densidad", "comoda"], ["aj-forma", "forma", "redondeada"], ["aj-texto", "texto", "1"]];
+const SELECTS = [["aj-tema", "tema", "mornye"], ["aj-fuente", "fuente", "inter"], ["aj-icono", "icono", "auto"], ["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-realce", "realce", "0"], ["aj-ritmo", "ritmo", "cd"], ["aj-ritmolat", "ritmoLat", "260"], ["aj-ritmoest", "ritmoEst", "onda"], ["aj-ritmofps", "ritmoFps", "60"], ["aj-contar", "contar", "auto"], ["aj-largo", "largoMin", "20"], ["aj-fadeplay", "fadePlay", "250"], ["aj-brecha", "brecha", "0"], ["aj-tfg", "tfg", "120"], ["aj-tqg", "tqg", "0.7"], ["aj-tfa", "tfa", "6000"], ["aj-tqa", "tqa", "0.7"], ["aj-rgpre", "rgPre", "0"], ["aj-rgsin", "rgSin", "0"], ["aj-retrasobt", "retrasoBt", "0"], ["aj-animn", "animN", "1"], ["aj-colchon", "colchon", "400"], ["aj-cruce", "cruce", "0"], ["aj-densidad", "densidad", "comoda"], ["aj-forma", "forma", "redondeada"], ["aj-texto", "texto", "1"]];
 let tocadoEnfoque = false;
 let _wl = null;
 async function pantallaEncendida() {
@@ -808,6 +808,24 @@ function sincronizarAjustes() {
   $("#aj-fase").checked = !!E.aj.fase; $("#aj-crossfeed").value = +E.aj.crossfeed || 0; $("#aj-crossfeed-v").textContent = (+E.aj.crossfeed || 0).toFixed(2);
   document.querySelectorAll("#hoja-aj select").forEach((x) => x._pintar?.());
   aplicarAvanzados();
+}
+// Temporadas del icono (fecha como mes*100+día). Verano en el hemisferio norte; ajusta las fechas si quieres.
+const TEMPORADAS_ICONO = [["halloween", 1015, 1102], ["navidad", 1201, 106], ["verano", 621, 922]];
+function temporadaIcono(hoy = new Date()) {
+  const md = (hoy.getMonth() + 1) * 100 + hoy.getDate();
+  for (const [nombre, desde, hasta] of TEMPORADAS_ICONO) {
+    const dentro = desde <= hasta ? md >= desde && md <= hasta : md >= desde || md <= hasta;   // navidad cruza el año
+    if (dentro) return nombre;
+  }
+  return "normal";
+}
+let iconoAplicado = null;
+function aplicarIcono() {
+  if (!MOTOR) return;
+  const pedido = E.aj.icono && E.aj.icono !== "auto" ? E.aj.icono : temporadaIcono();
+  if (pedido === iconoAplicado) return;
+  iconoAplicado = pedido;
+  MOTOR.icono({ nombre: pedido }).catch(() => { iconoAplicado = null; });
 }
 function aplicarAvanzados() {
   const r = document.documentElement, a = E.aj;
@@ -825,7 +843,7 @@ function aplicarAvanzados() {
     if (+(a.colchon || 400) !== (reproductor._colchon ?? 400)) reproductor.ponerColchon?.(+(a.colchon || 400))?.catch?.(() => {});
     if (+(a.cruce || 0) !== (reproductor._cruce ?? 0)) reproductor.ponerCruce?.(+(a.cruce || 0))?.catch?.(() => {});
     reproductor.ponerTonoAjuste?.(+a.tfg || 120, +a.tqg || 0.7, +a.tfa || 6000, +a.tqa || 0.7);
-    reproductor.ponerCrossfeed?.(+a.crossfeed || 0)?.catch?.(() => {}); reproductor.ponerFase?.(!!a.fase)?.catch?.(() => {}); reproductor.ponerMono?.(!!a.mono)?.catch?.(() => {}); reproductor.ponerReverb?.({ mezcla: (+a.rvMezcla || 0) / 100, tam: (a.rvTam ?? 50) / 100, amort: (a.rvAmort ?? 50) / 100, pre: +a.rvPre || 0 })?.catch?.(() => {}); }
+    reproductor.ponerCrossfeed?.(+a.crossfeed || 0)?.catch?.(() => {}); reproductor.ponerFase?.(!!a.fase)?.catch?.(() => {}); reproductor.ponerMono?.(!!a.mono)?.catch?.(() => {}); aplicarIcono(); reproductor.ponerReverb?.({ mezcla: (+a.rvMezcla || 0) / 100, tam: (a.rvTam ?? 50) / 100, amort: (a.rvAmort ?? 50) / 100, pre: +a.rvPre || 0 })?.catch?.(() => {}); }
   if (MOTOR && reproductor) { const o = { silencio: !!a.silencio, ruido: a.ruido !== false }; if (tocadoEnfoque || a.enfoque === false) o.enfoque = a.enfoque !== false; reproductor.ponerAvanzado(o).catch(() => {}); }
   pintarHiRes();
 }

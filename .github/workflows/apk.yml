@@ -13,6 +13,8 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 17 }
       - run: node --test tests/*.test.mjs
+      - name: Probar los alias de iconos de temporada
+        run: python3 tests/manifiesto_iconos.test.py
       - name: Probar el ecualizador (Java)
         run: |
           mkdir -p /tmp/jc
