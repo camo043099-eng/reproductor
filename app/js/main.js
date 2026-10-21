@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.65";
+const VERSION = "0.9.66";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -249,7 +249,7 @@ function dibujar() {
   $("#b-bib-atras").hidden = !(v === "biblioteca" && !raiz && !E.detalle);
   $("#buscador").hidden = !(v === "buscar" || (v === "biblioteca" && !E.detalle && !raiz)); $("#q").placeholder = v === "buscar" ? "¿Qué quieres escuchar?" : "Buscar en " + (TIT_TAB[E.tab] || "biblioteca").toLowerCase() + "…"; $("#indice").hidden = true; $("#pestanas").hidden = true; $("#barra-orden").hidden = true;
   { const t = document.querySelector("[data-t=carpetas]"); if (t) t.hidden = !E.canciones.some((x) => x.carpeta); }
-  document.querySelectorAll("#nav button").forEach((b) => { if (!b.dataset.v) { if (!b.firstElementChild.firstChild) b.firstElementChild.innerHTML = b.dataset.eq !== undefined ? I.eq : (b.id === "nav-menu" ? IN.ajustes : IN.menu); return; } const a = b.dataset.v === v; a ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"); if (!b.firstElementChild.firstChild) b.firstElementChild.innerHTML = IN[b.dataset.v]; });
+  document.querySelectorAll("#nav button").forEach((b) => { if (!b.dataset.v) { if (!b.firstElementChild.firstChild) b.firstElementChild.innerHTML = b.dataset.eq !== undefined ? I.eq : (b.id === "nav-menu" ? I.ajustes : IN.menu); return; } const a = b.dataset.v === v; a ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"); if (!b.firstElementChild.firstChild) b.firstElementChild.innerHTML = IN[b.dataset.v]; });
   if (v !== "biblioteca" && !E.canciones.length) { $("#contenido").innerHTML = vacio(); return; }
   if (E.detalle && v !== "biblioteca") {                                  // un detalle abierto desde Inicio o Buscar se queda en esa pestaña
     $("#buscador").hidden = true; $("#pestanas").hidden = true; $("#barra-orden").hidden = true; $("#titulo-vista").textContent = v === "inicio" ? saludo() : "Buscar";
