@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.77";
+const VERSION = "0.9.78";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -376,7 +376,7 @@ function dibujarRaiz() {
   const nAlb = albumesReales([...agrupar((s) => s.alb)]).length, nArt = agrupar((s) => normal(s.albumArtista || s.artista)).size, nFav = E.canciones.filter((s) => s.fav).length;
   const hayCarp = E.canciones.some((x) => x.carpeta), nCarp = hayCarp ? agrupar((s) => s.carpeta || "").size : 0;
   const filas = [["canciones", "Canciones", `${E.canciones.length} canciones`], ["albumes", "Álbumes", `${nAlb} álbumes`], ["artistas", "Artistas", `${nArt} artistas`], ...(hayCarp ? [["carpetas", "Carpetas", `${nCarp} carpetas`]] : []), ["listas", "Listas", `${nFav} favoritas · ${E.listas.length} listas`]];
-  c.innerHTML = `<div class="cats">${filas.map(([k, n, d]) => `<button class="cat" type="button" data-t="${k}"><i>${IC_CAT[k]}</i><span><b>${n}</b><small>${d}</small></span></button>`).join("")}</div>`;
+  c.innerHTML = `<div class="cats">${filas.map(([k, n, d]) => `<button class="cat" type="button" data-t="${k}" style="--ci:${({ canciones: "#8b6cff", albumes: "#ff4f8b", artistas: "#2fd4a4", carpetas: "#f5a524", listas: "#4da3ff" })[k]}"><i>${IC_CAT[k]}</i><span><b>${n}</b><small>${d}</small></span></button>`).join("")}</div>`;
 }
 function dibujarBiblioteca() {
   const c = $("#contenido"), q = normal(E.q.trim()), d = E.detalle;

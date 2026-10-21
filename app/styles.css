@@ -816,3 +816,32 @@ html.coche #hoja-rep .portada-grande { max-width: 62vw; margin: 0 auto; }
 .cola-titulo { display: flex; flex-direction: column; align-items: center; line-height: 1.15; font-weight: 700; }
 .cola-titulo small { font-size: 0.78rem; font-weight: 500; color: var(--tx2); margin-top: 2px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cola-filtros { padding: 4px 16px 10px; }
+
+/* ── Rediseño de Biblioteca (raíz): tarjetas de color por categoría ── */
+.cats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 4px 8px 16px; }
+.cat { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 14px; min-height: 136px; padding: 16px; border-radius: 22px; text-align: left; border: 1px solid rgba(255,255,255,.08); background: linear-gradient(160deg, color-mix(in srgb, var(--ci, #888) 42%, #15151a) 0%, #15151a 88%); box-shadow: 0 10px 26px rgba(0,0,0,.35); transition: transform .3s var(--rebote, ease); }
+.cat:active { transform: scale(.96); }
+.cat i { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; color: var(--ci, #fff); background: color-mix(in srgb, var(--ci, #888) 28%, transparent); }
+.cat i svg { width: 24px; height: 24px; }
+.cat span { display: grid; gap: 2px; }
+.cat b { font-size: 1.1rem; font-weight: 700; }
+.cat small { color: rgba(255,255,255,.62); font-size: .8rem; line-height: 1.25; }
+
+/* ── Rediseño de Ajustes: cada página es una tarjeta agrupada ── */
+.aj-pag { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.07); border-radius: 22px; padding: 4px 16px; }
+.aj-pag > .campo { border-bottom: 1px solid rgba(255,255,255,.07); padding: 14px 0; }
+.aj-pag > .campo:last-child { border-bottom: 0; }
+.aj-pag > .campo > span:first-child { font-size: 1rem; line-height: 1.3; }
+.aj-pag > .campo > b { flex: 0 1 50%; text-align: right; font-weight: 600; color: var(--tx2); overflow-wrap: anywhere; }
+.aj-pag h3.sub { margin: 14px 0 2px; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--tx2); }
+.aj-pag button::after { background: none !important; }
+.campo.orden-nav-campo { flex-wrap: wrap; }
+.campo.orden-nav-campo > span { flex: 1 1 100%; }
+.campo.orden-nav-campo .orden-nav { flex: 1 1 100%; width: 100%; margin-top: 4px; }
+html[data-tema="mornye"] .aj-pag, html[data-tema="mornye"] .aj-cat {
+  background: rgba(30,30,36,.55); border: 1px solid rgba(255,255,255,.12);
+  -webkit-backdrop-filter: blur(26px) saturate(170%); backdrop-filter: blur(26px) saturate(170%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 12px 32px rgba(0,0,0,.35); }
+
+/* el botón flotante se sube encima de la mini barra cuando hay canción */
+body:has(#mini:not([hidden])) .fab { bottom: calc(env(safe-area-inset-bottom, 0px) + 164px); }
