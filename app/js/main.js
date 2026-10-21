@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.50";
+const VERSION = "0.9.51";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -890,9 +890,33 @@ function opcionesCancion(s, enLista) {
   ];
   op.push({ t: "Elegir carátula entre resultados…", f: () => setTimeout(() => abrirSelectorPortada(s), 0) }, { t: "Buscar portada en internet", f: () => portadaWeb(s) }, { t: "Elegir portada de mi galería", f: () => elegirImagen(s) }, { t: "Ver letra", f: () => { if (reproductor.actual?.id !== s.id) tocar([s], 0).then(abrirLetra); else abrirLetra(); } });
   if (enLista) op.push({ t: "Quitar de esta lista", f: async () => { enLista.ids = enLista.ids.filter((x) => x !== s.id); await db.poner("listas", enLista); dibujar(); } });
+  op.push({ t: "Ver detalles", f: () => setTimeout(() => verDetalles(s), 0) });
+  if (MOTOR) op.push({ t: "Borrar del teléfono", cls: "peligro", f: () => setTimeout(() => borrarDelTelefono([s]), 0) });
   if (!MOTOR) op.push({ t: "Borrar de la biblioteca", cls: "peligro", f: async () => { if (!confirm(`¿Borrar “${s.titulo || s.nombre}” de la app? El archivo original de tu teléfono no se toca.`)) return; await borrarCancion(s); } });
   menu(nom(s), op);
 }
+/** Hoja con los datos que guarda el teléfono de la canción. */
+function verDetalles(s) {
+  const dur = (x) => { const t = Math.round(x || 0); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); };
+  const pista = s.pista ? (s.disco > 1 ? `${s.disco}-${s.pista}` : String(s.pista)) : "";
+  const filas = [["Título", s.titulo || s.nombre], ["Artista", s.artista], ["Álbum", s.album], ["Artista del álbum", s.albumArtista], ["Género", s.genero],
+    ["Pista", pista], ["Año", s.anio], ["Duración", s.duracion ? dur(s.duracion) : ""], ["Tamaño", s.tam ? (s.tam / 1048576).toFixed(1) + " MB" : ""],
+    ["Formato", s.formato || s.mime], ["Tipo MIME", s.mime], ["Archivo", s.nombre], ["Carpeta", s.carpeta], ["Agregada", s.fecha ? new Date(s.fecha).toLocaleDateString("es") : ""]]
+    .filter(([, v]) => v !== "" && v != null && v !== 0);
+  $("#det-titulo").textContent = nom(s);
+  $("#det-cuerpo").innerHTML = filas.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(String(v))}</dd></div>`).join("");
+  abrir("hoja-detalles");
+}
+/** Borra los archivos del teléfono. El sistema pide su propia confirmación; al volver a Onda se vuelve a leer la música. */
+async function borrarDelTelefono(lista) {
+  const n = lista.length, titulo = n === 1 ? `“${lista[0].titulo || lista[0].nombre}”` : `${n} canciones`;
+  menu(`¿Borrar ${titulo} del teléfono?`, [{ t: n === 1 ? "Borrar archivo del teléfono" : `Borrar ${n} archivos del teléfono`, cls: "peligro", f: async () => {
+    try { await MOTOR.borrarArchivos({ ids: lista.map((x) => x.id) }); borradoPendiente = true; avisar("Confirma en la ventana del teléfono.", 4000); }
+    catch (e) { avisar(String(e?.message || "").includes("permiso") ? "Sin permiso para cambiar tus archivos." : "No pude borrar el archivo.", 5000); }
+  } }]);
+}
+let borradoPendiente = false;
+document.addEventListener("visibilitychange", () => { if (!document.hidden && borradoPendiente) { borradoPendiente = false; setTimeout(() => iniciarNativo(true), 600); } });
 async function borrarCancion(s) {
   await db.borrar("canciones", s.id); await db.borrar("archivos", s.id);
   E.canciones = E.canciones.filter((x) => x.id !== s.id); E.version++; porId.delete(s.id);

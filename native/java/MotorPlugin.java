@@ -528,6 +528,31 @@ public class MotorPlugin extends Plugin {
             catch (Exception e) { call.reject("No pude leer la música: " + e.getMessage()); }
         }).start();
     }
+    // ───────── borrar canciones del teléfono ─────────
+    // Android 11+: MediaStore pide la confirmación al propio sistema (no podemos borrar archivos ajenos sin ella).
+    // Antes de Android 11 se intenta borrar directamente; si el sistema lo niega, se avisa.
+    @PluginMethod public void borrarArchivos(PluginCall call) {
+        try {
+            org.json.JSONArray ids = call.getArray("ids");
+            if (ids == null || ids.length() == 0) { call.reject("Sin canciones"); return; }
+            java.util.ArrayList<Uri> uris = new java.util.ArrayList<>();
+            for (int i = 0; i < ids.length(); i++) {
+                String id = ids.getString(i); if (id.startsWith("ms")) id = id.substring(2);
+                uris.add(android.content.ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, Long.parseLong(id)));
+            }
+            ContentResolver cr = getContext().getContentResolver();
+            if (Build.VERSION.SDK_INT >= 30) {
+                android.app.PendingIntent pi = MediaStore.createDeleteRequest(cr, uris);
+                getActivity().startIntentSenderForResult(pi.getIntentSender(), 4711, null, 0, 0, 0);
+                JSObject o = new JSObject(); o.put("pedido", true); call.resolve(o);
+            } else {
+                int n = 0; for (Uri u : uris) n += cr.delete(u, null, null);
+                JSObject o = new JSObject(); o.put("borrados", n); call.resolve(o);
+            }
+        } catch (SecurityException e) { call.reject("permiso"); }
+        catch (Exception e) { call.reject("No pude borrar: " + e.getMessage()); }
+    }
+
     private static Map<Long, String> mapaGeneros(ContentResolver cr) {
         Map<Long, String> m = new HashMap<>();
         try (Cursor g = cr.query(MediaStore.Audio.Genres.EXTERNAL_CONTENT_URI, new String[]{MediaStore.Audio.Genres._ID, MediaStore.Audio.Genres.NAME}, null, null, null)) {
