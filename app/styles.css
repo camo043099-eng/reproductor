@@ -874,3 +874,6 @@ html[data-tema="mornye"] #hoja-cola .cq.ahora { background: linear-gradient(135d
 html[data-tema="mornye"] #hoja-cola .cq.ahora .info b { color: #fff; }
 #hoja-cola .cola-filtros { display: flex; align-items: center; gap: 8px; overflow: visible; min-height: 56px; padding: 6px 16px 12px; }
 #hoja-cola .cola-filtros .chip { min-height: 38px; padding: 8px 16px; flex: 0 0 auto; }
+
+/* ── Los botones de la fila de la carátula ahora viven en el menú de tres puntos ── */
+#hoja-rep .extras, #hoja-rep #r-mas { display: none !important; }

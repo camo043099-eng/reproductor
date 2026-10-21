@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.80";
+const VERSION = "0.9.81";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -959,14 +959,18 @@ function abrirHojaCancion(s) {
     fila(I.lista, "Ir al álbum", "album"),
     fila(I.lista, "Ir al artista", "artista"),
     fila(I.lista, "Ver detalles", "detalles"),
+    fila(I.letra, "Ver letra", "letra"),
+    fila(I.eq, "Ecualizador", "eq"),
     fila(I.lista, "Elegir carátula entre resultados…", "caratula"),
+    fila(I.lista, "Elegir portada de mi galería", "galeria"),
     fila(I.lista, "Temporizador de apagado", "sueno"),
   ].join("");
   const acciones = {
     sigue: () => sigue(), lista: () => agregarALista(s), comp: () => { if (navigator.share) navigator.share({ title: nom(s), text: `${s.artista || ""} · ${s.album || ""}` }).catch(() => {}); else avisar("Compartir no está disponible aquí"); },
     mix: () => tocar(E.canciones.filter((x) => normal(x.albumArtista || x.artista) === artista), 0, true), final: () => alFinal(),
     album: () => irA("album", s.alb, "albumes"), artista: () => irA("artista", artista, "artistas"),
-    detalles: () => verDetalles(s), caratula: () => abrirSelectorPortada(s),
+    detalles: () => verDetalles(s), caratula: () => abrirSelectorPortada(s), galeria: () => elegirImagen(s),
+    letra: () => $("#r-letra").click(), eq: () => $("#r-eq").click(),
     sueno: () => { dibujarSueno(); abrir("hoja-sueno"); },
   };
   $("#hoja-cancion").onclick = (e) => {
