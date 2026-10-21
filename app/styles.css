@@ -845,3 +845,18 @@ html[data-tema="mornye"] .aj-pag, html[data-tema="mornye"] .aj-cat {
 
 /* el botón flotante se sube encima de la mini barra cuando hay canción */
 body:has(#mini:not([hidden])) .fab { bottom: calc(env(safe-area-inset-bottom, 0px) + 164px); }
+
+/* ── Menú de la canción (tres puntos del reproductor) ── */
+.acc-top { display: flex; align-items: center; gap: 2px; }
+.hoja-cancion .hc-cab { display: flex; align-items: center; gap: 8px; padding: 8px 2px 14px; border-bottom: 1px solid rgba(255,255,255,.10); }
+.hc-texto { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.hc-texto b { font-size: 1.12rem; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.hc-texto > span { color: var(--tx2); font-size: .9rem; }
+.hc-acc { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 16px 0 10px; }
+.hc-acc button { display: grid; justify-items: center; gap: 8px; font-size: .82rem; text-align: center; color: var(--tx); line-height: 1.2; }
+.hc-acc i { width: 100%; height: 66px; border-radius: 16px; display: grid; place-items: center; background: rgba(255,255,255,.12); }
+.hc-acc i svg, .hc-lista i svg { width: 24px; height: 24px; }
+.hc-lista { display: grid; padding-bottom: 12px; }
+.hc-lista button { display: flex; align-items: center; gap: 18px; padding: 14px 4px; font-size: 1.02rem; text-align: left; color: var(--tx); background: none; border: 0; }
+.hc-lista i { width: 26px; display: grid; place-items: center; opacity: .9; }
+.hoja-cancion svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }

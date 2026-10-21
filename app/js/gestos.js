@@ -46,8 +46,9 @@ export function arrastrarHoja(hoja, zonas, cerrar) {
     empezar: () => { hoja.style.transition = "none"; },
     mover: (dx, dy) => { hoja.style.transform = `translateY(${Math.max(0, dy)}px)`; },
     soltar: (dx, dy, vx, vy) => {
-      const cierra = dy > 130 || vy > 0.7; hoja.style.transition = "";
-      requestAnimationFrame(() => { hoja.style.transform = ""; if (cierra) { vibra(8); cerrar(hoja.id); } });
+      const cierra = dy > 130 || vy > 0.7;
+      if (cierra) { vibra(8); hoja.style.transition = "transform .3s ease-out"; hoja.style.transform = "translateY(100%)"; setTimeout(() => { cerrar(hoja.id); hoja.style.transition = ""; hoja.style.transform = ""; }, 300); return; }
+      hoja.style.transition = ""; requestAnimationFrame(() => { hoja.style.transform = ""; });
     },
     cancelar: () => { hoja.style.transition = ""; hoja.style.transform = ""; },
   });

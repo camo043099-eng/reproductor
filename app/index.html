@@ -82,7 +82,7 @@
 <!-- reproductor completo -->
 <section class="hoja completa" id="hoja-rep" hidden aria-label="Reproduciendo" role="dialog">
   <canvas id="r-ondas" aria-hidden="true"></canvas>
-  <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span class="suave">Reproduciendo</span><button class="ib" id="r-cola" aria-label="Cola"></button></div>
+  <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span class="suave">Reproduciendo</span><span class="acc-top"><button class="ib" id="r-cola" aria-label="Cola"></button><button class="ib" id="r-mas-top" aria-label="Más opciones"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button></span></div>
   <div class="portada-grande"><img id="r-port" alt=""><i class="cd-brillo" aria-hidden="true"></i><canvas id="r-viz" width="320" height="80" hidden></canvas></div>
   <button class="chip" id="r-buscar-port" type="button" hidden style="align-self:center;margin:-6px 0 8px">Buscar carátula en internet</button>
   <button class="chip" id="r-mas" type="button" style="align-self:center;margin:0 0 8px">Más opciones</button>
@@ -193,6 +193,11 @@
 </section>
 
 <!-- temporizador -->
+<section class="hoja corta hoja-cancion" id="hoja-cancion" hidden role="dialog" aria-label="Opciones de la canción">
+  <div class="hc-cab"><div class="hc-texto"><b id="hc-titulo"></b><span id="hc-art"></span></div><button class="ib" id="hc-fav" type="button" aria-label="Me gusta"></button><button class="ib" data-cerrar aria-label="Cerrar"></button></div>
+  <div class="hc-acc" id="hc-acc"></div>
+  <div class="hc-lista" id="hc-lista"></div>
+</section>
 <section class="hoja corta" id="hoja-sueno" hidden role="dialog" aria-label="Temporizador de sueño">
   <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span>Temporizador de sueño</span><span></span></div>
   <div class="opciones" id="sueno-op"></div>

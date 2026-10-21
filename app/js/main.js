@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.78";
+const VERSION = "0.9.79";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -941,6 +941,40 @@ async function alternarFav(s, forzar) {
   if (reproductor.actual?.id === s.id) actualizarMini();
   if (E.tab === "listas") dibujar();
 }
+function irA(tipo, k, tab) { cerrar("hoja-cancion"); cerrar("hoja-rep"); E.vista = "biblioteca"; E.bibRaiz = false; E.tab = tab; E.detalle = { tipo, k }; dibujar(); }
+function abrirHojaCancion(s) {
+  const artista = normal(s.albumArtista || s.artista);
+  const pintarFav = () => { $("#hc-fav").innerHTML = s.fav ? I.fav.replace("<svg", '<svg fill="currentColor"') : I.fav; };
+  $("#hc-titulo").textContent = nom(s);
+  $("#hc-art").textContent = `${s.artista || "Artista desconocido"}${s.duracion ? " · " + fmt(s.duracion) : ""}`;
+  pintarFav(); $("#hc-fav").onclick = async () => { await alternarFav(s); pintarFav(); };
+  const sigue = () => { if (!reproductor.actual) tocar([s], 0); else { reproductor.siguienteLuego(s); avisar("Sonará a continuación."); } };
+  const alFinal = () => { if (!reproductor.actual) tocar([s], 0); else { reproductor.alFinal(s); avisar("Agregada a la cola."); } };
+  const tile = (ico, t, f) => `<button type="button" data-hc="${t}"><i>${ico}</i>${t}</button>`;
+  $("#hc-acc").innerHTML = tile(I.sig, "A continuación", "sigue") + tile(I.mas, "Guardar en lista", "lista") + tile(I.lista, "Compartir", "comp");
+  const fila = (ico, t, f) => `<button type="button" data-hc="${f}"><i>${ico}</i>${t}</button>`;
+  $("#hc-lista").innerHTML = [
+    fila(I.azar, "Mezclar del mismo artista", "mix"),
+    fila(I.lista, "Agregar al final de la cola", "final"),
+    fila(I.lista, "Ir al álbum", "album"),
+    fila(I.lista, "Ir al artista", "artista"),
+    fila(I.lista, "Ver detalles", "detalles"),
+    fila(I.lista, "Elegir carátula entre resultados…", "caratula"),
+    fila(I.lista, "Temporizador de apagado", "sueno"),
+  ].join("");
+  const acciones = {
+    sigue: () => sigue(), lista: () => agregarALista(s), comp: () => { if (navigator.share) navigator.share({ title: nom(s), text: `${s.artista || ""} · ${s.album || ""}` }).catch(() => {}); else avisar("Compartir no está disponible aquí"); },
+    mix: () => tocar(E.canciones.filter((x) => normal(x.albumArtista || x.artista) === artista), 0, true), final: () => alFinal(),
+    album: () => irA("album", s.alb, "albumes"), artista: () => irA("artista", artista, "artistas"),
+    detalles: () => verDetalles(s), caratula: () => abrirSelectorPortada(s),
+    sueno: () => { dibujarSueno(); abrir("hoja-sueno"); },
+  };
+  $("#hoja-cancion").onclick = (e) => {
+    const b = e.target.closest("[data-hc]"); if (!b) return; const f = acciones[b.dataset.hc]; if (!f) return;
+    cerrar("hoja-cancion"); setTimeout(f, 60);
+  };
+  abrir("hoja-cancion");
+}
 function opcionesCancion(s, enLista) {
   const op = [
     { t: "Reproducir a continuación", f: () => { if (!reproductor.actual) tocar([s], 0); else { reproductor.siguienteLuego(s); avisar("Sonará a continuación."); } } },
@@ -1401,6 +1435,7 @@ function enlazar() {
     $("#" + id).addEventListener("input", (e) => { const v = +e.target.value; E.aj[clave] = v; $("#" + id + "-v").textContent = id === "rv-pre" ? v + " ms" : v + "%"; aplicarAvanzados(); });
     $("#" + id).addEventListener("change", () => guardarAjustes());
   }
+  $("#r-mas-top").addEventListener("click", () => { const s = reproductor.actual && porId.get(reproductor.actual.id); if (s) abrirHojaCancion(s); });
   $("#r-mas").addEventListener("click", () => { const s = reproductor.actual && porId.get(reproductor.actual.id); if (s) opcionesCancion(s, null); });
   $("#r-chips").addEventListener("click", () => { const s = reproductor.actual && porId.get(reproductor.actual.id); if (s) verDetalles(s); });   // tocar el formato abre la info de la canción
   $("#sel-cancelar").addEventListener("click", salirSeleccion);
@@ -1562,7 +1597,7 @@ function enlazar() {
 function gestos() {
   const R = reproductor;
   // hojas: arrastrar hacia abajo desde la parte de arriba para cerrar
-  document.querySelectorAll(".hoja").forEach((h) => arrastrarHoja(h, h.classList.contains("completa") ? [".hoja-top"] : [".hoja-top"], cerrar));
+  document.querySelectorAll(".hoja").forEach((h) => arrastrarHoja(h, h.classList.contains("completa") ? [".hoja-top", ".portada-grande"] : [".hoja-top"], cerrar));
   // portada del reproductor: deslizar a los lados cambia de canción
   const por = $(".portada-grande");
   deslizar(por, {
@@ -1583,11 +1618,26 @@ function gestos() {
   deslizar(mini, {
     acepta: () => true,
     empezar: () => { mini.style.transition = "none"; info.style.transition = "none"; },
-    mover: (dx, dy, eje) => { if (eje === "x") info.style.translate = `${dx * 0.6}px 0`; else if (dy < 0) mini.style.translate = `0 ${dy * 0.5}px`; },
+    mover: (dx, dy, eje) => {
+      if (eje === "x") info.style.translate = `${dx * 0.6}px 0`;
+      else if (dy < 0) {
+        mini.style.translate = `0 ${dy * 0.5}px`;
+        const h = $("#hoja-rep"), H = innerHeight; if (h.hidden && !pila.includes("hoja-rep")) h.hidden = false;
+        h.style.transition = "none"; h.style.transform = `translateY(${Math.max(0, H + dy)}px)`;
+      }
+    },
     soltar: (dx, dy, vx, vy, eje) => {
       mini.style.transition = ""; info.style.transition = ""; info.style.translate = ""; mini.style.translate = "";
-      if (eje === "x") { if (dx < -70 || vx < -0.6) { vibra(); R.siguiente(); } else if (dx > 70 || vx > 0.6) { vibra(); R.anterior(); } }
-      else if (dy < -40 || vy < -0.5) abrirReproductor();
+      const h = $("#hoja-rep");
+      if (eje === "x") { h.style.transform = ""; h.style.transition = ""; if (dx < -70 || vx < -0.6) { vibra(); R.siguiente(); } else if (dx > 70 || vx > 0.6) { vibra(); R.anterior(); } }
+      else if (dy < -40 || vy < -0.5) {
+        const y = Math.max(0, innerHeight + Math.min(0, dy));
+        if (!pila.includes("hoja-rep")) { h.style.transition = "none"; h.style.transform = `translateY(${y}px)`; abrirReproductor(); }
+        requestAnimationFrame(() => requestAnimationFrame(() => { h.style.transition = ""; h.style.transform = ""; }));
+      } else if (!pila.includes("hoja-rep")) {
+        h.style.transition = "transform .3s ease-out"; h.style.transform = "translateY(100%)";
+        setTimeout(() => { h.hidden = true; h.style.transition = ""; h.style.transform = ""; }, 300);
+      }
     },
     cancelar: () => { mini.style.transition = ""; info.style.transition = ""; info.style.translate = ""; mini.style.translate = ""; },
   });
@@ -1954,9 +2004,9 @@ function aplicarOrdenNav() {
     puede: (e) => {
       if (hoja.scrollTop > 0 || e.target.closest("button, input, select, textarea, label, .controles, .extras, .campo, #r-barra-c, #letra-cuerpo, .letra-sync, .hoja-top")) return null;
       const r = hoja.getBoundingClientRect();
-      return { izq: e.clientX < r.left + r.width / 2 };
+      return { izq: e.clientX < r.left + r.width / 2, enPortada: !!e.target.closest(".portada-grande") };
     },
-    acepta: (eje, dx, dy, ctx) => (ctx.izq ? eje === "x" : eje === "y"),
+    acepta: (eje, dx, dy, ctx) => (ctx.izq ? eje === "x" : eje === "y" && !ctx.enPortada),
     empezar: (eje, ctx) => {
       if (ctx.izq) { base = R.tiempo || 0; objetivo = base; mostrar(fmt(base)); }
       else { volAcc = 0; ultY = 0; mostrar("Volumen"); }
