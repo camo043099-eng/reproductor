@@ -18,6 +18,7 @@ public class MotorServicio extends MediaSessionService {
     @Nullable @Override public MediaSession onGetSession(MediaSession.ControllerInfo info) { Motor.iniciar(this); return Motor.sesion; }
 
     @Override public void onTaskRemoved(@Nullable Intent raiz) {
+        Motor.guardarSesion();                                              // por si el teléfono cierra la app sin más aviso
         ExoPlayer p = Motor.jugador;
         if (p != null && getSharedPreferences("onda_motor", MODE_PRIVATE).getBoolean("detener", false)) { p.pause(); p.stop(); stopSelf(); return; }
         if (p == null || !p.getPlayWhenReady() || p.getMediaItemCount() == 0) stopSelf();

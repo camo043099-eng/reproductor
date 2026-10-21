@@ -371,14 +371,7 @@ public class MotorPlugin extends Plugin {
         o.put("estado", p == null ? 1 : p.getPlaybackState());
         return o;
     }
-    private MediaItem item(JSONObject j) throws Exception {
-        String albumId = j.optString("albumId", "");
-        File f = new File(getContext().getFilesDir(), "portadas/" + albumId + ".jpg");
-        Uri arte = f.exists() ? Uri.fromFile(f) : (albumId.isEmpty() ? null : Uri.parse("content://media/external/audio/albumart/" + albumId));
-        MediaMetadata.Builder mb = new MediaMetadata.Builder().setTitle(j.optString("titulo", "")).setArtist(j.optString("artista", "")).setAlbumTitle(j.optString("album", ""));
-        if (arte != null) mb.setArtworkUri(arte);
-        return new MediaItem.Builder().setMediaId(j.getString("id")).setUri(Uri.parse(j.getString("uri"))).setMediaMetadata(mb.build()).build();
-    }
+    private MediaItem item(JSONObject j) throws Exception { return Motor.itemDe(getContext(), j); }
     private List<MediaItem> items(JSArray a) throws Exception {
         List<MediaItem> l = new ArrayList<>(); for (int i = 0; i < a.length(); i++) l.add(item(a.getJSONObject(i))); return l;
     }
@@ -706,7 +699,7 @@ public class MotorPlugin extends Plugin {
             try {
                 ExoPlayer p = Motor.jugador; JSArray a = call.getArray("items"); int idx = call.getInt("indice", 0); long pos = call.getData().optLong("posMs", 0);
                 boolean sonar = call.getBoolean("sonar", true);
-                p.setMediaItems(items(a), idx, pos); p.prepare(); p.setPlayWhenReady(sonar);
+                p.setMediaItems(items(a), idx, pos); p.prepare(); p.setPlayWhenReady(sonar); Motor.guardarSesion();
                 servicio();
                 aplicarGanancia(); call.resolve();
             } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }

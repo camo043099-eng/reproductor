@@ -54,15 +54,11 @@ test("espacial y resincronizar", async () => {
   await r.resincronizar(); assert.equal(r.pos, 2); assert.equal(r.sonando, true); assert.equal(r.tiempo, 9);
 });
 
-test("play en frío sin cola cargada: carga la cola y reproduce, sin mandar alternar al motor", async () => {
+test("play nunca recarga la cola: manda alternar al motor, que ya tiene la sesión restaurada", async () => {
   const f = falso(), r = new ReproductorNativo(f.N); r.lista = canc(3); r.pos = 1; r._pos = 42;
-  await r.alternar();
-  const c = f.llamadas.find((x) => x[0] === "cargar");
-  assert.ok(c, "debe cargar la cola"); assert.equal(c[1].indice, 1); assert.equal(c[1].sonar, true); assert.equal(c[1].posMs, 42000);
-  assert.equal(f.llamadas.some((x) => x[0] === "alternar"), false);
-  assert.equal(r.sonando, true);
-  await r.alternar();                                              // ya armado: ahora sí es pausa/play normal
-  assert.equal(f.llamadas.filter((x) => x[0] === "alternar").length, 1);
+  await r.alternar(); await r.alternar();
+  assert.equal(f.llamadas.some((x) => x[0] === "cargar"), false, "play no debe cargar la cola");
+  assert.equal(f.llamadas.filter((x) => x[0] === "alternar").length, 2);
 });
 test("play con cola ya cargada usa alternar normal", async () => {
   const f = falso(), r = new ReproductorNativo(f.N); await r.cargarCola(canc(3), 0, false);

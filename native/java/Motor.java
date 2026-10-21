@@ -3,6 +3,16 @@ package com.camo.onda;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Handler;
+import android.os.Looper;
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.MediaMetadata;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import androidx.media3.common.AudioAttributes;
 import androidx.media3.common.C;
 import androidx.media3.common.audio.AudioProcessor;
@@ -84,7 +94,9 @@ public final class Motor {
             @Override public void onAudioUnderrun(androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime t, int tam, long ms, long desde) { cortes++; }
         });
         p.addListener(new androidx.media3.common.Player.Listener() {
-            @Override public void onPositionDiscontinuity(androidx.media3.common.Player.PositionInfo antes, androidx.media3.common.Player.PositionInfo ahora, int motivo) { if (motivo == androidx.media3.common.Player.DISCONTINUITY_REASON_INTERNAL || motivo == androidx.media3.common.Player.DISCONTINUITY_REASON_SKIP) saltos++; }
+            @Override public void onPositionDiscontinuity(androidx.media3.common.Player.PositionInfo antes, androidx.media3.common.Player.PositionInfo ahora, int motivo) { if (motivo == androidx.media3.common.Player.DISCONTINUITY_REASON_INTERNAL || motivo == androidx.media3.common.Player.DISCONTINUITY_REASON_SKIP) saltos++; if (p == jugador) guardarSesion(); }
+            @Override public void onIsPlayingChanged(boolean sonando) { if (p == jugador) guardarSesion(); }
+            @Override public void onMediaItemTransition(MediaItem item, int motivo) { if (p == jugador) guardarSesion(); }
         });
         return p;
     }
@@ -96,12 +108,60 @@ public final class Motor {
         };
     }
 
+    // ── sesión: la cola, el índice y la posición se guardan en el teléfono para reanudar tras cerrar la app ──
+    private static final java.util.Map<String, JSONObject> datos = new java.util.concurrent.ConcurrentHashMap<>();   // lo necesario para rearmar cada elemento
+    private static final Handler latido = new Handler(Looper.getMainLooper());
+    private static final Runnable latidoSesion = new Runnable() { @Override public void run() { if (jugador != null && jugador.isPlaying()) guardarSesion(); latido.postDelayed(this, 5000); } };
+    private static String colaGuardada = null;
+
+    /** Construye un elemento de la cola y recuerda sus datos para poder restaurarlo. */
+    public static MediaItem itemDe(Context ctx, JSONObject j) throws Exception {
+        String albumId = j.optString("albumId", "");
+        File f = new File(ctx.getFilesDir(), "portadas/" + albumId + ".jpg");
+        android.net.Uri arte = f.exists() ? android.net.Uri.fromFile(f) : (albumId.isEmpty() ? null : android.net.Uri.parse("content://media/external/audio/albumart/" + albumId));
+        MediaMetadata.Builder mb = new MediaMetadata.Builder().setTitle(j.optString("titulo", "")).setArtist(j.optString("artista", "")).setAlbumTitle(j.optString("album", ""));
+        if (arte != null) mb.setArtworkUri(arte);
+        String id = j.getString("id");
+        datos.put(id, j);
+        return new MediaItem.Builder().setMediaId(id).setUri(android.net.Uri.parse(j.getString("uri"))).setMediaMetadata(mb.build()).build();
+    }
+
+    /** Guarda la cola viva del reproductor, el índice y la posición. Sin cola no toca lo guardado. */
+    public static void guardarSesion() {
+        ExoPlayer p = jugador; Context c = appCtx;
+        if (p == null || c == null || p.getMediaItemCount() == 0) return;
+        try {
+            JSONArray arr = new JSONArray();
+            for (int i = 0; i < p.getMediaItemCount(); i++) { JSONObject j = datos.get(p.getMediaItemAt(i).mediaId); if (j == null) return; arr.put(j); }
+            String cola = arr.toString();
+            SharedPreferences.Editor e = c.getSharedPreferences("onda_sesion", Context.MODE_PRIVATE).edit();
+            if (!cola.equals(colaGuardada)) { e.putString("cola", cola); colaGuardada = cola; }
+            e.putInt("idx", Math.max(0, p.getCurrentMediaItemIndex())).putLong("pos", Math.max(0, p.getCurrentPosition())).apply();
+        } catch (Exception ignore) { /* no es crítico: se guarda en el siguiente cambio */ }
+    }
+
+    private static void restaurarSesion(Context app) {
+        try {
+            SharedPreferences sp = app.getSharedPreferences("onda_sesion", Context.MODE_PRIVATE);
+            String cola = sp.getString("cola", null); if (cola == null) return;
+            JSONArray arr = new JSONArray(cola); List<MediaItem> l = new ArrayList<>();
+            for (int i = 0; i < arr.length(); i++) l.add(itemDe(app, arr.getJSONObject(i)));
+            if (l.isEmpty()) return;
+            int idx = Math.max(0, Math.min(sp.getInt("idx", 0), l.size() - 1));
+            jugador.setMediaItems(l, idx, Math.max(0, sp.getLong("pos", 0)));
+            jugador.prepare(); jugador.setPlayWhenReady(false);
+            colaGuardada = cola;
+        } catch (Exception ignore) { /* sin sesión válida: se empieza vacío */ }
+    }
+
     public static synchronized void iniciar(Context ctx) {
         if (jugador != null) return;
         Context app = ctx.getApplicationContext(); appCtx = app;
         eq = new EqProcesador();
         EqProcesador.salida16 = app.getSharedPreferences("onda_motor", Context.MODE_PRIVATE).getBoolean("salida16", false);
         jugador = construir(app, eq, true);
+        restaurarSesion(app);                                            // la cola y la posición de la última vez, en pausa, listas para Play
+        latido.removeCallbacks(latidoSesion); latido.postDelayed(latidoSesion, 5000);
         PendingIntent abrir = PendingIntent.getActivity(app, 0, new Intent(app, MainActivity.class), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         sesion = new MediaSession.Builder(app, envolver(jugador)).setId("onda").setSessionActivity(abrir).build();
     }

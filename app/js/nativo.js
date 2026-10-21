@@ -68,13 +68,8 @@ export class ReproductorNativo extends EventTarget {
     this.lista = canciones; this.original = canciones.slice(); this.pos = e.indice; this._pos = e.pos / 1000; this._sonando = !!e.sonando; this._armado = true; this._dur = e.dur > 0 ? e.dur / 1000 : this.actual?.duracion || 0;
     this._emitir("cola"); this._emitir("cambio", this.actual); this._emitir("estado");
   }
-  /** Play/pausa. Si el motor nativo no tiene la cola (arranque en frío tras cerrar desde Recientes), la carga primero y reproduce. */
+  /** Play/pausa: solo manda el comando al motor nativo. La cola se restaura en el arranque (Motor.restaurarSesion). */
   alternar() {
-    if (!this._armado && this.lista.length) {
-      const i = Math.max(0, this.pos), ms = Math.round(Math.max(0, this._pos) * 1000);
-      this._sonando = true; this._posAt = performance.now(); this._emitir("estado");
-      return this.N.cargar({ items: this.lista.map(dato), indice: i, sonar: true, posMs: ms }).then(() => { this._armado = true; });
-    }
     this._sonando = !this._sonando; this._posAt = performance.now(); this._emitir("estado"); return this.N.alternar();
   }
   pausa() { return this.N.pausa(); }
