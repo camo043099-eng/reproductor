@@ -788,3 +788,12 @@ html[data-tema="nocturno"] .mix b, html[data-tema="nocturno"] .tarjeta b, html[d
 .fila-nav .asa { font-size: 1.3rem; padding: 0 6px; cursor: grab; touch-action: none; }
 
 html[data-tema="nocturno"] .pill, html[data-tema="nocturno"] .fila-nav { border: 1px solid #5a1a1a !important; }
+
+/* ── Fase 3 (Biblioteca): botón flotante "Nueva" y filas con miniatura más grande ── */
+.fab { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); z-index: 40; height: 52px; padding: 0 20px; border-radius: 999px; font-weight: 700; font-size: 0.95rem; color: #fff; background: #ff453a; box-shadow: 0 10px 26px rgba(255, 69, 58, .38); transition: transform .3s var(--rebote, ease), opacity .2s ease; }
+.fab:active { transform: scale(.94); }
+.fab[hidden] { display: none; }
+@starting-style { .fab { transform: translateY(24px) scale(.8); opacity: 0; } }
+body.rep-abierto .fab, body.sin-fab .fab { display: none; }
+html[data-tema="mornye"] .fila img, html[data-tema="mornye"] .fila .sinport { width: 56px; height: 56px; border-radius: 10px; }
+html[data-tema="mornye"] .fila .info b { font-size: 1rem; }

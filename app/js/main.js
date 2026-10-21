@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.73";
+const VERSION = "0.9.74";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -247,6 +247,7 @@ function dibujar() {
   const raiz = v === "biblioteca" && E.bibRaiz && !E.detalle;
   $("#titulo-vista").textContent = v === "inicio" ? saludo() : v === "buscar" ? "Buscar" : raiz ? "Biblioteca" : (TIT_TAB[E.tab] || "Biblioteca");
   $("#b-bib-atras").hidden = !(v === "biblioteca" && !raiz && !E.detalle);
+  $("#fab-nueva").hidden = !(v === "biblioteca" && !E.detalle);
   $("#buscador").hidden = !(v === "buscar" || (v === "biblioteca" && !E.detalle && !raiz)); $("#q").placeholder = v === "buscar" ? "¿Qué quieres escuchar?" : "Buscar en " + (TIT_TAB[E.tab] || "biblioteca").toLowerCase() + "…"; $("#indice").hidden = true; $("#pestanas").hidden = true; $("#barra-orden").hidden = true;
   { const t = document.querySelector("[data-t=carpetas]"); if (t) t.hidden = !E.canciones.some((x) => x.carpeta); }
   document.querySelectorAll("#nav button").forEach((b) => { if (!b.dataset.v) { if (!b.firstElementChild.firstChild) b.firstElementChild.innerHTML = b.dataset.eq !== undefined ? I.eq : (b.id === "nav-menu" ? I.ajustes : IN.menu); return; } const a = b.dataset.v === v; a ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"); if (!b.firstElementChild.firstChild) b.firstElementChild.innerHTML = IN[b.dataset.v]; });
@@ -1344,6 +1345,7 @@ function enlazar() {
   $("#aj-reset-perfiles").addEventListener("click", () => { restablecerPerfiles(); avisar("Perfiles por salida borrados"); });
   $("#aj-reset-audio").addEventListener("click", () => { restablecerEq(); restablecerPerfiles(); R_ESP(); sincronizarAjustes(); guardarAjustes(); avisar("Sonido restablecido"); });
   for (const id of ["#f-audio", "#f-carpeta"]) $(id).addEventListener("change", (e) => { const l = [...e.target.files]; e.target.value = ""; importar(l); });
+  $("#fab-nueva").addEventListener("click", () => nuevaLista());
   $("#pestanas").addEventListener("click", (e) => { const b = e.target.closest("button[data-t]"); if (!b) return; E.tab = b.dataset.t; E.detalle = null; dibujar(); animarCambio(); });
   $("#orden").addEventListener("change", (e) => { E.orden = e.target.value; dibujar(); guardarAjustes(); });
 
