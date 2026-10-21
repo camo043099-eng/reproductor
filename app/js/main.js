@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.83";
+const VERSION = "0.9.84";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -2005,6 +2005,12 @@ function aplicarOrdenNav() {
   const vista = document.createElement("div"); vista.className = "gesto-vista"; vista.hidden = true; hoja.appendChild(vista);
   const mostrar = (t) => { vista.textContent = t; vista.hidden = false; };
   const ocultar = () => { vista.hidden = true; };
+  // barra de volumen a la derecha, con el porcentaje del volumen del sistema
+  const barraVol = document.createElement("div"); barraVol.className = "gesto-vol"; barraVol.hidden = true;
+  barraVol.innerHTML = "<b></b><i><u></u></i>"; hoja.appendChild(barraVol);
+  let ocultarVol = 0;
+  const pintaVol = (p) => { clearTimeout(ocultarVol); barraVol.querySelector("b").textContent = p + "%"; barraVol.querySelector("u").style.height = p + "%"; barraVol.hidden = false; };
+  const sueltaVol = () => { ocultarVol = setTimeout(() => { barraVol.hidden = true; }, 800); };
   let base = 0, objetivo = 0, volAcc = 0, ultY = 0;
   deslizar(hoja, {
     puede: (e) => {
@@ -2015,7 +2021,7 @@ function aplicarOrdenNav() {
     acepta: (eje, dx, dy, ctx) => (ctx.izq ? eje === "x" : eje === "y" && !ctx.enPortada),
     empezar: (eje, ctx) => {
       if (ctx.izq) { base = R.tiempo || 0; objetivo = base; mostrar(fmt(base)); }
-      else { volAcc = 0; ultY = 0; mostrar("Volumen"); }
+      else { volAcc = 0; ultY = 0; if (MOTOR) MOTOR.volumen({ pasos: 0 }).then((r) => pintaVol(r.pct)).catch(() => {}); }
     },
     mover: (dx, dy, eje, ctx) => {
       if (ctx.izq) {
@@ -2023,10 +2029,10 @@ function aplicarOrdenNav() {
         mostrar(`${fmt(objetivo)}  (${objetivo >= base ? "+" : "−"}${fmt(Math.abs(objetivo - base))})`);
       } else {
         volAcc += -(dy - ultY) / 25; ultY = dy;
-        const pasos = Math.trunc(volAcc); if (pasos) { volAcc -= pasos; if (MOTOR) MOTOR.volumen({ pasos }).catch(() => {}); }
+        const pasos = Math.trunc(volAcc); if (pasos) { volAcc -= pasos; if (MOTOR) MOTOR.volumen({ pasos }).then((r) => pintaVol(r.pct)).catch(() => {}); }
       }
     },
-    soltar: (dx, dy, vx, vy, eje, ctx) => { ocultar(); if (ctx.izq && Math.abs(objetivo - base) > 0.5) R.buscar(objetivo); },
-    cancelar: () => ocultar(),
+    soltar: (dx, dy, vx, vy, eje, ctx) => { ocultar(); if (ctx.izq && Math.abs(objetivo - base) > 0.5) R.buscar(objetivo); else sueltaVol(); },
+    cancelar: () => { ocultar(); sueltaVol(); },
   });
 }

@@ -268,7 +268,7 @@ public class MotorPlugin extends Plugin {
             int max = am.getStreamMaxVolume(tipo), cur = am.getStreamVolume(tipo);
             int nuevo = Math.max(0, Math.min(max, cur + (int) Math.round(call.getDouble("pasos", 0.0))));
             if (nuevo != cur) am.setStreamVolume(tipo, nuevo, 0);
-            call.resolve();
+            JSObject o = new JSObject(); o.put("pct", Math.round(100.0 * am.getStreamVolume(tipo) / Math.max(1, max))); call.resolve(o);
         } catch (Throwable e) { call.resolve(); }
     }
     @PluginMethod public void realce(PluginCall call) {
