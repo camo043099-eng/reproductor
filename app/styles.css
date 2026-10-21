@@ -692,3 +692,5 @@ html .aj-pag > .aviso-hires { margin: 0; border-radius: 0; }
 #contenido.seleccion .fila.marcada .ck::after { content: ""; width: 6px; height: 11px; border: solid #fff; border-width: 0 2.5px 2.5px 0; transform: translate(-1px, -1px) rotate(45deg); }
 #contenido.seleccion .fila .mas { display: none; }
 #contenido.seleccion .fila.marcada { background: rgba(255, 255, 255, 0.08); }
+
+#r-chips .chip { cursor: pointer; }

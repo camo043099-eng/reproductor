@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.53";
+const VERSION = "0.9.54";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -421,7 +421,7 @@ function dibujarDetalle(c, d) {
   const l = d.tipo === "lista" && !d.k.startsWith("__") ? E.listas.find((x) => x.id === d.k) : null;
   const titulo = d.k.startsWith("__mix:") ? (mixPorId(d.k.slice(6))?.nombre || "Tu mix") : d.tipo === "carpeta" ? nombreCarpeta(d.k) : d.tipo === "album" ? (listaActual[0]?.album || "Álbum") : d.tipo === "artista" ? (listaActual[0]?.albumArtista || listaActual[0]?.artista || "Artista") : l ? l.nombre : ({ __fav: "Favoritas", __mas: "Más escuchadas", __ult: "Escuchadas hace poco", __olv: "Para redescubrir", __baja: "Calidad baja" }[d.k] || (d.k.startsWith("__gen:") ? "Mix " + d.k.slice(6) : "Favoritas"));
   $("#resumen").textContent = "";
-  c.innerHTML = `<div class="cabecera-detalle"><button class="ib" type="button" data-volver aria-label="Volver">${I.volver}</button><h2>${esc(titulo)}</h2>${l ? `<button class="ib" type="button" data-borrar-lista aria-label="Borrar lista">${I.mas3}</button>` : ""}</div>
+  c.innerHTML = `<div class="cabecera-detalle"><button class="ib" type="button" data-volver aria-label="Volver">${I.volver}</button><h2>${esc(titulo)}</h2>${l ? `<button class="ib" type="button" data-opc-lista aria-label="Opciones de la lista">${I.mas3}</button>` : ""}</div>
   <div class="acciones-detalle"><button class="boton primario" type="button" data-tocar-todo>Reproducir</button><button class="boton" type="button" data-tocar-azar>Aleatorio</button>${d.k.startsWith("__mix:") ? `<button class="boton" type="button" data-renovar-mixes>Renovar mixes</button>` : ""}${d.tipo === "album" ? `<button class="boton" type="button" data-portada-album>Buscar carátula</button>` : ""}</div>
   ${d.k === "__baja" ? `<p class="nota-mix">Menos de ${KBPS_BAJO} kbps, las más escuchadas primero. Estas son las que más ganan si las consigues en FLAC o a 320 kbps.</p>` : ""}
   <div id="det-lista"></div>`;
@@ -1275,7 +1275,15 @@ function enlazar() {
     const det = e.target.closest("[data-det]"); if (det) { if (E.vista !== "inicio" && E.vista !== "buscar") { E.vista = "biblioteca"; E.bibRaiz = false; } E.tab = det.dataset.det === "artista" ? "artistas" : det.dataset.det === "album" ? "albumes" : det.dataset.det === "carpeta" ? "carpetas" : "listas"; E.detalle = { tipo: det.dataset.det, k: det.dataset.k }; history.pushState({ det: 1 }, ""); dibujar(); animarCambio(); $("#contenido").scrollIntoView(); return; }
     if (e.target.closest("[data-volver]")) return history.back();
     if (e.target.closest("[data-nueva-lista]")) { await nuevaLista(); return; }
-    if (e.target.closest("[data-borrar-lista]")) { const l = E.listas.find((x) => x.id === E.detalle.k); if (l && confirm(`¿Borrar la lista “${l.nombre}”?`)) { await db.borrar("listas", l.id); E.listas = E.listas.filter((x) => x !== l); E.detalle = null; dibujar(); } return; }
+    if (e.target.closest("[data-opc-lista]")) {
+      const l = E.listas.find((x) => x.id === E.detalle?.k); if (!l) return;
+      menu(l.nombre, [
+        { t: "Reproducir", f: () => tocar(listaActual, 0) },
+        { t: "Reproducir aleatorio", f: () => tocar(listaActual, 0, true) },
+        { t: "Borrar lista", cls: "peligro", f: async () => { if (!confirm(`¿Borrar la lista “${l.nombre}”?`)) return; await db.borrar("listas", l.id); E.listas = E.listas.filter((x) => x !== l); E.detalle = null; dibujar(); } },
+      ]);
+      return;
+    }
     if (e.target.closest("[data-tocar-todo]")) return tocar(listaActual, 0);
     if (e.target.closest("[data-tocar-azar]")) return tocar(listaActual, 0, true);
     const fila = e.target.closest(".fila"); if (!fila) return;
@@ -1285,6 +1293,7 @@ function enlazar() {
     if (listaBase && E.q) { const j = listaBase.findIndex((x) => x.id === s.id); if (j >= 0) return tocar(listaBase, j); }
     tocar(listaActual, +fila.dataset.i);
   });
+  $("#r-chips").addEventListener("click", () => { const s = reproductor.actual && porId.get(reproductor.actual.id); if (s) verDetalles(s); });   // tocar el formato abre la info de la canción
   $("#sel-cancelar").addEventListener("click", salirSeleccion);
   $("#sel-todas").addEventListener("click", () => { E.sel = new Set(listaActual.map((x) => x.id)); dibujar(); pintarSeleccion(); });
   $("#sel-borrar").addEventListener("click", () => { const l = [...(E.sel || [])].map((id) => porId.get(id)).filter(Boolean); if (l.length) borrarDelTelefono(l); });
