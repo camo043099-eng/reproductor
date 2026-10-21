@@ -797,3 +797,18 @@ html[data-tema="nocturno"] .pill, html[data-tema="nocturno"] .fila-nav { border:
 body.rep-abierto .fab, body.sin-fab .fab { display: none; }
 html[data-tema="mornye"] .fila img, html[data-tema="mornye"] .fila .sinport { width: 56px; height: 56px; border-radius: 10px; }
 html[data-tema="mornye"] .fila .info b { font-size: 1rem; }
+
+/* ── Fase 4 (Buscar): accesos de categoría ── */
+.cats-b { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 4px 16px 14px; }
+.cat-b { min-height: 72px; border-radius: 18px; padding: 14px; text-align: left; font-weight: 700; font-size: 1rem; color: var(--tx); background: rgba(255,255,255,.08); transition: transform .22s var(--rebote, ease); }
+.cat-b:active { transform: scale(.96); }
+html[data-tema="mornye"] .cat-b { background: linear-gradient(135deg, rgba(255,69,58,.28), rgba(255,255,255,.05)); }
+
+/* ── Modo conducción: pantalla de reproducción simple, botones grandes ── */
+html.coche #hoja-rep { background: #000 !important; }
+html.coche #hoja-rep .extras, html.coche #hoja-rep .fichas, html.coche #hoja-rep .letra-sync, html.coche #hoja-rep #r-barra-c .tiempos { display: none !important; }
+html.coche #hoja-rep .datos h2 { font-size: 2.4rem; line-height: 1.1; }
+html.coche #hoja-rep .datos p, html.coche #hoja-rep .datos span { font-size: 1.25rem; }
+html.coche #hoja-rep .controles button { width: 96px !important; height: 96px !important; }
+html.coche #hoja-rep .controles svg { width: 46px; height: 46px; }
+html.coche #hoja-rep .portada-grande { max-width: 62vw; margin: 0 auto; }

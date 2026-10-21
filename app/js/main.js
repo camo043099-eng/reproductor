@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.74";
+const VERSION = "0.9.75";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -328,7 +328,9 @@ function dibujarBuscar() {
     listasInicio = { ...listasInicio, ult, mas, fav };
     const tarj = (s, i, l) => `<button class="tarjeta" type="button" data-lista="${l}" data-i="${i}">${imgHtml(s)}<b>${esc(nom(s))}</b><span>${esc(s.artista || "")}</span></button>`;
     const sec = (t, ico, arr, l, k) => arr.length ? `<section class="estante"><h3><i class="ico-t">${ico}</i>${t}${k ? `<button type="button" class="ver-todo" data-det="lista" data-k="${k}">Ver todo</button>` : ""}</h3><div class="carril">${arr.map((x, i) => tarj(x, i, l)).join("")}</div></section>` : "";
-    const h = sec("Escuchadas hace poco", I.reloj, ult, "ult", "__ult") + sec("Más escuchadas", I.eq, mas, "mas", "__mas") + sec("Tus favoritas", I.fav, fav, "fav", "__fav");
+    const cats = [["canciones", "Canciones"], ["albumes", "Álbumes"], ["artistas", "Artistas"], ["listas", "Listas"]].map(([t, n]) => `<button class="cat-b" type="button" data-ir="${t}">${n}</button>`).join("");
+    const bloqueCats = `<div class="cats-b">${cats}</div>`;
+    const h = bloqueCats + sec("Escuchadas hace poco", I.reloj, ult, "ult", "__ult") + sec("Más escuchadas", I.eq, mas, "mas", "__mas") + sec("Tus favoritas", I.fav, fav, "fav", "__fav");
     c.innerHTML = h || `<div class="vacio">Escribe el nombre de una canción, un artista o un álbum.<br>Aquí verás lo que escuchas, lo más sonado y tus favoritas.</div>`; imagenes(c);
     return;
   }
@@ -546,6 +548,7 @@ function aplicarColores() {
   if (t) r.style.setProperty("--t", t.col);
   const ac = a.acento ?? "auto";
   const mor = (a.tema || "mornye") === "mornye";                       // Mornye: acento rojo fijo, no depende de la portada
+  r.classList.toggle("coche", !!a.coche);
   r.dataset.tema = a.tema === "nocturno" ? "nocturno" : mor ? "mornye" : "onda";
   r.dataset.fuente = mor ? (a.fuente === "gsf" ? "gsf" : "inter") : "sistema";
   if (mor) { r.style.setProperty("--rebote", RESORTE_ESPACIAL); r.style.setProperty("--muelle", RESORTE_EFECTO); }
@@ -804,7 +807,7 @@ $("#r-m10").addEventListener("click", () => reproductor.buscar(Math.max(0, repro
 $("#r-p10").addEventListener("click", () => reproductor.buscar(Math.min((reproductor.duracion || 1e9) - 1, reproductor.tiempo + 10)));
 
 // ── ajustes avanzados ──
-const TOGGLES = [["aj-wifi", "wifi", true], ["aj-fordef", "fordef", false], ["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false], ["aj-anim", "anim", false], ["aj-iniciobib", "inicioBib", false], ["aj-progreso", "progreso", true], ["aj-saltos", "saltos", true], ["aj-hires", "hires", false], ["aj-detener", "detener", false], ["aj-rgsube", "rgSube", false], ["aj-sineqalt", "sinEqAlt", false], ["aj-sugerir", "sugerir", true], ["aj-navlbl", "navLbl", true], ["aj-usbdir", "usbDir", false], ["aj-sigalbum", "sigAlbum", true], ["aj-pantalla", "pantalla", false], ["aj-intiles", "inTiles", true], ["aj-invuelve", "inVuelve", true], ["aj-inmixes", "inMixes", true], ["aj-inesc", "inEscuchadas", true], ["aj-innuevas", "inNuevas", true], ["aj-infav", "inFav", true], ["aj-inartistas", "inArtistas", true]];
+const TOGGLES = [["aj-wifi", "wifi", true], ["aj-fordef", "fordef", false], ["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false], ["aj-anim", "anim", false], ["aj-iniciobib", "inicioBib", false], ["aj-coche", "coche", false], ["aj-progreso", "progreso", true], ["aj-saltos", "saltos", true], ["aj-hires", "hires", false], ["aj-detener", "detener", false], ["aj-rgsube", "rgSube", false], ["aj-sineqalt", "sinEqAlt", false], ["aj-sugerir", "sugerir", true], ["aj-navlbl", "navLbl", true], ["aj-usbdir", "usbDir", false], ["aj-sigalbum", "sigAlbum", true], ["aj-pantalla", "pantalla", false], ["aj-intiles", "inTiles", true], ["aj-invuelve", "inVuelve", true], ["aj-inmixes", "inMixes", true], ["aj-inesc", "inEscuchadas", true], ["aj-innuevas", "inNuevas", true], ["aj-infav", "inFav", true], ["aj-inartistas", "inArtistas", true]];
 const SELECTS = [["aj-tema", "tema", "mornye"], ["aj-fuente", "fuente", "inter"], ["aj-icono", "icono", "auto"], ["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-realce", "realce", "0"], ["aj-ritmo", "ritmo", "cd"], ["aj-ritmolat", "ritmoLat", "260"], ["aj-ritmoest", "ritmoEst", "onda"], ["aj-ritmofps", "ritmoFps", "60"], ["aj-contar", "contar", "auto"], ["aj-largo", "largoMin", "20"], ["aj-fadeplay", "fadePlay", "250"], ["aj-brecha", "brecha", "0"], ["aj-tfg", "tfg", "120"], ["aj-tqg", "tqg", "0.7"], ["aj-tfa", "tfa", "6000"], ["aj-tqa", "tqa", "0.7"], ["aj-rgpre", "rgPre", "0"], ["aj-rgsin", "rgSin", "0"], ["aj-retrasobt", "retrasoBt", "0"], ["aj-animn", "animN", "1"], ["aj-colchon", "colchon", "400"], ["aj-cruce", "cruce", "0"], ["aj-densidad", "densidad", "comoda"], ["aj-forma", "forma", "redondeada"], ["aj-texto", "texto", "1"]];
 let tocadoEnfoque = false;
 let _wl = null;
@@ -1316,6 +1319,7 @@ function enlazar() {
   R.addEventListener("cambio", () => { if (pila.includes("hoja-letra") && R.actual) cargarLetra(R.actual); });
   R.addEventListener("letra", (e) => { if (pila.includes("hoja-letra") && R.actual && R.actual.id === e.detail && letraAct && !letraAct.sinc) cargarLetra(R.actual); });
   R.addEventListener("ruta", (e) => {                                      // ecualizador distinto para cada salida (altavoz, Bluetooth, cable…)
+    if (e.detail === "usb" && E.aj.avisoDac !== false) avisar("DAC USB externo detectado");
     const nombres = { altavoz: "altavoz del teléfono", bluetooth: "Bluetooth", usb: "USB", cable: "audífonos con cable" };
     { const sin = !!E.aj.sinEqAlt && e.detail === "altavoz"; if (sin && R.eqOn) { R._sinEq = true; R.eqOn = false; R._eq(); } else if (!sin && R._sinEq) { R._sinEq = false; R.eqOn = true; R._eq(); } if (pila.includes("hoja-eq")) mostrarEq(); }
     if (!E.aj.eqSalida) return; const pf = (E.aj.perfiles || {})[e.detail];

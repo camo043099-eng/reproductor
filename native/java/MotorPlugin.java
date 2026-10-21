@@ -839,7 +839,7 @@ public class MotorPlugin extends Plugin {
                 int paso = 0;
                 @Override public void run() {
                     ExoPlayer q = Motor.jugador; if (q == null) return; paso++; fadeSueno = true;
-                    if (paso < 30) { Motor.fSueno = 1f - paso / 30f; Motor.mezclar(); h.postDelayed(this, 200); }
+                    if (paso < 30) { Motor.fSueno = (float) Math.pow(0.001, paso / 30.0); Motor.mezclar(); h.postDelayed(this, 200); }
                     else { q.pause(); Motor.fSueno = 1f; Motor.mezclar(); fadeSueno = false; apagar = null; emitir("dormido", null); }
                 }
             };
