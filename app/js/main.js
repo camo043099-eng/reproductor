@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.55";
+const VERSION = "0.9.56";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -866,11 +866,14 @@ function menu(titulo, opciones) {
   }
   if (pila.includes("hoja-menu")) return; abrir("hoja-menu");
 }
-function agregarALista(s) {
-  const op = [{ t: "Favoritas", f: async () => { await alternarFav(s, true); avisar("Agregada a favoritas."); } }];
-  for (const l of E.listas) op.push({ t: l.nombre, f: async () => { if (!l.ids.includes(s.id)) { l.ids.push(s.id); await db.poner("listas", l); } avisar(`Agregada a “${l.nombre}”.`); } });
-  op.push({ t: "+ Nueva lista…", f: async () => { const n = await nuevaLista(); if (n) { n.ids.push(s.id); await db.poner("listas", n); avisar(`Lista “${n.nombre}” creada.`); } } });
-  menu("Agregar a una lista", op);
+function agregarALista(s) { agregarIdsALista([s.id]); }
+/** Agrega una o varias canciones (por id) a una lista. */
+function agregarIdsALista(ids) {
+  const n = ids.length, msg = (l) => (n === 1 ? `Agregada a “${l}”.` : `${n} canciones agregadas a “${l}”.`);
+  const op = [{ t: "Favoritas", f: async () => { for (const id of ids) { const s = porId.get(id); if (s && !s.fav) await alternarFav(s, true); } avisar(n === 1 ? "Agregada a favoritas." : `${n} canciones agregadas a favoritas.`); } }];
+  for (const l of E.listas) op.push({ t: l.nombre, f: async () => { l.ids = [...new Set([...l.ids, ...ids])]; await db.poner("listas", l); avisar(msg(l.nombre)); } });
+  op.push({ t: "+ Nueva lista…", f: async () => { const l = await nuevaLista(); if (l) { l.ids.push(...ids); await db.poner("listas", l); avisar(msg(l.nombre)); } } });
+  menu(n === 1 ? "Agregar a una lista" : `Agregar ${n} canciones a una lista`, op);
 }
 async function nuevaLista() {
   const nombre = (prompt("Nombre de la lista") || "").trim(); if (!nombre) return null;
@@ -908,20 +911,39 @@ function verDetalles(s) {
   abrir("hoja-detalles");
 }
 /* ── selección múltiple en la biblioteca (para borrar varias del teléfono) ── */
-function empezarSeleccion(s) { E.sel = new Set([s.id]); pintarSeleccion(); }
+function empezarSeleccion(s) { E.sel = new Set([s.id]); E.selAncla = s.id; E.selRango = false; pintarSeleccion(); }
 function pintarSeleccion() {
   const c = $("#contenido"), n = E.sel ? E.sel.size : 0;
   c.classList.toggle("seleccion", !!E.sel);
   $("#barra-sel").hidden = !E.sel;
-  $("#sel-n").textContent = n === 1 ? "1 seleccionada" : `${n} seleccionadas`;
-  $("#sel-borrar").disabled = n === 0;
-  if (E.sel) $("#sel-borrar").textContent = n ? `Borrar ${n}` : "Borrar";
+  $("#sel-n").textContent = `${n} / ${listaActual.length}`;
+  $("#sel-rango").setAttribute("aria-pressed", String(!!E.selRango));
+  $("#sel-rango").classList.toggle("activo", !!E.selRango);
+  document.querySelectorAll("#barra-sel [data-acc]").forEach((b) => { b.disabled = n === 0; b.hidden = b.dataset.acc === "eliminar" && !MOTOR; });
+  $("#sel-info").hidden = n !== 1;
 }
 function alternarSeleccion(fila) {
-  const id = fila.dataset.id; if (E.sel.has(id)) E.sel.delete(id); else E.sel.add(id);
-  fila.classList.toggle("marcada", E.sel.has(id)); vibra(4); pintarSeleccion();
+  const id = fila.dataset.id;
+  if (E.selRango && E.selAncla) {                                     // Rango: marca todo lo que hay entre la última tocada y esta
+    const filas = [...document.querySelectorAll("#contenido .fila[data-id]")], a = filas.findIndex((f) => f.dataset.id === E.selAncla), b = filas.indexOf(fila);
+    if (a >= 0 && b >= 0) for (const f of filas.slice(Math.min(a, b), Math.max(a, b) + 1)) { E.sel.add(f.dataset.id); f.classList.add("marcada"); }
+    E.selRango = false; E.selAncla = id; vibra(6); pintarSeleccion(); return;
+  }
+  if (E.sel.has(id)) E.sel.delete(id); else E.sel.add(id);
+  E.selAncla = id; fila.classList.toggle("marcada", E.sel.has(id)); vibra(4); pintarSeleccion();
 }
-function salirSeleccion() { E.sel = null; pintarSeleccion(); document.querySelectorAll(".fila.marcada").forEach((f) => f.classList.remove("marcada")); }
+function salirSeleccion() { E.sel = null; E.selRango = false; pintarSeleccion(); document.querySelectorAll(".fila.marcada").forEach((f) => f.classList.remove("marcada")); }
+/** Acciones de la barra de selección sobre las canciones marcadas. */
+function accionSeleccion(acc) {
+  const ids = [...(E.sel || [])], l = ids.map((id) => porId.get(id)).filter(Boolean);
+  if (!l.length) return;
+  if (acc === "lista") return agregarIdsALista(ids);
+  if (acc === "cola") { if (!reproductor.actual) tocar(l, 0); else { for (const s of l) reproductor.alFinal(s); avisar(`${l.length} agregada(s) a la cola.`); } }
+  if (acc === "siguiente") { if (!reproductor.actual) tocar(l, 0); else { for (const s of [...l].reverse()) reproductor.siguienteLuego(s); avisar("Sonarán a continuación."); } }
+  if (acc === "eliminar") return borrarDelTelefono(l);
+  if (acc === "info" && l.length === 1) return verDetalles(l[0]);
+  if (acc !== "info") salirSeleccion();
+}
 /** Borra los archivos del teléfono. El sistema pide su propia confirmación; al volver a Onda se vuelve a leer la música. */
 async function borrarDelTelefono(lista) {
   const n = lista.length, titulo = n === 1 ? `“${lista[0].titulo || lista[0].nombre}”` : `${n} canciones`;
@@ -1297,7 +1319,8 @@ function enlazar() {
   $("#r-chips").addEventListener("click", () => { const s = reproductor.actual && porId.get(reproductor.actual.id); if (s) verDetalles(s); });   // tocar el formato abre la info de la canción
   $("#sel-cancelar").addEventListener("click", salirSeleccion);
   $("#sel-todas").addEventListener("click", () => { E.sel = new Set(listaActual.map((x) => x.id)); dibujar(); pintarSeleccion(); });
-  $("#sel-borrar").addEventListener("click", () => { const l = [...(E.sel || [])].map((id) => porId.get(id)).filter(Boolean); if (l.length) borrarDelTelefono(l); });
+  $("#sel-rango").addEventListener("click", () => { E.selRango = !E.selRango; pintarSeleccion(); });
+  document.querySelectorAll("#barra-sel [data-acc]").forEach((b) => b.addEventListener("click", () => accionSeleccion(b.dataset.acc)));
   $("#contenido").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.classList.contains("fila")) e.target.click(); });
 
   $("#mini-abrir").addEventListener("click", abrirReproductor);

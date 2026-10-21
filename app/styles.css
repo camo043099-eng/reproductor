@@ -697,3 +697,10 @@ html .aj-pag > .aviso-hires { margin: 0; border-radius: 0; }
 
 /* Ajustes: cabecera del mismo negro que el fondo */
 #hoja-aj .hoja-top { background: #000 !important; }
+
+.barra-sel .sel-fila, .barra-sel .sel-acc { display: flex; align-items: center; gap: 4px; width: 100%; }
+.barra-sel .sel-acc { display: grid; grid-template-columns: repeat(5, 1fr); margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.barra-sel .sel-acc button { padding: 8px 2px; font-size: 0.8rem; text-align: center; }
+.barra-sel .sel-acc button:disabled { opacity: 0.35; }
+.barra-sel #sel-rango.activo { background: var(--ac2); color: #000; }
+.barra-sel .sel-fila > span { min-width: 0; }

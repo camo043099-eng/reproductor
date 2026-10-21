@@ -46,10 +46,19 @@
 </div>
 
 <div class="barra-sel" id="barra-sel" hidden role="toolbar" aria-label="Selección">
-  <button type="button" id="sel-cancelar">Cancelar</button>
-  <span id="sel-n">0 seleccionadas</span>
-  <button type="button" id="sel-todas">Todas</button>
-  <button type="button" id="sel-borrar" class="peligro">Borrar</button>
+  <div class="sel-fila">
+    <button type="button" id="sel-cancelar">Cancelar</button>
+    <span id="sel-n">0 / 0</span>
+    <button type="button" id="sel-todas">Todo</button>
+    <button type="button" id="sel-rango" aria-pressed="false">Rango</button>
+  </div>
+  <div class="sel-acc">
+    <button type="button" data-acc="lista">Lista</button>
+    <button type="button" data-acc="cola">Cola</button>
+    <button type="button" data-acc="siguiente">Siguiente</button>
+    <button type="button" id="sel-info" data-acc="info">Info</button>
+    <button type="button" data-acc="eliminar" class="peligro">Eliminar</button>
+  </div>
 </div>
 
 <nav class="nav" id="nav" aria-label="Secciones">
