@@ -860,3 +860,17 @@ body:has(#mini:not([hidden])) .fab { bottom: calc(env(safe-area-inset-bottom, 0p
 .hc-lista button { display: flex; align-items: center; gap: 18px; padding: 14px 4px; font-size: 1.02rem; text-align: left; color: var(--tx); background: none; border: 0; }
 .hc-lista i { width: 26px; display: grid; place-items: center; opacity: .9; }
 .hoja-cancion svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ── Cola (estilo YouTube Music): cabecera, filas más grandes, canción actual destacada ── */
+.cola-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 16px 10px; }
+.cola-origen { display: grid; gap: 2px; min-width: 0; }
+.cola-origen small { color: var(--tx2); font-size: .8rem; }
+.cola-origen b { font-size: 1.05rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 62vw; }
+#hoja-cola .lista { padding: 0 8px 24px; }
+#hoja-cola .cq { padding: 10px; gap: 14px; border-radius: 16px; }
+#hoja-cola .cq img { width: 52px; height: 52px; border-radius: 12px; }
+#hoja-cola .cq.ahora { margin: 6px 0; }
+html[data-tema="mornye"] #hoja-cola .cq.ahora { background: linear-gradient(135deg, rgba(255,69,58,.28), rgba(255,255,255,.05)); border-color: rgba(255,69,58,.35); }
+html[data-tema="mornye"] #hoja-cola .cq.ahora .info b { color: #fff; }
+#hoja-cola .cola-filtros { display: flex; align-items: center; gap: 8px; overflow: visible; min-height: 56px; padding: 6px 16px 12px; }
+#hoja-cola .cola-filtros .chip { min-height: 38px; padding: 8px 16px; flex: 0 0 auto; }

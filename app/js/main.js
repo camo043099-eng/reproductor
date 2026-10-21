@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.79";
+const VERSION = "0.9.80";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -1103,7 +1103,7 @@ function dibujarCola() {
   if (ini + l.length < lt.length) h += `<li class="cq-nota">${lt.length - ini - l.length} canciones más en la cola</li>`;
   u.innerHTML = h || `<li class="cq-nota">La cola está vacía</li>`;
   imagenes(u);
-  $("#cola-titulo").innerHTML = `Reproduciendo desde<small>${esc(origenCola)}</small>`;
+  $("#cola-origen").textContent = origenCola;
   document.querySelectorAll("#cola-filtros .chip").forEach((b) => b.classList.toggle("activo", b.dataset.f === filtroCola));
 }
 
@@ -1500,6 +1500,12 @@ function enlazar() {
     burbuja.classList.remove("ver"); barra.classList.remove("toca"); barra.classList.remove("salto"); void barra.offsetWidth; barra.classList.add("salto"); bucleBarra();
   });
 
+  $("#cola-guardar").addEventListener("click", async () => {
+    const lt = reproductor.listaEnOrden(); if (!lt.length) return avisar("La cola está vacía");
+    const nombre = (prompt("Nombre de la lista", origenCola) || "").trim(); if (!nombre) return;
+    const l = { id: "l" + Date.now().toString(36), nombre, ids: lt.map((s) => s.id) };
+    E.listas.push(l); await db.poner("listas", l); avisar(`Lista “${nombre}” guardada con ${l.ids.length} canciones.`);
+  });
   $("#cola-filtros").addEventListener("click", (e) => { const b = e.target.closest("[data-f]"); if (!b) return; filtroCola = b.dataset.f; dibujarCola(); });
   $("#cola-lista").addEventListener("click", (e) => {
     const f = e.target.closest(".cq"); if (!f || e.target.closest(".cq-agarre")) return;
