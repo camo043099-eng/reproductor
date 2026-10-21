@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.56";
+const VERSION = "0.9.57";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -89,7 +89,7 @@ function pintar(c, items, f, envoltura) {
 }
 const nom = (s) => String((s && (s.titulo || s.nombre)) || "").replace(/_/g, " ").replace(/\s{2,}/g, " ").trim();   // solo para mostrar: los _ de nombres de archivo se ven como espacios
 const nombrePlaca = (s) => (s.album && !albumGenerico(s.album) ? s.album : (s.titulo || s.nombre));
-const imgHtml = (s0, cls = "") => { const s = s0 || {}; return `<img class="${cls}" src="${(s.alb && urlsPort.get(s.alb)) || placa(nombrePlaca(s))}" data-alb="${esc(s.alb || "")}" alt="" loading="lazy" decoding="async">`; };
+const imgHtml = (s0, cls = "") => { const s = s0 || {}; return `<img class="${cls}" src="${(!E.aj.fordef && s.alb && urlsPort.get(s.alb)) || placa(nombrePlaca(s))}" data-alb="${esc(s.alb || "")}" alt="" loading="lazy" decoding="async">`; };
 
 // ── aviso ──
 let tAviso;
@@ -772,7 +772,7 @@ $("#r-m10").addEventListener("click", () => reproductor.buscar(Math.max(0, repro
 $("#r-p10").addEventListener("click", () => reproductor.buscar(Math.min((reproductor.duracion || 1e9) - 1, reproductor.tiempo + 10)));
 
 // ── ajustes avanzados ──
-const TOGGLES = [["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false], ["aj-anim", "anim", false], ["aj-iniciobib", "inicioBib", false], ["aj-progreso", "progreso", true], ["aj-saltos", "saltos", true], ["aj-hires", "hires", false], ["aj-detener", "detener", false], ["aj-rgsube", "rgSube", false], ["aj-sineqalt", "sinEqAlt", false], ["aj-sugerir", "sugerir", true], ["aj-navlbl", "navLbl", true], ["aj-usbdir", "usbDir", false], ["aj-sigalbum", "sigAlbum", true], ["aj-pantalla", "pantalla", false], ["aj-intiles", "inTiles", true], ["aj-invuelve", "inVuelve", true], ["aj-inmixes", "inMixes", true], ["aj-inesc", "inEscuchadas", true], ["aj-innuevas", "inNuevas", true], ["aj-infav", "inFav", true], ["aj-inartistas", "inArtistas", true]];
+const TOGGLES = [["aj-wifi", "wifi", true], ["aj-fordef", "fordef", false], ["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false], ["aj-anim", "anim", false], ["aj-iniciobib", "inicioBib", false], ["aj-progreso", "progreso", true], ["aj-saltos", "saltos", true], ["aj-hires", "hires", false], ["aj-detener", "detener", false], ["aj-rgsube", "rgSube", false], ["aj-sineqalt", "sinEqAlt", false], ["aj-sugerir", "sugerir", true], ["aj-navlbl", "navLbl", true], ["aj-usbdir", "usbDir", false], ["aj-sigalbum", "sigAlbum", true], ["aj-pantalla", "pantalla", false], ["aj-intiles", "inTiles", true], ["aj-invuelve", "inVuelve", true], ["aj-inmixes", "inMixes", true], ["aj-inesc", "inEscuchadas", true], ["aj-innuevas", "inNuevas", true], ["aj-infav", "inFav", true], ["aj-inartistas", "inArtistas", true]];
 const SELECTS = [["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-realce", "realce", "0"], ["aj-ritmo", "ritmo", "cd"], ["aj-ritmolat", "ritmoLat", "260"], ["aj-ritmoest", "ritmoEst", "onda"], ["aj-ritmofps", "ritmoFps", "60"], ["aj-contar", "contar", "auto"], ["aj-largo", "largoMin", "20"], ["aj-fadeplay", "fadePlay", "250"], ["aj-brecha", "brecha", "0"], ["aj-tfg", "tfg", "120"], ["aj-tqg", "tqg", "0.7"], ["aj-tfa", "tfa", "6000"], ["aj-tqa", "tqa", "0.7"], ["aj-rgpre", "rgPre", "0"], ["aj-rgsin", "rgSin", "0"], ["aj-retrasobt", "retrasoBt", "0"], ["aj-animn", "animN", "1"], ["aj-colchon", "colchon", "400"], ["aj-cruce", "cruce", "0"], ["aj-densidad", "densidad", "comoda"], ["aj-forma", "forma", "redondeada"], ["aj-texto", "texto", "1"]];
 let tocadoEnfoque = false;
 let _wl = null;
@@ -1358,6 +1358,12 @@ function enlazar() {
   $("#aj-intro").addEventListener("click", () => { cerrar("hoja-aj"); setTimeout(() => mostrarIntro(true), 350); });
   $("#aj-reescanear").addEventListener("click", () => { cerrar("hoja-aj"); $("#b-agregar").click(); });
   $("#aj-auto").addEventListener("change", (e) => { E.aj.auto = e.target.checked; guardarAjustes(); });
+  $("#aj-fordef").addEventListener("change", () => dibujar());
+  $("#aj-reiniciar-neg").addEventListener("click", async () => {
+    const ks = (await db.claves("ajustes")).filter((k) => String(k).startsWith("sinweb:"));
+    for (const k of ks) await db.borrar("ajustes", k);
+    avisar(ks.length ? `Listo: ${ks.length} carátulas volverán a buscarse.` : "No había carátulas marcadas como no encontradas.", 3500);
+  });
   $("#r-lista").addEventListener("click", () => { if (R.actual) agregarALista(R.actual); });
   $("#r-cola").addEventListener("click", () => { dibujarCola(); abrir("hoja-cola"); });
   $("#r-eq").addEventListener("click", () => { mostrarEq(); abrir("hoja-eq"); });
@@ -1673,8 +1679,11 @@ async function descargarFaltantes(manual) {
 }
 // automático, como Poweramp: mientras Onda está abierta va buscando las carátulas que faltan
 let autoOcupado = false, ultimaAuto = 0; const intentadasSesion = new Set();
+/** Wi-Fi o cable (si el sistema no lo dice, no frenamos). */
+const enWifi = () => { const t = navigator.connection?.type; return !t || t === "wifi" || t === "ethernet" || t === "unknown"; };
 async function autoPortadas() {
   if (!MOTOR || autoOcupado || E.aj.auto === false || !E.canciones.length || navigator.onLine === false) return;
+  if (E.aj.wifi !== false && !enWifi()) return;                             // automático solo por Wi-Fi; "Descargar carátulas que faltan" sigue disponible
   autoOcupado = true; try { await descargarFaltantes(false); } catch (_) { /* se reintenta luego */ } finally { autoOcupado = false; ultimaAuto = Date.now(); }
 }
 setInterval(() => { if (!document.hidden && Date.now() - ultimaAuto > 120000) autoPortadas(); }, 30000);
