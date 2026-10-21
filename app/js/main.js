@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.75";
+const VERSION = "0.9.76";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -433,8 +433,10 @@ function cancionesDe(d) {
 function dibujarDetalle(c, d) {
   listaActual = cancionesDe(d); listaBase = null;
   const l = d.tipo === "lista" && !d.k.startsWith("__") ? E.listas.find((x) => x.id === d.k) : null;
+  E.detalleTitulo = null;
   const titulo = d.k.startsWith("__mix:") ? (mixPorId(d.k.slice(6))?.nombre || "Tu mix") : d.tipo === "carpeta" ? nombreCarpeta(d.k) : d.tipo === "album" ? (listaActual[0]?.album || "Álbum") : d.tipo === "artista" ? (listaActual[0]?.albumArtista || listaActual[0]?.artista || "Artista") : l ? l.nombre : ({ __fav: "Favoritas", __mas: "Más escuchadas", __ult: "Escuchadas hace poco", __olv: "Para redescubrir", __baja: "Calidad baja" }[d.k] || (d.k.startsWith("__gen:") ? "Mix " + d.k.slice(6) : "Favoritas"));
   $("#resumen").textContent = "";
+  E.detalleTitulo = titulo;
   c.innerHTML = `<div class="cabecera-detalle"><button class="ib" type="button" data-volver aria-label="Volver">${I.volver}</button><h2>${esc(titulo)}</h2>${l ? `<button class="ib" type="button" data-opc-lista aria-label="Opciones de la lista">${I.mas3}</button>` : ""}</div>
   <div class="acciones-detalle"><button class="boton primario" type="button" data-tocar-todo>Reproducir</button><button class="boton" type="button" data-tocar-azar>Aleatorio</button>${d.k.startsWith("__mix:") ? `<button class="boton" type="button" data-renovar-mixes>Renovar mixes</button>` : ""}${d.tipo === "album" ? `<button class="boton" type="button" data-portada-album>Buscar carátula</button>` : ""}</div>
   ${d.k === "__baja" ? `<p class="nota-mix">Menos de ${KBPS_BAJO} kbps, las más escuchadas primero. Estas son las que más ganan si las consigues en FLAC o a 320 kbps.</p>` : ""}
@@ -445,8 +447,10 @@ function dibujarDetalle(c, d) {
 }
 
 // ── reproducir ──
+let origenCola = "Biblioteca", filtroCola = "todo";
 async function tocar(lista, i, azar = false) {
   if (!lista.length) return;
+  origenCola = E.detalle ? (E.detalleTitulo || "Lista") : E.vista === "inicio" ? "Inicio" : E.vista === "buscar" ? "Búsqueda" : (TIT_TAB[E.tab] || "Biblioteca");
   reproductor.ponerAleatorio(azar); $("#r-azar").setAttribute("aria-pressed", String(azar));
   await reproductor.cargarCola(lista, azar ? Math.floor(Math.random() * lista.length) : i, true);
   guardarSesion();
@@ -1059,12 +1063,14 @@ function dibujarCola() {
   const fila = (s, i) => `<li class="cq${i < pos ? " ya" : ""}" data-pos="${i}">${imgHtml(s)}<span class="info"><b>${esc(nom(s))}</b><span>${esc(s.artista || "")}</span></span><span class="cq-bt"><button type="button" data-quita="${i}" aria-label="Quitar de la cola"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></button><span class="cq-agarre" aria-label="Mantén y arrastra para cambiar de lugar" title="Arrastrar"><svg viewBox="0 0 24 24"><path d="M4 8h16M4 12h16M4 16h16"/></svg></span></span></li>`;
   let h = "", antes = l.filter((_, j) => ini + j < pos), ahora = lt[pos], luego = l.filter((_, j) => ini + j > pos);
   if (ini) h += `<li class="cq-nota">${ini} canciones anteriores</li>`;
-  if (antes.length) h += `<li class="cq-tit">Ya sonaron</li>` + antes.map((s, j) => fila(s, ini + j)).join("");
+  if (antes.length && filtroCola !== "proximas") h += `<li class="cq-tit">Ya sonaron</li>` + antes.map((s, j) => fila(s, ini + j)).join("");
   if (ahora) h += `<li class="cq-tit">Sonando ahora</li><li class="cq ahora" data-pos="${pos}">${imgHtml(ahora)}<span class="info"><b>${esc(nom(ahora))}</b><span>${esc(ahora.artista || "")}</span></span><span class="cq-barras" aria-hidden="true"><i></i><i></i><i></i></span></li>`;
-  if (luego.length) h += `<li class="cq-tit">A continuación<small>${lt.length - pos - 1} canciones</small></li>` + luego.map((s, j) => fila(s, pos + 1 + j)).join("");
+  if (luego.length && filtroCola !== "ya") h += `<li class="cq-tit">A continuación<small>${lt.length - pos - 1} canciones</small></li>` + luego.map((s, j) => fila(s, pos + 1 + j)).join("");
   if (ini + l.length < lt.length) h += `<li class="cq-nota">${lt.length - ini - l.length} canciones más en la cola</li>`;
   u.innerHTML = h || `<li class="cq-nota">La cola está vacía</li>`;
   imagenes(u);
+  $("#cola-titulo").innerHTML = `Reproduciendo desde<small>${esc(origenCola)}</small>`;
+  document.querySelectorAll("#cola-filtros .chip").forEach((b) => b.classList.toggle("activo", b.dataset.f === filtroCola));
 }
 
 /** Reordenar la cola: se mantiene el asa ≡ y se arrastra; las filas vecinas se corren para dejar el hueco. */
@@ -1459,6 +1465,7 @@ function enlazar() {
     burbuja.classList.remove("ver"); barra.classList.remove("toca"); barra.classList.remove("salto"); void barra.offsetWidth; barra.classList.add("salto"); bucleBarra();
   });
 
+  $("#cola-filtros").addEventListener("click", (e) => { const b = e.target.closest("[data-f]"); if (!b) return; filtroCola = b.dataset.f; dibujarCola(); });
   $("#cola-lista").addEventListener("click", (e) => {
     const f = e.target.closest(".cq"); if (!f || e.target.closest(".cq-agarre")) return;
     const quita = e.target.closest("[data-quita]");

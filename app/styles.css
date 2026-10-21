@@ -812,3 +812,8 @@ html.coche #hoja-rep .datos p, html.coche #hoja-rep .datos span { font-size: 1.2
 html.coche #hoja-rep .controles button { width: 96px !important; height: 96px !important; }
 html.coche #hoja-rep .controles svg { width: 46px; height: 46px; }
 html.coche #hoja-rep .portada-grande { max-width: 62vw; margin: 0 auto; }
+
+/* ── Fase 5 (Cola): "Reproduciendo desde" y filtros ── */
+.cola-titulo { display: flex; flex-direction: column; align-items: center; line-height: 1.15; font-weight: 700; }
+.cola-titulo small { font-size: 0.78rem; font-weight: 500; color: var(--tx2); margin-top: 2px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cola-filtros { padding: 4px 16px 10px; }
