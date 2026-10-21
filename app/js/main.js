@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.82";
+const VERSION = "0.9.83";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -738,6 +738,7 @@ function ajMostrar(k) {
   h.scrollTop = 0; const c = h.querySelector(".ajustes"); if (c) c.scrollTop = 0;
 }
 function abrirAjustes(pag) {
+  document.querySelectorAll("#hoja-aj select").forEach((s) => s._pintar?.());
   ajMostrar(pag || null); if (!pila.includes("hoja-aj")) abrir("hoja-aj");
   requestAnimationFrame(() => setTimeout(() => { $("#aj-version").textContent = "v" + VERSION; mostrarEspacio(); }, 0));       // lo pesado, después de que la hoja ya se vea
 }
@@ -768,9 +769,12 @@ function abrirOpciones(sel) {
   menu(titulo, [...sel.options].map((o) => ({ t: (o.selected ? "✓  " : "") + o.text, cls: o.selected ? "sel" : "", f: () => { sel.value = o.value; sel.dispatchEvent(new Event("change", { bubbles: true })); sel._pintar?.(); } })));
 }
 document.querySelectorAll("#hoja-aj select").forEach((sel) => {
-  const b = document.createElement("button"); b.type = "button"; b.className = "sel-btn"; sel.after(b); sel.hidden = true;
-  sel._pintar = () => { b.textContent = sel.options[sel.selectedIndex]?.text || ""; }; sel._pintar();
-  b.addEventListener("click", () => abrirOpciones(sel)); sel.addEventListener("change", sel._pintar);
+  // opciones como píldoras visibles (estilo Poweramp): se ven todas de un vistazo
+  const c = document.createElement("div"); c.className = "chips-sel"; sel.after(c); sel.hidden = true;
+  sel._pintar = () => { c.innerHTML = [...sel.options].map((o) => `<button type="button" class="${o.value === sel.value ? "activo" : ""}" data-v="${esc(o.value)}">${esc(o.text)}</button>`).join(""); };
+  sel._pintar();
+  c.addEventListener("click", (e) => { const b = e.target.closest("[data-v]"); if (!b || sel.value === b.dataset.v) return; sel.value = b.dataset.v; sel.dispatchEvent(new Event("change", { bubbles: true })); });
+  sel.addEventListener("change", sel._pintar);
 });
 
 // ── información de audio: qué recibe y qué hace el motor con esta canción ──
