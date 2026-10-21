@@ -54,5 +54,11 @@ public class PruebaEq {
           ok(rms(s2, 40000) > rms(s1, 40000) * 1.05, "tono: subir la frecuencia de graves refuerza más los 200 Hz"); boolean tFin = true; for (float v : s2) if (Float.isNaN(v) || Math.abs(v) > 1) tFin = false; ok(tFin, "tono ajustable: estable"); }
         NucleoEq ba = new NucleoEq(); ba.configurar(hz, 2); ba.ponerTono(0, 0, 0.5); float[] b1 = seno(1000, 0.3, hz, 4410), b2 = b1.clone(); ba.procesar(b2, b2.length);
         ok(Math.abs(b2[4000] - b1[4000] * 0.5) < 1e-4 || Math.abs(b2[4000]) <= Math.abs(b1[4000]), "balance: baja el canal izquierdo, el derecho intacto");
+        // mono: con un canal solo, los dos oídos reciben la mitad en cada uno
+        NucleoEq mo = new NucleoEq(); mo.configurar(hz, 2); mo.ponerMono(true);
+        float[] mn = new float[8000]; for (int k = 0; k < mn.length; k += 2) { mn[k] = 0.5f; mn[k + 1] = 0f; }
+        mo.procesar(mn, mn.length);
+        boolean iguales = true; for (int k = 4000; k + 1 < mn.length; k += 2) if (Math.abs(mn[k] - mn[k + 1]) > 1e-6) iguales = false;
+        ok(iguales && Math.abs(mn[7000] - 0.25f) < 0.02f, "mono: ambos canales iguales y con la mitad de la señal");
     }
 }

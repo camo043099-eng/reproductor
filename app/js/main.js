@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.58";
+const VERSION = "0.9.59";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -593,7 +593,7 @@ function perfilesSalida() {
   const p = (E.aj.perfiles ||= {}); if (E.aj.eqSalida && MOTOR && reproductor.ruta) p[reproductor.ruta] = { b: reproductor.bandasDb.slice(), p: reproductor.preampDb, x: reproductor.estadoEq ? reproductor.estadoEq() : undefined };
   return p;
 }
-async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn || !!reproductor._sinEq, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", realce: E.aj.realce || "0", ritmo: E.aj.ritmo || "cd", ritmoLat: E.aj.ritmoLat || "260", ritmoEst: E.aj.ritmoEst || "onda", blur: E.aj.blur !== false, eqSalida: !!E.aj.eqSalida, anim: !!E.aj.anim, inicioBib: !!E.aj.inicioBib, progreso: E.aj.progreso !== false, saltos: E.aj.saltos !== false, hires: !!E.aj.hires, detener: !!E.aj.detener, ritmoFps: E.aj.ritmoFps || "60", contar: E.aj.contar || "auto", largoMin: E.aj.largoMin || "20", fadePlay: E.aj.fadePlay ?? "250", brecha: E.aj.brecha || "0", tfg: E.aj.tfg || "120", tqg: E.aj.tqg || "0.7", tfa: E.aj.tfa || "6000", tqa: E.aj.tqa || "0.7", rgPre: E.aj.rgPre || "0", rgSin: E.aj.rgSin || "0", rgSube: !!E.aj.rgSube, retrasoBt: E.aj.retrasoBt || "0", sinEqAlt: !!E.aj.sinEqAlt, sugerir: E.aj.sugerir !== false, navLbl: E.aj.navLbl !== false, usbDir: !!E.aj.usbDir, sigAlbum: E.aj.sigAlbum !== false, cruce: E.aj.cruce || "0", colchon: E.aj.colchon || "400", pantalla: !!E.aj.pantalla, animN: E.aj.animN || "1", densidad: E.aj.densidad || "comoda", forma: E.aj.forma || "redondeada", texto: E.aj.texto || "1", nombre: E.aj.nombre || "", inTiles: E.aj.inTiles !== false, inVuelve: E.aj.inVuelve !== false, inMixes: E.aj.inMixes !== false, inEscuchadas: E.aj.inEscuchadas !== false, inNuevas: E.aj.inNuevas !== false, inFav: E.aj.inFav !== false, inArtistas: E.aj.inArtistas !== false, sugeridos: E.aj.sugeridos || [], perfiles: perfilesSalida() }, eqx: reproductor.estadoEq ? reproductor.estadoEq() : undefined }, "config").catch(() => {}); }
+async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn || !!reproductor._sinEq, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { mono: !!E.aj.mono, silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", realce: E.aj.realce || "0", ritmo: E.aj.ritmo || "cd", ritmoLat: E.aj.ritmoLat || "260", ritmoEst: E.aj.ritmoEst || "onda", blur: E.aj.blur !== false, eqSalida: !!E.aj.eqSalida, anim: !!E.aj.anim, inicioBib: !!E.aj.inicioBib, progreso: E.aj.progreso !== false, saltos: E.aj.saltos !== false, hires: !!E.aj.hires, detener: !!E.aj.detener, ritmoFps: E.aj.ritmoFps || "60", contar: E.aj.contar || "auto", largoMin: E.aj.largoMin || "20", fadePlay: E.aj.fadePlay ?? "250", brecha: E.aj.brecha || "0", tfg: E.aj.tfg || "120", tqg: E.aj.tqg || "0.7", tfa: E.aj.tfa || "6000", tqa: E.aj.tqa || "0.7", rgPre: E.aj.rgPre || "0", rgSin: E.aj.rgSin || "0", rgSube: !!E.aj.rgSube, retrasoBt: E.aj.retrasoBt || "0", sinEqAlt: !!E.aj.sinEqAlt, sugerir: E.aj.sugerir !== false, navLbl: E.aj.navLbl !== false, usbDir: !!E.aj.usbDir, sigAlbum: E.aj.sigAlbum !== false, cruce: E.aj.cruce || "0", colchon: E.aj.colchon || "400", pantalla: !!E.aj.pantalla, animN: E.aj.animN || "1", densidad: E.aj.densidad || "comoda", forma: E.aj.forma || "redondeada", texto: E.aj.texto || "1", nombre: E.aj.nombre || "", inTiles: E.aj.inTiles !== false, inVuelve: E.aj.inVuelve !== false, inMixes: E.aj.inMixes !== false, inEscuchadas: E.aj.inEscuchadas !== false, inNuevas: E.aj.inNuevas !== false, inFav: E.aj.inFav !== false, inArtistas: E.aj.inArtistas !== false, sugeridos: E.aj.sugeridos || [], perfiles: perfilesSalida() }, eqx: reproductor.estadoEq ? reproductor.estadoEq() : undefined }, "config").catch(() => {}); }
 let tSes = 0;
 async function guardarSesion(fuerza) {
   const ahora = Date.now(); if (!fuerza && ahora - tSes < 4000) return; tSes = ahora;
@@ -805,7 +805,7 @@ function aplicarAvanzados() {
     if (+(a.colchon || 400) !== (reproductor._colchon ?? 400)) reproductor.ponerColchon?.(+(a.colchon || 400))?.catch?.(() => {});
     if (+(a.cruce || 0) !== (reproductor._cruce ?? 0)) reproductor.ponerCruce?.(+(a.cruce || 0))?.catch?.(() => {});
     reproductor.ponerTonoAjuste?.(+a.tfg || 120, +a.tqg || 0.7, +a.tfa || 6000, +a.tqa || 0.7);
-    reproductor.ponerCrossfeed?.(+a.crossfeed || 0)?.catch?.(() => {}); reproductor.ponerFase?.(!!a.fase)?.catch?.(() => {}); }
+    reproductor.ponerCrossfeed?.(+a.crossfeed || 0)?.catch?.(() => {}); reproductor.ponerFase?.(!!a.fase)?.catch?.(() => {}); reproductor.ponerMono?.(!!a.mono)?.catch?.(() => {}); }
   if (MOTOR && reproductor) { const o = { silencio: !!a.silencio, ruido: a.ruido !== false }; if (tocadoEnfoque || a.enfoque === false) o.enfoque = a.enfoque !== false; reproductor.ponerAvanzado(o).catch(() => {}); }
   pintarHiRes();
 }
@@ -1053,6 +1053,7 @@ function armarEq() {
 }
 function mostrarEspacial() {
   const R = reproductor; $("#espacial").hidden = !MOTOR; if (!MOTOR) return;
+  $("#esp-mono").checked = !!E.aj.mono;
   $("#esp-ancho").value = R.ancho; $("#esp-ancho-v").textContent = R.ancho + "%"; $("#esp-env").value = R.env; $("#esp-env-v").textContent = R.env + "%"; $("#esp-gra").value = R.graves; $("#esp-gra-v").textContent = R.graves + "%";
   R.capacidades().then((c) => { $("#esp-env-c").hidden = !c.envolvente; $("#esp-gra-c").hidden = !c.graves; }).catch(() => {});
 }
@@ -1339,6 +1340,7 @@ function enlazar() {
     tocar(listaActual, +fila.dataset.i);
   });
   $("#det-ruta").addEventListener("click", () => { if (detSong) verRuta(detSong); });
+  $("#esp-mono").addEventListener("change", (e) => { E.aj.mono = e.target.checked; aplicarAvanzados(); guardarAjustes(); });
   $("#r-mas").addEventListener("click", () => { const s = reproductor.actual && porId.get(reproductor.actual.id); if (s) opcionesCancion(s, null); });
   $("#r-chips").addEventListener("click", () => { const s = reproductor.actual && porId.get(reproductor.actual.id); if (s) verDetalles(s); });   // tocar el formato abre la info de la canción
   $("#sel-cancelar").addEventListener("click", salirSeleccion);

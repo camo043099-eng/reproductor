@@ -31,6 +31,9 @@ public final class NucleoEq {
     private final double[] cfBajo = new double[2];              // estado del paso bajo: [0] sigue al R (va al L), [1] sigue al L (va al R)
     public synchronized void ponerRealce(double m) { realce = Math.max(0, Math.min(0.3, m)); }
     public void ponerFaseInvertida(boolean v) { faseInvertida = v; }
+    /** Mono: los dos canales salen con la mitad de cada uno (promedio). Solo afecta a estéreo. */
+    private volatile boolean mono = false;
+    public void ponerMono(boolean m) { mono = m; }
     /** mezcla de 0 a 0,6 del canal opuesto (filtrado a graves y medios) */
     public void ponerCrossfeed(double m) { crossfeed = Math.max(0, Math.min(0.6, m)); }
 
@@ -68,7 +71,7 @@ public final class NucleoEq {
             System.arraycopy(o.ff, 0, ff, 0, SLOTS); System.arraycopy(o.fg, 0, fg, 0, SLOTS); System.arraycopy(o.fq, 0, fq, 0, SLOTS); System.arraycopy(o.ft, 0, ft, 0, SLOTS);
             nf = o.nf; tonoGrave = o.tonoGrave; tonoAgudo = o.tonoAgudo; balance = o.balance; eqOn = o.eqOn; gananciaDb = o.gananciaDb;
             tfG = o.tfG; tqG = o.tqG; tfA = o.tfA; tqA = o.tqA; ancho = o.ancho; realce = o.realce; sucio = true;
-            faseInvertida = o.faseInvertida; crossfeed = o.crossfeed;
+            faseInvertida = o.faseInvertida; crossfeed = o.crossfeed; mono = o.mono;
         }
     }
 
@@ -93,7 +96,7 @@ public final class NucleoEq {
             maxDb = Math.max(maxDb, 10 * Math.log10(mag2));
         }
         lineal = Math.pow(10, (gananciaDb - Math.min(9, maxDb)) / 20);
-        pasaTodo = !algunaBanda && Math.abs(gananciaDb) < 0.001 && ancho < 0.001 && Math.abs(balance) < 0.005;
+        pasaTodo = !algunaBanda && Math.abs(gananciaDb) < 0.001 && ancho < 0.001 && Math.abs(balance) < 0.005 && !mono;
         sucio = false;
     }
     /**
@@ -136,8 +139,8 @@ public final class NucleoEq {
         if (saltarGan) { gAct = lineal; saltarGan = false; }
         final double kG = 1 - Math.exp(-1.0 / (0.02 * Math.max(8000, hz)));
         final int C = canales;
-        final boolean cruce = crossfeed > 0.001 && C == 2, fase = faseInvertida;
-        if (pasaTodo && gAct == lineal && realce == 0 && !cruce && !fase) { rampa = 0; return; }   // plano y sin ganancia: pasa idéntico, bit a bit
+        final boolean cruce = crossfeed > 0.001 && C == 2, fase = faseInvertida, mon = mono && C == 2;
+        if (pasaTodo && gAct == lineal && realce == 0 && !cruce && !fase && !mon) { rampa = 0; return; }   // plano y sin ganancia: pasa idéntico, bit a bit
         final double g = lineal;
         for (int k = 0; k < cuantas; k++) {
             int c = k % C; if (c == 0) { gAct += (g - gAct) * kG; if (Math.abs(g - gAct) < 1e-7) gAct = g; }
@@ -167,6 +170,7 @@ public final class NucleoEq {
             final float gi = (float) Math.min(1, 1 - balance), gd2 = (float) Math.min(1, 1 + balance);
             for (int k = 0; k + 1 < cuantas; k += 2) { x[k] *= gi; x[k + 1] *= gd2; }
         }
+        if (mon) for (int k = 0; k + 1 < cuantas; k += 2) { final float m = (x[k] + x[k + 1]) * 0.5f; x[k] = m; x[k + 1] = m; }   // mono: ambos oídos reciben lo mismo
         if (cruce) {                                                     // crossfeed estilo Chu Moy (simplificado): cada oído recibe un poco de graves y medios del otro canal
             final double a = crossfeed, norm = 1.0 / (1.0 + a), kc = cfK;
             for (int k = 0; k + 1 < cuantas; k += 2) {
