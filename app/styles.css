@@ -902,3 +902,5 @@ html[data-tema="mornye"] .chips-sel button.activo { background: #ff453a; border-
 .gesto-vol b { font-size: .9rem; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; text-shadow: 0 1px 6px rgba(0,0,0,.5); }
 .gesto-vol i { width: 10px; height: 230px; border-radius: 99px; background: rgba(255,255,255,.22); overflow: hidden; display: flex; align-items: flex-end; }
 .gesto-vol u { display: block; width: 100%; height: 0; border-radius: 99px; background: #fff; transition: height .12s linear; }
+/* la bienvenida muestra solo el anillo, sin cuadro negro detrás */
+.intro-logo img { border-radius: 0; box-shadow: none; background: none; }
