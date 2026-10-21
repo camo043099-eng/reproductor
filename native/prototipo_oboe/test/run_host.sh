@@ -11,20 +11,21 @@ javac -d "$work/jcls" "$raiz/native/java/NucleoEq.java" "$here/test/ProcesoJava.
 g++ -std=c++17 -O2 -Wall -Wextra -o "$work/proceso" "$here/eq_core.cpp" "$here/test/proceso_host.cpp"
 g++ -std=c++17 -O2 -Wall -Wextra -pthread -o "$work/ring" "$here/test/ring_test.cpp"
 "$work/ring"
-for fase in 0 1; do
-  java -cp "$work/jcls" com.camo.onda.ProcesoJava "$work/entrada.raw" "$work/ref$fase.raw" "$fase"
-  "$work/proceso" "$work/entrada.raw" "$work/cpp$fase.raw" "$fase" >/dev/null
-done
+for modo in basico completo; do for fase in 0 1; do
+  java -cp "$work/jcls" com.camo.onda.ProcesoJava "$work/entrada.raw" "$work/ref_${modo}_$fase.raw" "$fase" "$modo" 2>/dev/null
+  "$work/proceso" "$work/entrada.raw" "$work/cpp_${modo}_$fase.raw" "$fase" "$modo"
+done; done
 python3 - "$work" <<'PY'
 import array, sys
 w = sys.argv[1]
 def leer(p):
     a = array.array('f'); a.frombytes(open(p,'rb').read()); return a
 ok = True
-for fase in ("0", "1"):
-    r, c = leer(f"{w}/ref{fase}.raw"), leer(f"{w}/cpp{fase}.raw")
+for modo in ("basico", "completo"):
+  for fase in ("0", "1"):
+    r, c = leer(f"{w}/ref_{modo}_{fase}.raw"), leer(f"{w}/cpp_{modo}_{fase}.raw")
     d = max(abs(a-b) for a,b in zip(r,c)) if len(r)==len(c) else float("inf")
     ok &= d < 1e-6
-    print(f"fase={fase}: muestras={len(r)} max|dif|={d:.3e} {'OK' if d < 1e-6 else 'FALLA'}")
+    print(f"{modo:9s} fase={fase}: muestras={len(r)} max|dif|={d:.3e} {'OK' if d < 1e-6 else 'FALLA'}")
 sys.exit(0 if ok else 1)
 PY
