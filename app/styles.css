@@ -725,3 +725,7 @@ html[data-tema="mornye"] .vidrio, html[data-tema="mornye"] .mini, html[data-tema
 html[data-tema="mornye"] .aviso, html[data-tema="mornye"] .tile, html[data-tema="mornye"] .boton, html[data-tema="mornye"] .chip {
   background: linear-gradient(135deg, rgba(58, 58, 60, 0.62), rgba(28, 28, 30, 0.55)); -webkit-backdrop-filter: blur(16px) saturate(180%); backdrop-filter: blur(16px) saturate(180%);
 }
+
+/* Con el reproductor abierto, la barra de navegación queda encima para ir a otra sección sin cerrarlo antes (como en Poweramp). */
+body.rep-abierto #nav { z-index: 60; }
+body.rep-abierto #hoja-rep { padding-bottom: calc(var(--nav) + 26px + env(safe-area-inset-bottom, 0px)); }

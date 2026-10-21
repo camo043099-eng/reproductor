@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.63";
+const VERSION = "0.9.64";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -862,13 +862,13 @@ function chorroCorazones(el) {
 const pila = []; let ignorarPop = 0;
 function abrir(id) {
   const h = $("#" + id); clearTimeout(h._t); h.hidden = false; void h.offsetWidth; h.classList.add("ver"); pila.push(id);
-  if (h.classList.contains("corta")) $("#fondo").hidden = false; history.pushState({ hoja: id }, ""); h.focus?.(); if (id === "hoja-rep") pantallaEncendida();
+  if (h.classList.contains("corta")) $("#fondo").hidden = false; history.pushState({ hoja: id }, ""); h.focus?.(); if (id === "hoja-rep") { pantallaEncendida(); document.body.classList.add("rep-abierto"); }
 }
 function cerrar(id, desdeHistorial) {
   const k = pila.lastIndexOf(id); if (k < 0) return; if (id === "hoja-rep") { vizApagar(); ritmoApagar(); } pila.splice(k, 1); if (id === "hoja-rep") pantallaEncendida(); { const h = $("#" + id); h.classList.remove("ver"); clearTimeout(h._t); h._t = setTimeout(() => { h.hidden = true; }, 420); }
   if (!pila.some((x) => $("#" + x).classList.contains("corta"))) $("#fondo").hidden = true;
   if (!desdeHistorial) { ignorarPop++; history.back(); }
-  if (id === "hoja-rep") { vizApagar(); ritmoApagar(); }
+  if (id === "hoja-rep") { vizApagar(); ritmoApagar(); document.body.classList.remove("rep-abierto"); }
 }
 let salirListo = false;
 // atrás: cierra lo abierto, vuelve a Inicio y, en Inicio, pide un segundo gesto para salir
