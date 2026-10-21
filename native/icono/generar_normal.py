@@ -1,4 +1,4 @@
-"""Icono normal de Onda: anillo (native/icono/anillo.png) sobre fondo azul oscuro sólido.
+"""Icono normal de Onda: solo el anillo (native/icono/anillo.png) sobre fondo transparente.
 
 Genera las capas adaptativas (fondo, frente y monocromo) y el icono cuadrado para
 versiones anteriores, en todas las densidades. Se ejecuta una vez.
@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RES = os.path.join(AQUI, "res")
-FONDO = (13, 19, 33, 255)                                    # #0D1321, el azul del icono
+FONDO = (0, 0, 0, 0)                                         # sin fondo: solo el anillo (transparente)
 TAM = {"mdpi": 108, "hdpi": 162, "xhdpi": 216, "xxhdpi": 324, "xxxhdpi": 432}
 LEGADO = {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}
 
@@ -23,7 +23,7 @@ def capa_frente():
     return lienzo
 
 def capa_fondo():
-    return Image.new("RGBA", (432, 432), FONDO)
+    return Image.new("RGBA", (432, 432), FONDO)                # transparente
 
 def capa_mono(frente):
     # silueta blanca: Android 13+ la tiñe con el color del tema
@@ -33,12 +33,9 @@ def capa_mono(frente):
     return mono
 
 def icono_legado(fondo, frente):
-    base = Image.new("RGBA", (432, 432), FONDO)
-    base.alpha_composite(frente)
-    mascara = Image.new("L", (432, 432), 0)
-    ImageDraw.Draw(mascara).rounded_rectangle([0, 0, 431, 431], radius=96, fill=255)
+    # sin cuadro: el anillo sobre transparente
     out = Image.new("RGBA", (432, 432), (0, 0, 0, 0))
-    out.paste(base, (0, 0), mascara)
+    out.alpha_composite(frente)
     return out
 
 def guardar(im, carpeta, nombre, tam):
