@@ -751,3 +751,20 @@ html[data-tema="mornye"] .controles .play { background: #fff; color: #000; }
 html[data-tema="mornye"] .extras { background: rgba(28, 28, 30, 0.55); }
 html[data-tema="mornye"] #r-barra { accent-color: #ff453a; }
 
+
+/* ── Fase 2 (Inicio): accesos directos 3×3 deslizables, selección rápida ── */
+.acc { padding: 0 0 8px; }
+.acc-pista { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.acc-pista::-webkit-scrollbar { display: none; }
+.acc-pag { flex: 0 0 100%; scroll-snap-align: start; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 8px; padding: 4px 12px 6px; box-sizing: border-box; }
+.acc-pag .tile { flex-direction: column; align-items: stretch; height: auto; padding: 0 0 8px; gap: 6px; border-radius: 14px; }
+.acc-pag .tile img, .acc-pag .tile .sinport { width: 100%; height: auto; aspect-ratio: 1 / 1; }
+.acc-pag .tile b { padding: 0 8px; font-size: 0.78rem; text-align: left; }
+.acc-puntos { display: flex; justify-content: center; gap: 6px; padding-top: 6px; }
+.acc-puntos i { width: 6px; height: 6px; border-radius: 99px; background: var(--tx2); opacity: .35; transition: width .35s var(--muelle, ease), opacity .25s ease, background-color .25s ease; }
+.acc-puntos i.on { width: 18px; opacity: 1; background: #ff453a; }
+.seleccion .sec-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 16px; }
+.seleccion .sec-cab h3 { margin: 0; }
+.pill { flex: 0 0 auto; padding: 8px 14px; border-radius: 999px; font-weight: 700; font-size: 0.85rem; background: #fff; color: #000; }
+html[data-tema="mornye"] .pill { background: #ff453a; color: #fff; }
+html[data-tema="mornye"] .acc-pag .tile { background: rgba(255,255,255,.06); }

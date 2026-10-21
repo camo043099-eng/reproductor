@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.71";
+const VERSION = "0.9.72";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -258,6 +258,14 @@ function dibujar() {
   if (v === "inicio") return dibujarInicio(); if (v === "buscar") return dibujarBuscar(); if (raiz) return dibujarRaiz(); dibujarBiblioteca();
 }
 let listasInicio = { fav: [], rec: [], ult: [], mas: [] };
+// Accesos directos: 3×3 por página, deslizable con el dedo (scroll-snap) y con puntos de página
+function accesos(tiles) {
+  if (!tiles.length) return "";
+  const pags = [];
+  for (let i = 0; i < tiles.length; i += 9) pags.push(`<div class="acc-pag">${tiles.slice(i, i + 9).join("")}</div>`);
+  const puntos = pags.length > 1 ? `<div class="acc-puntos">${pags.map((_, j) => `<i class="${j ? "" : "on"}"></i>`).join("")}</div>` : "";
+  return `<div class="acc" data-acc><div class="acc-pista">${pags.join("")}</div>${puntos}</div>`;
+}
 function dibujarInicio() {
   const c = $("#contenido"), rec = [...E.canciones].sort((a, b) => b.fecha - a.fecha), fav = E.canciones.filter((s) => s.fav);
   const ult = ultimasEscuchadas(), mas = masEscuchadas(), nuevas = sinEscuchar();
@@ -276,7 +284,7 @@ function dibujarInicio() {
   tiles.push(tile("lista", "__fav", ic(I.fav.replace("<svg", '<svg fill="currentColor"'), "var(--ac2)"), "Favoritas"));
   if (mas.length) tiles.push(tile("lista", "__mas", ic(I.fav.replace("<svg", '<svg fill="currentColor"'), "#ffb44d"), "Más escuchadas"));
   if (ult.length) tiles.push(tile("lista", "__ult", ic(I.lista.replace("<svg", '<svg fill="none" stroke="currentColor" stroke-width="1.6"'), "#4da3ff"), "Escuchadas hace poco"));
-  for (const a of (albsUlt.length ? albsUlt : albs)) { if (tiles.length >= 8) break; tiles.push(`<button class="tile" type="button" data-det="album" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.album || "Sin álbum")}</b></button>`); }
+  for (const a of (albsUlt.length ? albsUlt : albs)) { if (tiles.length >= 18) break; tiles.push(`<button class="tile" type="button" data-det="album" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.album || "Sin álbum")}</b></button>`); }
   const S = (k) => E.aj[k] !== false;
   const estante = (t, h) => h ? `<section class="estante"><h3>${t}</h3><div class="carril">${h}</div></section>` : "";
   const cancion = (s, i, lista) => `<button class="tarjeta" type="button" data-lista="${lista}" data-i="${i}">${imgHtml(s)}<b>${esc(nom(s))}</b><span>${esc(s.artista || "")}</span></button>`;
@@ -288,7 +296,8 @@ function dibujarInicio() {
     ...generos.slice(0, 5).map(([g]) => `<button class="chip" data-det="lista" data-k="${esc("__gen:" + g)}" type="button">${esc(g)}</button>`),
     `<button class="chip" data-ir="canciones" type="button">Canciones</button>`, `<button class="chip" data-ir="albumes" type="button">Álbumes</button>`, `<button class="chip" data-ir="artistas" type="button">Artistas</button>`, `<button class="chip" data-ir="listas" type="button">Listas</button>`];
   c.innerHTML = `<div class="fichas">${fichas.join("")}</div>
-  ${S("inTiles") ? `<div class="tiles">${tiles.join("")}</div>` : ""}
+  ${S("inTiles") ? accesos(tiles) : ""}
+  ${S("inEscuchadas") && listasInicio.rec.length ? `<section class="estante seleccion"><div class="sec-cab"><h3>Selección rápida</h3><button class="pill" type="button" data-sel-todo>Reproducir todo</button></div><div class="carril">${listasInicio.rec.slice(0, 12).map((s, i) => cancion(s, i, "rec")).join("")}</div></section>` : ""}
   ${S("inVuelve") ? estante("Vuelve a tu música", albsUlt.slice(0, 10).map((a) => albumTarjeta(a, true)).join("")) : ""}
   ${S("inMixes") ? mh.length ? `<section class="estante"><h3>Hecho para ti</h3>${MIXES.aprendiendo ? `<p class="nota-mix">Escucha más música y aprenderé tus gustos.</p>` : ""}<div class="carril">${paraTi}</div></section>` : "" : ""}
   ${S("inMixes") ? estante("Tus mixes", mixes) : ""}
@@ -299,6 +308,8 @@ function dibujarInicio() {
   ${S("inNuevas") ? estante("Canciones nuevas", listasInicio.rec.map((s, i) => cancion(s, i, "rec")).join("")) : ""}
   ${S("inArtistas") ? estante("Artistas", arts.map((a) => `<button class="tarjeta redonda" type="button" data-det="artista" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.albumArtista || a.s.artista || "Desconocido")}</b><span>${a.n} canciones</span></button>`).join("")) : ""}`;
   $("#resumen").textContent = ""; imagenes(c);
+  const acc = c.querySelector("[data-acc]");
+  if (acc) { const pista = acc.querySelector(".acc-pista"), pts = [...acc.querySelectorAll(".acc-puntos i")]; pista.addEventListener("scroll", () => { const n = Math.round(pista.scrollLeft / Math.max(1, pista.clientWidth)); pts.forEach((d, j) => d.classList.toggle("on", j === n)); }, { passive: true }); }
   if (!mh.length && E.canciones.length) mixesDeHoy().then((m) => { if (m.mixes.length && E.vista === "inicio" && !E.detalle) dibujarInicio(); });
 }
 // canción de un género que sí tiene carátula real (si ninguna la tiene, se usa la de relleno)
@@ -1347,6 +1358,7 @@ function enlazar() {
     if (e.target.closest("[data-portadas]")) return descargarFaltantes(true);
     if (e.target.closest("[data-portada-album]")) { const s0 = listaActual[0]; if (s0) portadaWeb(s0); return; }
     if (e.target.closest("[data-mezclar]")) return tocar(ordenar(E.canciones), 0, true);
+    if (e.target.closest("[data-sel-todo]")) return tocar(listasInicio.rec, 0);
     const gq = e.target.closest("[data-q]"); if (gq) { E.q = gq.dataset.q; $("#q").value = E.q; dibujar(); return; }
     const cl = e.target.closest("[data-lista]"); if (cl) return tocar(listasInicio[cl.dataset.lista], +cl.dataset.i);
     const det = e.target.closest("[data-det]"); if (det) { if (E.vista !== "inicio" && E.vista !== "buscar") { E.vista = "biblioteca"; E.bibRaiz = false; } E.tab = det.dataset.det === "artista" ? "artistas" : det.dataset.det === "album" ? "albumes" : det.dataset.det === "carpeta" ? "carpetas" : "listas"; E.detalle = { tipo: det.dataset.det, k: det.dataset.k }; history.pushState({ det: 1 }, ""); dibujar(); animarCambio(); $("#contenido").scrollIntoView(); return; }
