@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.67";
+const VERSION = "0.9.68";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -1579,6 +1579,21 @@ function gestos() {
     (f) => { if (E.sel) return; const s = porId.get(f.dataset.id); alternarFav(s).then(() => avisar(s.fav ? "Agregada a favoritas" : "Quitada de favoritas", 1400)); },
     (f) => { if (E.sel) return; const s = porId.get(f.dataset.id); if (!R.actual) tocar([s], 0); else { R.siguienteLuego(s); avisar("Sonará a continuación", 1400); } });
   filas($("#cola-lista"), ".cq[data-pos]", (f) => R.quitarDeCola(+f.dataset.pos), null);
+  // deslizar a los lados en las pantallas principales cambia de sección (Inicio · Buscar · Biblioteca), como en Poweramp
+  const SECCIONES = ["inicio", "buscar", "biblioteca"], contenido = $("#contenido");
+  deslizar(contenido, {
+    puede: (e) => !E.sel && !E.detalle && !E.q && !pila.length && !e.target.closest(".fila, input, select, textarea, .pestanas, .fichas, .barra-orden, .campo, .seg, .barra-sel, [data-no-deslizar]"),
+    acepta: (eje) => eje === "x",
+    mover: (dx) => { contenido.style.translate = `${dx * 0.25}px 0`; },
+    soltar: (dx, dy, vx) => {
+      contenido.style.translate = "";
+      const i = SECCIONES.indexOf(E.vista); if (i < 0) return;
+      const j = dx < -90 || vx < -0.6 ? i + 1 : dx > 90 || vx > 0.6 ? i - 1 : -1;
+      // después del filtro de clic de deslizar (80 ms), para que el cambio no se pierda
+      if (j >= 0 && j < SECCIONES.length) { vibra(); setTimeout(() => document.querySelector(`#nav button[data-v="${SECCIONES[j]}"]`)?.click(), 100); }
+    },
+    cancelar: () => { contenido.style.translate = ""; },
+  });
   // mantener pulsada una canción abre sus opciones
   let lp = null;
   const limpiar = () => { if (lp) { clearTimeout(lp.t); lp = null; } };
