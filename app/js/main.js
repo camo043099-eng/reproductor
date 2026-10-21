@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.81";
+const VERSION = "0.9.82";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -812,7 +812,7 @@ $("#r-p10").addEventListener("click", () => reproductor.buscar(Math.min((reprodu
 
 // ── ajustes avanzados ──
 const TOGGLES = [["aj-wifi", "wifi", true], ["aj-fordef", "fordef", false], ["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false], ["aj-anim", "anim", false], ["aj-iniciobib", "inicioBib", false], ["aj-coche", "coche", false], ["aj-progreso", "progreso", true], ["aj-saltos", "saltos", true], ["aj-hires", "hires", false], ["aj-detener", "detener", false], ["aj-rgsube", "rgSube", false], ["aj-sineqalt", "sinEqAlt", false], ["aj-sugerir", "sugerir", true], ["aj-navlbl", "navLbl", true], ["aj-usbdir", "usbDir", false], ["aj-sigalbum", "sigAlbum", true], ["aj-pantalla", "pantalla", false], ["aj-intiles", "inTiles", true], ["aj-invuelve", "inVuelve", true], ["aj-inmixes", "inMixes", true], ["aj-inesc", "inEscuchadas", true], ["aj-innuevas", "inNuevas", true], ["aj-infav", "inFav", true], ["aj-inartistas", "inArtistas", true]];
-const SELECTS = [["aj-tema", "tema", "mornye"], ["aj-fuente", "fuente", "inter"], ["aj-icono", "icono", "auto"], ["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-realce", "realce", "0"], ["aj-ritmo", "ritmo", "cd"], ["aj-ritmolat", "ritmoLat", "260"], ["aj-ritmoest", "ritmoEst", "onda"], ["aj-ritmofps", "ritmoFps", "60"], ["aj-contar", "contar", "auto"], ["aj-largo", "largoMin", "20"], ["aj-fadeplay", "fadePlay", "250"], ["aj-brecha", "brecha", "0"], ["aj-tfg", "tfg", "120"], ["aj-tqg", "tqg", "0.7"], ["aj-tfa", "tfa", "6000"], ["aj-tqa", "tqa", "0.7"], ["aj-rgpre", "rgPre", "0"], ["aj-rgsin", "rgSin", "0"], ["aj-retrasobt", "retrasoBt", "0"], ["aj-animn", "animN", "1"], ["aj-colchon", "colchon", "400"], ["aj-cruce", "cruce", "0"], ["aj-densidad", "densidad", "comoda"], ["aj-forma", "forma", "redondeada"], ["aj-texto", "texto", "1"]];
+const SELECTS = [["aj-tema", "tema", "mornye"], ["aj-fuente", "fuente", "inter"], ["aj-icono", "icono", "normal"], ["aj-min", "minSeg", "0"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-realce", "realce", "0"], ["aj-ritmo", "ritmo", "cd"], ["aj-ritmolat", "ritmoLat", "260"], ["aj-ritmoest", "ritmoEst", "onda"], ["aj-ritmofps", "ritmoFps", "60"], ["aj-contar", "contar", "auto"], ["aj-largo", "largoMin", "20"], ["aj-fadeplay", "fadePlay", "250"], ["aj-brecha", "brecha", "0"], ["aj-tfg", "tfg", "120"], ["aj-tqg", "tqg", "0.7"], ["aj-tfa", "tfa", "6000"], ["aj-tqa", "tqa", "0.7"], ["aj-rgpre", "rgPre", "0"], ["aj-rgsin", "rgSin", "0"], ["aj-retrasobt", "retrasoBt", "0"], ["aj-animn", "animN", "1"], ["aj-colchon", "colchon", "400"], ["aj-cruce", "cruce", "0"], ["aj-densidad", "densidad", "comoda"], ["aj-forma", "forma", "redondeada"], ["aj-texto", "texto", "1"]];
 let tocadoEnfoque = false;
 let _wl = null;
 async function pantallaEncendida() {
@@ -823,25 +823,17 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) pant
 function sincronizarAjustes() {
   { const n = $("#aj-nombre"); if (n) n.value = E.aj.nombre || ""; }
   for (const [id, clave, def] of TOGGLES) $("#" + id).checked = E.aj[clave] === undefined ? def : !!E.aj[clave];
+  if (E.aj.icono === "auto") E.aj.icono = "normal";
   for (const [id, clave, def] of SELECTS) $("#" + id).value = E.aj[clave] ?? def;
   $("#aj-fase").checked = !!E.aj.fase; $("#aj-crossfeed").value = +E.aj.crossfeed || 0; $("#aj-crossfeed-v").textContent = (+E.aj.crossfeed || 0).toFixed(2);
   document.querySelectorAll("#hoja-aj select").forEach((x) => x._pintar?.());
   aplicarAvanzados();
 }
 // Temporadas del icono (fecha como mes*100+día). Verano en el hemisferio norte; ajusta las fechas si quieres.
-const TEMPORADAS_ICONO = [["halloween", 1015, 1102], ["navidad", 1201, 106], ["verano", 621, 922]];
-function temporadaIcono(hoy = new Date()) {
-  const md = (hoy.getMonth() + 1) * 100 + hoy.getDate();
-  for (const [nombre, desde, hasta] of TEMPORADAS_ICONO) {
-    const dentro = desde <= hasta ? md >= desde && md <= hasta : md >= desde || md <= hasta;   // navidad cruza el año
-    if (dentro) return nombre;
-  }
-  return "normal";
-}
 let iconoAplicado = null;
 function aplicarIcono() {
   if (!MOTOR) return;
-  const pedido = E.aj.icono && E.aj.icono !== "auto" ? E.aj.icono : temporadaIcono();
+  const pedido = E.aj.icono && E.aj.icono !== "auto" ? E.aj.icono : "normal";   // "auto" (antiguo) ya no existe: queda el normal
   if (pedido === iconoAplicado) return;
   iconoAplicado = pedido;
   MOTOR.icono({ nombre: pedido }).catch(() => { iconoAplicado = null; });
