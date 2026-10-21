@@ -23,6 +23,7 @@ public class ProcesoJava {
             n.ponerFiltros(new double[]{1000, 3000}, new double[]{6, -4}, new double[]{1.0, 2.0}, new int[]{NucleoEq.PICO, NucleoEq.PICO}, true);
             n.ponerTono(4, -3, 0.3);
             n.ponerAncho(0.5);
+            n.ponerRealce(0.18);
         } else {
             n.ponerFiltros(new double[]{1000}, new double[]{6}, new double[]{1.0}, new int[]{NucleoEq.PICO}, true);
         }

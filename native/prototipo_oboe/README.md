@@ -7,14 +7,13 @@ Prototipo aparte de la app para reproducir FLAC de 24 bits **con el ecualizador 
 
 | Parte | Archivo | Estado |
 |---|---|---|
-| Núcleo DSP: filtros peaking, estantes grave/agudo, tono, balance, ancho, margen, rampa, crossfeed, fase, limitador | `eq_core.cpp` | **Verificado** en el host: coincide con `NucleoEq.java` (diferencia máxima 0) en modo básico y completo, con y sin fase |
+| Núcleo DSP completo: filtros, tono, balance, ancho, realce de MP3, margen, rampa, crossfeed, fase, limitador | `eq_core.cpp` | **Verificado** en el host: coincide con `NucleoEq.java` (diferencia máxima 0) en modo básico y completo (incluye realce), con y sin fase |
 | Buffer circular SPSC | `ring_buffer.h` | **Verificado** en el host (orden, relleno con silencio) |
 | Decodificador libFLAC → float | `flac_reader.cpp` | Esqueleto, **sin compilar** (sin cabeceras de libFLAC aquí) |
 | Salida Oboe exclusiva con callback | `oboe_output.cpp` | Esqueleto, **sin compilar** (sin Oboe ni NDK aquí) |
 | Build Android | `CMakeLists.txt` | Sin probar; no está enlazado en la app |
 
-Lo que **no** incluye todavía el port: el realce de MP3 (`ponerRealce`). El resto de ajustes del `NucleoEq`
-de Java sí está portado y verificado.
+El port cubre todos los ajustes de `NucleoEq` de Java y están verificados contra él.
 
 ## Verificar en el host
 

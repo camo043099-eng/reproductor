@@ -24,6 +24,7 @@ public:
     void ponerAncho(double ancho);                      // 0..1
     void ponerCrossfeed(double mezcla);                 // 0..0,6
     void ponerFaseInvertida(bool on);
+    void ponerRealce(double mezcla);                    // 0..0,3: regenera brillo de MP3 de baja calidad
     // Procesa `muestras` valores intercalados (estéreo), in situ. Igual que NucleoEq.procesar().
     void procesar(float* x, std::size_t muestras);
 
@@ -47,6 +48,7 @@ private:
     double lineal_ = 1.0, gAct_ = 1.0, cfK_ = 0, cfBajo_[2] = {0, 0};
     bool sucio_ = true, primera_ = true;
     int rampa_ = 0, rampaTot_ = 1;
+    double realce_ = 0, hp_[2][4] = {{0,0,0,0},{0,0,0,0}};   // estado del realce: [canal]{x1,y1,x1,y1}
 };
 
 }  // namespace onda

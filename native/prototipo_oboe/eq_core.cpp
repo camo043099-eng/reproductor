@@ -32,6 +32,7 @@ void EqCore::ponerBalance(double b) { balance_ = std::max(-1.0, std::min(1.0, b)
 void EqCore::ponerAncho(double a) { ancho_ = std::max(0.0, std::min(1.0, a)); sucio_ = true; }
 void EqCore::ponerCrossfeed(double m) { crossfeed_ = std::max(0.0, std::min(0.6, m)); }
 void EqCore::ponerFaseInvertida(bool on) { fase_ = on; }
+void EqCore::ponerRealce(double m) { realce_ = std::max(0.0, std::min(0.3, m)); }
 
 // Audio EQ Cookbook (RBJ), igual que NucleoEq.calcular(): picos y estantes con S = 1.
 EqCore::Biquad EqCore::calcular(double f, double db, double q, Tipo tipo) const {
@@ -112,6 +113,13 @@ void EqCore::procesar(float* x, std::size_t muestras) {
             Estado& s = estado_[c][b];
             double y = co.b0 * v + co.b1 * s.x1 + co.b2 * s.x2 - co.a1 * s.y1 - co.a2 * s.y2;
             s.x2 = s.x1; s.x1 = v; s.y2 = s.y1; s.y1 = y; v = y;
+        }
+        if (realce_ > 0 && c < 2) {                       // regenera brillo recortado por el MP3 (igual que NucleoEq)
+            const double a = 1.0 / (1.0 + 2 * M_PI * 5000.0 / std::max(8000, hz_));
+            double* h = hp_[c];
+            double e = a * (h[1] + v - h[0]); h[0] = v; h[1] = e;
+            double g2 = std::tanh(3 * e), d = a * (h[3] + g2 - h[2]); h[2] = g2; h[3] = d;
+            v += realce_ * d;
         }
         if (rampa_ > 0) { v *= 1.0 - static_cast<double>(rampa_) / rampaTot_; if (c == C - 1) rampa_--; }
         x[k] = static_cast<float>(v);

@@ -25,6 +25,7 @@ int main(int argc, char** argv) {
         eq.ponerTono(4, -3);
         eq.ponerBalance(0.3);
         eq.ponerAncho(0.5);
+        eq.ponerRealce(0.18);
     }
     eq.ponerCrossfeed(0.3);
     eq.ponerFaseInvertida(fase);
