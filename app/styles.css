@@ -694,3 +694,6 @@ html .aj-pag > .aviso-hires { margin: 0; border-radius: 0; }
 #contenido.seleccion .fila.marcada { background: rgba(255, 255, 255, 0.08); }
 
 #r-chips .chip { cursor: pointer; }
+
+/* Ajustes: cabecera del mismo negro que el fondo */
+#hoja-aj .hoja-top { background: #000 !important; }

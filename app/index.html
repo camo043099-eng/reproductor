@@ -56,6 +56,7 @@
   <button type="button" data-v="inicio" aria-current="page"><i></i><span>Inicio</span></button>
   <button type="button" data-v="buscar"><i></i><span>Buscar</span></button>
   <button type="button" data-v="biblioteca"><i></i><span>Biblioteca</span></button>
+  <button type="button" data-eq aria-label="Ecualizador"><i></i><span>Ecualizador</span></button>
   <button type="button" data-menu id="nav-menu"><i></i><span>Menú</span></button>
 </nav>
 
@@ -75,6 +76,7 @@
   <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span class="suave">Reproduciendo</span><button class="ib" id="r-cola" aria-label="Cola"></button></div>
   <div class="portada-grande"><img id="r-port" alt=""><i class="cd-brillo" aria-hidden="true"></i><canvas id="r-viz" width="320" height="80" hidden></canvas></div>
   <button class="chip" id="r-buscar-port" type="button" hidden style="align-self:center;margin:-6px 0 8px">Buscar carátula en internet</button>
+  <button class="chip" id="r-mas" type="button" style="align-self:center;margin:0 0 8px">Más opciones</button>
   <div class="datos"><h2 id="r-titulo"></h2><p id="r-artista"></p><p class="suave" id="r-album"></p></div>
   <div class="chips" id="r-chips"></div>
   <div class="saltos" id="r-saltos" hidden><button class="chip" id="r-m10" type="button">−10 s</button><button class="chip" id="r-p10" type="button">+10 s</button></div>
@@ -209,7 +211,7 @@
     <p class="suave pequeno solo-nativo" hidden>Acorta los silencios largos dentro de las canciones.</p>
 <div class="campo solo-nativo" hidden><span>Hi-Res puro (24 bits sin procesar)</span><label class="interruptor"><input type="checkbox" id="aj-hires"><span></span></label></div>
 <p class="aviso-hires suave pequeno solo-nativo" id="aj-hires-aviso" hidden></p>
-<p class="suave pequeno solo-nativo" hidden id="diag-audio">Diagnóstico del DSP: —</p>
+<details class="solo-nativo" hidden><summary class="suave pequeno">Diagnóstico del audio (técnico)</summary><p class="suave pequeno" id="diag-audio">Diagnóstico del DSP: —</p></details>
 <p class="suave pequeno solo-nativo" hidden id="aj-hires-nota">Los FLAC de 24 bits salen tal cual, sin ecualizador, sin ondas y sin ajuste de volumen. Se aplica al volver a abrir Onda.</p>
     <div class="campo solo-nativo" hidden><span>USB directo sin mezcla (bit-perfect)</span><label class="interruptor"><input type="checkbox" id="aj-usbdir"><span></span></label></div>
     <p class="suave pequeno solo-nativo" hidden>Para un DAC o auriculares USB: el sonido sale sin que Android lo mezcle ni lo cambie. Necesita Android 14 o más. Si quieres sonido exacto, apaga el ecualizador y los efectos.</p>
