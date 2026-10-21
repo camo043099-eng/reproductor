@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.70";
+const VERSION = "0.9.71";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -30,7 +30,7 @@ const I = {
   letra: svg(D('<rect x="3" y="5" width="18" height="14" rx="3.500"/>') + '<rect x="3" y="5" width="18" height="14" rx="3.500"/><path d="M7 10.500h4M13 10.500h4M7 14.500h7"/>'), volver: svg('<path d="M15 5l-7 7 7 7"/>'), mas3: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.800"/><circle cx="12" cy="12" r="1.800"/><circle cx="12" cy="19" r="1.800"/></svg>',
 };
 const ponerIconos = () => {
-  const m = { "#b-bib-atras": I.volver, "#b-agregar": I.mas, "#b-ajustes": I.ajustes, "#mini-sig": I.sig, "#r-cola": I.cola, "#r-azar": I.azar, "#r-ant": I.ant, "#r-sig": I.sig, "#r-rep": I.rep, "#r-fav": I.fav, "#r-sueno": I.luna, "#r-lista": I.lista, "#r-letra": I.letra };
+  const m = { "#b-bib-atras": I.volver, "#b-agregar": I.mas, "#b-ajustes": I.ajustes, "#mini-sig": I.sig, "#r-cola": I.cola, "#r-eq": I.eq, "#r-azar": I.azar, "#r-ant": I.ant, "#r-sig": I.sig, "#r-rep": I.rep, "#r-fav": I.fav, "#r-sueno": I.luna, "#r-lista": I.lista, "#r-letra": I.letra };
   for (const [k, v] of Object.entries(m)) $(k).innerHTML = v;
   document.querySelectorAll("[data-cerrar]").forEach((b) => { b.innerHTML = I.abajo; });
 };
@@ -1426,6 +1426,7 @@ function enlazar() {
     avisar(ks.length ? `Listo: ${ks.length} carátulas volverán a buscarse.` : "No había carátulas marcadas como no encontradas.", 3500);
   });
   $("#r-lista").addEventListener("click", () => { if (R.actual) agregarALista(R.actual); });
+  $("#r-eq").addEventListener("click", () => { mostrarEq(); abrir("hoja-eq"); });
   $("#r-cola").addEventListener("click", () => { dibujarCola(); abrir("hoja-cola"); });
   $("#r-sueno").addEventListener("click", () => { dibujarSueno(); abrir("hoja-sueno"); });
   const barra = $("#r-barra");

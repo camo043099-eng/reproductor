@@ -729,3 +729,25 @@ html[data-tema="mornye"] .aviso, html[data-tema="mornye"] .tile, html[data-tema=
 /* Con el reproductor abierto, la barra de navegación queda encima para ir a otra sección sin cerrarlo antes (como en Poweramp). */
 body.rep-abierto #nav { z-index: 60; }
 body.rep-abierto #hoja-rep { padding-bottom: calc(var(--nav) + 26px + env(safe-area-inset-bottom, 0px)); }
+
+/* ── Rediseño por fases (Mornye). Fase 1: reproductor, mini reproductor y barra inferior. Con "Onda original" nada de esto aplica. */
+html[data-tema="mornye"] { --mini: 60px; }
+html[data-tema="mornye"] .nav { height: 64px; border-radius: 26px; background: linear-gradient(135deg, rgba(58, 58, 60, 0.62), rgba(28, 28, 30, 0.7)); }
+html[data-tema="mornye"] .nav button { font-weight: 500; font-size: 0.6875rem; }
+html[data-tema="mornye"] .nav button[aria-current="page"] { color: #ff453a; background: rgba(255, 69, 58, 0.16); box-shadow: none; }
+html[data-tema="mornye"] .nav button[aria-current="page"] span { font-weight: 600; }
+html[data-tema="mornye"] .mini { height: 60px; border-radius: 18px; padding: 0 10px 0 8px; gap: 4px; background: linear-gradient(135deg, rgba(58, 58, 60, 0.7), rgba(28, 28, 30, 0.66)); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+html[data-tema="mornye"] .mini-info { gap: 10px; }
+html[data-tema="mornye"] .mini-info img { width: 44px; height: 44px; border-radius: 10px; }
+html[data-tema="mornye"] .mini-texto b { font-size: 0.95rem; font-weight: 600; letter-spacing: -0.01em; }
+html[data-tema="mornye"] .mini-texto span { font-size: 0.8125rem; }
+html[data-tema="mornye"] .mini .ib { width: 44px; height: 44px; }
+html[data-tema="mornye"] .mini-barra { left: 14px; right: 14px; bottom: 0; height: 2px; }
+html[data-tema="mornye"] .mini-barra i { background: var(--ac2, #ff453a); }
+html[data-tema="mornye"] .hoja.completa { background: linear-gradient(180deg, color-mix(in srgb, var(--t) 55%, #000) 0%, #0b0b0d 62%, #000 100%); }
+html[data-tema="mornye"] .datos h2 { font-size: 1.6rem; letter-spacing: -0.02em; }
+html[data-tema="mornye"] .datos p { font-size: 1rem; }
+html[data-tema="mornye"] .controles .play { background: #fff; color: #000; }
+html[data-tema="mornye"] .extras { background: rgba(28, 28, 30, 0.55); }
+html[data-tema="mornye"] #r-barra { accent-color: #ff453a; }
+
