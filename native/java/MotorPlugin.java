@@ -260,6 +260,17 @@ public class MotorPlugin extends Plugin {
     @PluginMethod public void mono(PluginCall call) {
         try { if (Motor.eq != null) Motor.eq.nucleo.ponerMono(call.getBoolean("on", false)); call.resolve(); } catch (Throwable e) { call.resolve(); }
     }
+    /** Volumen del sistema para la música: "pasos" enteros sobre la escala de Android (positivo sube, negativo baja) */
+    @PluginMethod public void volumen(PluginCall call) {
+        try {
+            android.media.AudioManager am = (android.media.AudioManager) getContext().getSystemService(android.content.Context.AUDIO_SERVICE);
+            int tipo = android.media.AudioManager.STREAM_MUSIC;
+            int max = am.getStreamMaxVolume(tipo), cur = am.getStreamVolume(tipo);
+            int nuevo = Math.max(0, Math.min(max, cur + (int) Math.round(call.getDouble("pasos", 0.0))));
+            if (nuevo != cur) am.setStreamVolume(tipo, nuevo, 0);
+            call.resolve();
+        } catch (Throwable e) { call.resolve(); }
+    }
     @PluginMethod public void realce(PluginCall call) {
         try { if (Motor.eq != null) Motor.eq.nucleo.ponerRealce(call.getDouble("mezcla", 0.0)); call.resolve(); } catch (Throwable e) { call.resolve(); }
     }

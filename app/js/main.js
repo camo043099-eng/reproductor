@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.72";
+const VERSION = "0.9.73";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -199,7 +199,7 @@ function generosDe(s) {
   return (s._g = [...out]);
 }
 const conteoGeneros = () => { const g = new Map(); for (const s of E.canciones) for (const x of generosDe(s)) g.set(x, (g.get(x) || 0) + 1); return g; };
-const coincide = (s, q) => !q || (s._b ||= normal([s.titulo, s.artista, s.album, s.nombre, s.genero, s.anio].join(" "))).includes(q);
+const coincide = (s, q) => !q || (s._b ||= normal([s.titulo, s.artista, s.albumArtista, s.album, s.nombre, s.genero, s.anio].join(" "))).includes(q);
 function filaCancion(s, i, extra = "") {
   const sonando = reproductor.actual?.id === s.id;
   return `<li class="fila${sonando ? " sonando" : ""}${E.sel?.has(s.id) ? " marcada" : ""}" data-i="${i}" data-id="${esc(s.id)}" tabindex="0"><span class="ck" aria-hidden="true"></span>${imgHtml(s)}<span class="info"><b>${esc(nom(s))}</b><span>${esc(s.artista || "Artista desconocido")}${extra}</span></span><span class="dur">${fmt(s.duracion)}</span><button class="mas" type="button" data-mas aria-label="Más opciones"><i class="pts"></i></button></li>`;
@@ -292,7 +292,7 @@ function dibujarInicio() {
   const mix = (k, nombre, s, etiqueta) => `<button class="mix" type="button" data-det="lista" data-k="${esc(k)}" style="--h:${tono(nombre)}">${imgHtml(s)}<i>${etiqueta}</i><b>${esc(nombre)}</b></button>`;
   const paraTi = mh.map((m) => mix("__mix:" + m.id, m.nombre, porId.get(m.ids[0]), m.etiqueta)).join("");
   const mixes = generos.map(([g]) => mix("__gen:" + g, "Mix " + g, cancionDeGenero(g), "MIX")).concat(nuevas.length > 10 ? [mix("__olv", "Para redescubrir", nuevas[Math.floor(nuevas.length / 2)], "SIN ESCUCHAR")] : []).join("");
-  const fichas = [`<button class="chip mezcla" data-mezclar type="button">Mezclar todo</button>`, `<button class="chip" data-det="lista" data-k="__fav" type="button">Favoritas</button>`, `<button class="chip" data-estadisticas type="button">Tu actividad</button>`, ...(calidadBaja().length ? [`<button class="chip" data-det="lista" data-k="__baja" type="button">Calidad baja (${calidadBaja().length})</button>`] : []), `<button class="chip" data-personalizar type="button">Personalizar</button>`, `<button class="chip" data-portadas type="button">Descargar carátulas</button>`,
+  const fichas = [`<button class="chip mezcla" data-mezclar type="button">Mezclar todo</button>`, `<button class="chip" data-sorpresa type="button">Sorpresa</button>`, `<button class="chip" data-det="lista" data-k="__fav" type="button">Favoritas</button>`, `<button class="chip" data-estadisticas type="button">Tu actividad</button>`, ...(calidadBaja().length ? [`<button class="chip" data-det="lista" data-k="__baja" type="button">Calidad baja (${calidadBaja().length})</button>`] : []), `<button class="chip" data-personalizar type="button">Personalizar</button>`, `<button class="chip" data-portadas type="button">Descargar carátulas</button>`,
     ...generos.slice(0, 5).map(([g]) => `<button class="chip" data-det="lista" data-k="${esc("__gen:" + g)}" type="button">${esc(g)}</button>`),
     `<button class="chip" data-ir="canciones" type="button">Canciones</button>`, `<button class="chip" data-ir="albumes" type="button">Álbumes</button>`, `<button class="chip" data-ir="artistas" type="button">Artistas</button>`, `<button class="chip" data-ir="listas" type="button">Listas</button>`];
   c.innerHTML = `<div class="fichas">${fichas.join("")}</div>
@@ -545,7 +545,7 @@ function aplicarColores() {
   if (t) r.style.setProperty("--t", t.col);
   const ac = a.acento ?? "auto";
   const mor = (a.tema || "mornye") === "mornye";                       // Mornye: acento rojo fijo, no depende de la portada
-  r.dataset.tema = mor ? "mornye" : "onda";
+  r.dataset.tema = a.tema === "nocturno" ? "nocturno" : mor ? "mornye" : "onda";
   r.dataset.fuente = mor ? (a.fuente === "gsf" ? "gsf" : "inter") : "sistema";
   if (mor) { r.style.setProperty("--rebote", RESORTE_ESPACIAL); r.style.setProperty("--muelle", RESORTE_EFECTO); }
   else { r.style.removeProperty("--rebote"); r.style.removeProperty("--muelle"); }
@@ -840,7 +840,7 @@ function aplicarIcono() {
 }
 function aplicarAvanzados() {
   const r = document.documentElement, a = E.aj;
-  r.classList.add("solido", "plano", "sinblur");
+  r.classList.add("solido", "plano", "sinblur"); aplicarOrdenNav();
   r.classList.toggle("compacta", a.densidad === "compacta"); r.classList.toggle("sinlbl", a.navLbl === false);
   r.dataset.forma = a.forma || "redondeada"; r.style.setProperty("--am", String(+a.animN || 1)); r.style.fontSize = ((+a.texto || 1) * 16) + "px";
   pantallaEncendida(); r.classList.toggle("sinanim", !!a.anim || a.animN === "0"); r.classList.toggle("sinchips", a.chips === false); window.__vibrar = a.vib !== false;
@@ -1359,6 +1359,7 @@ function enlazar() {
     if (e.target.closest("[data-portada-album]")) { const s0 = listaActual[0]; if (s0) portadaWeb(s0); return; }
     if (e.target.closest("[data-mezclar]")) return tocar(ordenar(E.canciones), 0, true);
     if (e.target.closest("[data-sel-todo]")) return tocar(listasInicio.rec, 0);
+    if (e.target.closest("[data-sorpresa]")) return sorpresa();
     const gq = e.target.closest("[data-q]"); if (gq) { E.q = gq.dataset.q; $("#q").value = E.q; dibujar(); return; }
     const cl = e.target.closest("[data-lista]"); if (cl) return tocar(listasInicio[cl.dataset.lista], +cl.dataset.i);
     const det = e.target.closest("[data-det]"); if (det) { if (E.vista !== "inicio" && E.vista !== "buscar") { E.vista = "biblioteca"; E.bibRaiz = false; } E.tab = det.dataset.det === "artista" ? "artistas" : det.dataset.det === "album" ? "albumes" : det.dataset.det === "carpeta" ? "carpetas" : "listas"; E.detalle = { tipo: det.dataset.det, k: det.dataset.k }; history.pushState({ det: 1 }, ""); dibujar(); animarCambio(); $("#contenido").scrollIntoView(); return; }
@@ -1548,10 +1549,11 @@ function enlazar() {
 function gestos() {
   const R = reproductor;
   // hojas: arrastrar hacia abajo desde la parte de arriba para cerrar
-  document.querySelectorAll(".hoja").forEach((h) => arrastrarHoja(h, h.classList.contains("completa") ? [".hoja-top", ".portada-grande", ".datos", ".chips"] : [".hoja-top"], cerrar));
+  document.querySelectorAll(".hoja").forEach((h) => arrastrarHoja(h, h.classList.contains("completa") ? [".hoja-top"] : [".hoja-top"], cerrar));
   // portada del reproductor: deslizar a los lados cambia de canción
   const por = $(".portada-grande");
   deslizar(por, {
+    puede: (e) => e.clientX >= por.getBoundingClientRect().left + por.clientWidth / 2,
     acepta: (eje) => eje === "x",
     empezar: () => { por.style.transition = "none"; por.firstElementChild.style.transition = "none"; por.classList.add("arrastra"); },
     mover: (dx) => { por.style.translate = `${dx * 0.7}px 0`; por.style.rotate = `${dx / 40}deg`; por.firstElementChild.style.transform = `perspective(800px) rotateY(${Math.max(-35, Math.min(35, dx / 6))}deg)`; por.style.setProperty("--gx", dx * 1.4); },
@@ -1894,3 +1896,68 @@ async function portadasNativas() {
   await Promise.all([obrero(), obrero(), obrero()]);
 }
 iniciar();
+
+// ── Sorpresa: mezcla al instante con tus favoritas, lo más escuchado y lo que casi no has oído
+function sorpresa() {
+  const pool = [...E.canciones.filter((s) => s.fav), ...masEscuchadas().slice(0, 25), ...sinEscuchar().slice(0, 25)];
+  const uni = [...new Map(pool.map((s) => [s.id, s])).values()];
+  if (!uni.length) return avisar("Aún no hay canciones para la sorpresa");
+  tocar(uni.slice(0, 60), 0, true);
+}
+
+// ── Orden de la barra inferior (Ajustes > Apariencia): se aplica a la barra y a la lista de ajustes
+const ORDEN_NAV_DEF = ["inicio", "buscar", "biblioteca"];
+function aplicarOrdenNav() {
+  const ord = Array.isArray(E.aj.navOrden) && E.aj.navOrden.length === 3 ? E.aj.navOrden : ORDEN_NAV_DEF;
+  const nav = $("#nav"), menu = $("#nav-menu"), lista = $("#aj-nav-orden");
+  for (const v of ord) { const b = nav.querySelector(`[data-v="${v}"]`); if (b) nav.insertBefore(b, menu); }
+  if (lista) for (const v of ord) { const f = lista.querySelector(`[data-v="${v}"]`); if (f) lista.appendChild(f); }
+}
+{
+  const lista = $("#aj-nav-orden"); let fila = null;
+  lista.addEventListener("pointerdown", (e) => { const h = e.target.closest(".asa"); if (!h) return; fila = h.closest("[data-v]"); fila.classList.add("arrastrando"); try { h.setPointerCapture(e.pointerId); } catch (_) { /* sin captura */ } vibra(4); });
+  lista.addEventListener("pointermove", (e) => {
+    if (!fila) return;
+    const otras = [...lista.children].filter((x) => x !== fila);
+    const ref = otras.find((x) => e.clientY < x.getBoundingClientRect().top + x.offsetHeight / 2) || null;
+    if (ref !== fila.nextElementSibling) lista.insertBefore(fila, ref);
+  });
+  const soltar = () => {
+    if (!fila) return; fila.classList.remove("arrastrando"); fila = null;
+    E.aj.navOrden = [...lista.children].map((x) => x.dataset.v); guardarAjustes(); aplicarOrdenNav();
+  };
+  lista.addEventListener("pointerup", soltar); lista.addEventListener("pointercancel", soltar);
+}
+
+// ── Gestos en reproducción: mitad izquierda horizontal = avanzar/retroceder con vista previa;
+// mitad derecha vertical = volumen del sistema
+{
+  const hoja = $("#hoja-rep");
+  const vista = document.createElement("div"); vista.className = "gesto-vista"; vista.hidden = true; hoja.appendChild(vista);
+  const mostrar = (t) => { vista.textContent = t; vista.hidden = false; };
+  const ocultar = () => { vista.hidden = true; };
+  let base = 0, objetivo = 0, volAcc = 0, ultY = 0;
+  deslizar(hoja, {
+    puede: (e) => {
+      if (hoja.scrollTop > 0 || e.target.closest("button, input, select, textarea, label, .controles, .extras, .campo, #r-barra-c, #letra-cuerpo, .letra-sync, .hoja-top")) return null;
+      const r = hoja.getBoundingClientRect();
+      return { izq: e.clientX < r.left + r.width / 2 };
+    },
+    acepta: (eje, dx, dy, ctx) => (ctx.izq ? eje === "x" : eje === "y"),
+    empezar: (eje, ctx) => {
+      if (ctx.izq) { base = R.tiempo || 0; objetivo = base; mostrar(fmt(base)); }
+      else { volAcc = 0; ultY = 0; mostrar("Volumen"); }
+    },
+    mover: (dx, dy, eje, ctx) => {
+      if (ctx.izq) {
+        objetivo = Math.max(0, Math.min((R.duracion || 1e9), base + (dx / hoja.clientWidth) * 90));
+        mostrar(`${fmt(objetivo)}  (${objetivo >= base ? "+" : "−"}${fmt(Math.abs(objetivo - base))})`);
+      } else {
+        volAcc += -(dy - ultY) / 25; ultY = dy;
+        const pasos = Math.trunc(volAcc); if (pasos) { volAcc -= pasos; if (MOTOR) MOTOR.volumen({ pasos }).catch(() => {}); }
+      }
+    },
+    soltar: (dx, dy, vx, vy, eje, ctx) => { ocultar(); if (ctx.izq && Math.abs(objetivo - base) > 0.5) R.buscar(objetivo); },
+    cancelar: () => ocultar(),
+  });
+}

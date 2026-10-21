@@ -768,3 +768,23 @@ html[data-tema="mornye"] #r-barra { accent-color: #ff453a; }
 .pill { flex: 0 0 auto; padding: 8px 14px; border-radius: 999px; font-weight: 700; font-size: 0.85rem; background: #fff; color: #000; }
 html[data-tema="mornye"] .pill { background: #ff453a; color: #fff; }
 html[data-tema="mornye"] .acc-pag .tile { background: rgba(255,255,255,.06); }
+
+/* ── Sueño del audiófilo: negro absoluto y letras rojo tenue (para no despertar a nadie) ── */
+html[data-tema="nocturno"] { accent-color: #7a1f1f; color-scheme: dark; }
+html[data-tema="nocturno"] *, html[data-tema="nocturno"] *::before, html[data-tema="nocturno"] *::after {
+  background: #000 !important; background-image: none !important; color: #9a3030 !important; border-color: #2a0b0b !important;
+  box-shadow: none !important; text-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+html[data-tema="nocturno"] img, html[data-tema="nocturno"] .sinport { opacity: .22 !important; filter: grayscale(1) !important; }
+html[data-tema="nocturno"] .mix b, html[data-tema="nocturno"] .tarjeta b, html[data-tema="nocturno"] .tile b { color: #9a3030 !important; }
+
+/* ── Gestos de reproducción: burbuja de tiempo / volumen ── */
+.gesto-vista { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); padding: 8px 16px; border-radius: 999px; background: rgba(20,20,24,.82); color: #fff; font-weight: 700; font-size: 1rem; pointer-events: none; z-index: 5; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#hoja-rep { position: relative; }
+
+/* ── Orden de la barra inferior (Ajustes) ── */
+.orden-nav { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; width: 100%; }
+.fila-nav { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: var(--sup2, rgba(255,255,255,.06)); transition: transform .2s var(--rebote, ease), box-shadow .2s ease; user-select: none; touch-action: none; }
+.fila-nav.arrastrando { transform: scale(1.02); box-shadow: 0 10px 24px rgba(0,0,0,.45); }
+.fila-nav .asa { font-size: 1.3rem; padding: 0 6px; cursor: grab; touch-action: none; }
+
+html[data-tema="nocturno"] .pill, html[data-tema="nocturno"] .fila-nav { border: 1px solid #5a1a1a !important; }
