@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.57";
+const VERSION = "0.9.58";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -899,7 +899,30 @@ function opcionesCancion(s, enLista) {
   menu(nom(s), op);
 }
 /** Hoja con los datos que guarda el teléfono de la canción. */
+let detSong = null;
+/** Ruta de audio: el recorrido del sonido, con lo que Onda configura en cada etapa. */
+function verRuta(s) {
+  const R = reproductor, a = E.aj, bits = s.bits ? `${s.bits} bits` : "";
+  const dsp = [];
+  dsp.push(R.eqOn === false ? "Ecualizador apagado" : `Ecualizador ${R.eqModo === "param" ? "paramétrico" : "gráfico"}${R.preampDb ? `, preamp ${R.preampDb > 0 ? "+" : ""}${R.preampDb} dB` : ""}`);
+  if (MOTOR) { if (R.ancho) dsp.push(`Amplitud estéreo ${Math.round(R.ancho * 100)}%`); if (R.env) dsp.push(`Envolvente ${R.env}%`); if (R.graves) dsp.push(`Refuerzo de graves ${R.graves}%`); }
+  if (+a.crossfeed > 0) dsp.push(`Crossfeed ${(+a.crossfeed).toFixed(2)}`);
+  if (a.fase) dsp.push("Fase invertida");
+  if (a.realce && a.realce !== "0") dsp.push(`Realce de MP3 (${a.realce})`);
+  if (R.velocidad && R.velocidad !== 1) dsp.push(`Velocidad ${R.velocidad}×`);
+  const filas = [
+    ["Archivo", [s.formato || s.mime, bits, s.sampleRate ? `${+(s.sampleRate / 1000).toFixed(1)} kHz` : "", s.canales === 1 ? "Mono" : s.canales === 2 ? "Estéreo" : s.canales ? `${s.canales} canales` : "", kbpsDe(s) ? `${kbpsDe(s)} kbps` : ""].filter(Boolean).join(" · ")],
+    ["Decodificación", "Media3 (ExoPlayer), la misma que reproduce Onda"],
+    ["Procesado de Onda", dsp.join(" · ")],
+    ["Hi-Res puro", a.hires ? "Activado: sale sin procesar (sin ecualizador ni crossfeed)" : "Desactivado"],
+    ["Salida", a.usbDir ? "USB directo: sin mezcla de Android" : "Mezclada por Android (el sonido pasa por el sistema)"],
+    ["Diagnóstico", ($("#diag-audio")?.textContent || "No disponible en esta versión").replace(/^Diagnóstico del DSP:\s*/, "")],
+  ];
+  $("#ruta-cuerpo").innerHTML = filas.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("");
+  abrir("hoja-ruta");
+}
 function verDetalles(s) {
+  detSong = s;
   const dur = (x) => { const t = Math.round(x || 0); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); };
   const pista = s.pista ? (s.disco > 1 ? `${s.disco}-${s.pista}` : String(s.pista)) : "";
   const filas = [["Título", s.titulo || s.nombre], ["Artista", s.artista], ["Álbum", s.album], ["Artista del álbum", s.albumArtista], ["Género", s.genero],
@@ -1315,6 +1338,7 @@ function enlazar() {
     if (listaBase && E.q) { const j = listaBase.findIndex((x) => x.id === s.id); if (j >= 0) return tocar(listaBase, j); }
     tocar(listaActual, +fila.dataset.i);
   });
+  $("#det-ruta").addEventListener("click", () => { if (detSong) verRuta(detSong); });
   $("#r-mas").addEventListener("click", () => { const s = reproductor.actual && porId.get(reproductor.actual.id); if (s) opcionesCancion(s, null); });
   $("#r-chips").addEventListener("click", () => { const s = reproductor.actual && porId.get(reproductor.actual.id); if (s) verDetalles(s); });   // tocar el formato abre la info de la canción
   $("#sel-cancelar").addEventListener("click", salirSeleccion);
