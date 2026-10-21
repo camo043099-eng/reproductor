@@ -779,7 +779,6 @@ html[data-tema="nocturno"] .mix b, html[data-tema="nocturno"] .tarjeta b, html[d
 
 /* ── Gestos de reproducción: burbuja de tiempo / volumen ── */
 .gesto-vista { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); padding: 8px 16px; border-radius: 999px; background: rgba(20,20,24,.82); color: #fff; font-weight: 700; font-size: 1rem; pointer-events: none; z-index: 5; white-space: nowrap; font-variant-numeric: tabular-nums; }
-#hoja-rep { position: relative; }
 
 /* ── Orden de la barra inferior (Ajustes) ── */
 .orden-nav { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; width: 100%; }
