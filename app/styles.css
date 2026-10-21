@@ -713,3 +713,15 @@ html[data-tema="mornye"] .nav button[aria-current="page"] { color: #ff453a; back
 html[data-tema="mornye"] .fila { border-radius: 12px; }
 html[data-tema="mornye"] .tile { border-radius: 12px; }
 html[data-tema="mornye"] .fila:active { background: rgba(255, 69, 58, 0.14); }
+
+/* Tipografías de Mornye (incluidas en app/fonts). Con "Onda original" se usa la del sistema. */
+@font-face { font-family: "Inter Mornye"; src: url("fonts/InterVariable.ttf") format("truetype"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Google Sans Flex Mornye"; src: url("fonts/GoogleSansFlex.ttf") format("truetype"); font-weight: 1 1000; font-display: swap; }
+html[data-fuente="inter"], html[data-fuente="inter"] body { font-family: "Inter Mornye", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+html[data-fuente="gsf"], html[data-fuente="gsf"] body { font-family: "Google Sans Flex Mornye", "Inter Mornye", system-ui, sans-serif; }
+
+/* Cristal de Mornye: superficies tintadas más oscuras y con más desenfoque (solo en el estilo Mornye). */
+html[data-tema="mornye"] .vidrio, html[data-tema="mornye"] .mini, html[data-tema="mornye"] .nav, html[data-tema="mornye"] .hoja.corta,
+html[data-tema="mornye"] .aviso, html[data-tema="mornye"] .tile, html[data-tema="mornye"] .boton, html[data-tema="mornye"] .chip {
+  background: linear-gradient(135deg, rgba(58, 58, 60, 0.62), rgba(28, 28, 30, 0.55)); -webkit-backdrop-filter: blur(16px) saturate(180%); backdrop-filter: blur(16px) saturate(180%);
+}
