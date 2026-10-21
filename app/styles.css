@@ -678,3 +678,17 @@ html .aj-pag > .aviso-hires { margin: 0; border-radius: 0; }
 .detalles > div + div { border-top: 1px solid rgba(255, 255, 255, 0.1); }
 .detalles dt { color: #98989f; flex: 0 0 auto; font-size: 0.9rem; }
 .detalles dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere; font-size: 0.95rem; }
+
+/* Selección múltiple en la biblioteca */
+.barra-sel { position: fixed; z-index: 26; left: 12px; right: 12px; bottom: calc(var(--nav) + var(--mini) + 18px + env(safe-area-inset-bottom, 0px)); max-width: 696px; margin: 0 auto; display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 24px; background: #2c2c2e; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+.barra-sel[hidden] { display: none !important; }
+.barra-sel > span { flex: 1; min-width: 0; text-align: center; font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
+.barra-sel button { padding: 9px 12px; border-radius: 999px; color: var(--ac2); font-weight: 600; font-size: 0.9rem; }
+.barra-sel button:disabled { opacity: 0.4; }
+.barra-sel .peligro { color: var(--rojo); }
+.fila .ck { display: none; }
+#contenido.seleccion .fila .ck { display: grid; place-items: center; width: 24px; height: 24px; flex: 0 0 auto; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.4); }
+#contenido.seleccion .fila.marcada .ck { background: var(--ac2); border-color: var(--ac2); }
+#contenido.seleccion .fila.marcada .ck::after { content: ""; width: 6px; height: 11px; border: solid #fff; border-width: 0 2.5px 2.5px 0; transform: translate(-1px, -1px) rotate(45deg); }
+#contenido.seleccion .fila .mas { display: none; }
+#contenido.seleccion .fila.marcada { background: rgba(255, 255, 255, 0.08); }

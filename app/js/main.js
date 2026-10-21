@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.51";
+const VERSION = "0.9.52";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -202,7 +202,7 @@ const conteoGeneros = () => { const g = new Map(); for (const s of E.canciones) 
 const coincide = (s, q) => !q || (s._b ||= normal([s.titulo, s.artista, s.album, s.nombre, s.genero, s.anio].join(" "))).includes(q);
 function filaCancion(s, i, extra = "") {
   const sonando = reproductor.actual?.id === s.id;
-  return `<li class="fila${sonando ? " sonando" : ""}" data-i="${i}" data-id="${esc(s.id)}" tabindex="0">${imgHtml(s)}<span class="info"><b>${esc(nom(s))}</b><span>${esc(s.artista || "Artista desconocido")}${extra}</span></span><span class="dur">${fmt(s.duracion)}</span><button class="mas" type="button" data-mas aria-label="Más opciones"><i class="pts"></i></button></li>`;
+  return `<li class="fila${sonando ? " sonando" : ""}${E.sel?.has(s.id) ? " marcada" : ""}" data-i="${i}" data-id="${esc(s.id)}" tabindex="0"><span class="ck" aria-hidden="true"></span>${imgHtml(s)}<span class="info"><b>${esc(nom(s))}</b><span>${esc(s.artista || "Artista desconocido")}${extra}</span></span><span class="dur">${fmt(s.duracion)}</span><button class="mas" type="button" data-mas aria-label="Más opciones"><i class="pts"></i></button></li>`;
 }
 function agrupar(clave) {
   const m = new Map();
@@ -891,7 +891,7 @@ function opcionesCancion(s, enLista) {
   op.push({ t: "Elegir carátula entre resultados…", f: () => setTimeout(() => abrirSelectorPortada(s), 0) }, { t: "Buscar portada en internet", f: () => portadaWeb(s) }, { t: "Elegir portada de mi galería", f: () => elegirImagen(s) }, { t: "Ver letra", f: () => { if (reproductor.actual?.id !== s.id) tocar([s], 0).then(abrirLetra); else abrirLetra(); } });
   if (enLista) op.push({ t: "Quitar de esta lista", f: async () => { enLista.ids = enLista.ids.filter((x) => x !== s.id); await db.poner("listas", enLista); dibujar(); } });
   op.push({ t: "Ver detalles", f: () => setTimeout(() => verDetalles(s), 0) });
-  if (MOTOR) op.push({ t: "Borrar del teléfono", cls: "peligro", f: () => setTimeout(() => borrarDelTelefono([s]), 0) });
+  if (MOTOR) op.push({ t: "Seleccionar varias", f: () => setTimeout(() => empezarSeleccion(s), 0) }, { t: "Borrar del teléfono", cls: "peligro", f: () => setTimeout(() => borrarDelTelefono([s]), 0) });
   if (!MOTOR) op.push({ t: "Borrar de la biblioteca", cls: "peligro", f: async () => { if (!confirm(`¿Borrar “${s.titulo || s.nombre}” de la app? El archivo original de tu teléfono no se toca.`)) return; await borrarCancion(s); } });
   menu(nom(s), op);
 }
@@ -907,11 +907,26 @@ function verDetalles(s) {
   $("#det-cuerpo").innerHTML = filas.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(String(v))}</dd></div>`).join("");
   abrir("hoja-detalles");
 }
+/* ── selección múltiple en la biblioteca (para borrar varias del teléfono) ── */
+function empezarSeleccion(s) { E.sel = new Set([s.id]); pintarSeleccion(); }
+function pintarSeleccion() {
+  const c = $("#contenido"), n = E.sel ? E.sel.size : 0;
+  c.classList.toggle("seleccion", !!E.sel);
+  $("#barra-sel").hidden = !E.sel;
+  $("#sel-n").textContent = n === 1 ? "1 seleccionada" : `${n} seleccionadas`;
+  $("#sel-borrar").disabled = n === 0;
+  if (E.sel) $("#sel-borrar").textContent = n ? `Borrar ${n}` : "Borrar";
+}
+function alternarSeleccion(fila) {
+  const id = fila.dataset.id; if (E.sel.has(id)) E.sel.delete(id); else E.sel.add(id);
+  fila.classList.toggle("marcada", E.sel.has(id)); vibra(4); pintarSeleccion();
+}
+function salirSeleccion() { E.sel = null; pintarSeleccion(); document.querySelectorAll(".fila.marcada").forEach((f) => f.classList.remove("marcada")); }
 /** Borra los archivos del teléfono. El sistema pide su propia confirmación; al volver a Onda se vuelve a leer la música. */
 async function borrarDelTelefono(lista) {
   const n = lista.length, titulo = n === 1 ? `“${lista[0].titulo || lista[0].nombre}”` : `${n} canciones`;
   menu(`¿Borrar ${titulo} del teléfono?`, [{ t: n === 1 ? "Borrar archivo del teléfono" : `Borrar ${n} archivos del teléfono`, cls: "peligro", f: async () => {
-    try { await MOTOR.borrarArchivos({ ids: lista.map((x) => x.id) }); borradoPendiente = true; avisar("Confirma en la ventana del teléfono.", 4000); }
+    try { await MOTOR.borrarArchivos({ ids: lista.map((x) => x.id) }); borradoPendiente = true; if (E.sel) salirSeleccion(); avisar("Confirma en la ventana del teléfono.", 4000); }
     catch (e) { avisar(String(e?.message || "").includes("permiso") ? "Sin permiso para cambiar tus archivos." : "No pude borrar el archivo.", 5000); }
   } }]);
 }
@@ -1231,6 +1246,7 @@ function enlazar() {
   $("#orden").addEventListener("change", (e) => { E.orden = e.target.value; dibujar(); guardarAjustes(); });
 
   $("#contenido").addEventListener("click", async (e) => {
+    if (E.sel && e.target.closest(".fila[data-id]")) return alternarSeleccion(e.target.closest(".fila[data-id]"));
     const ct = e.target.closest(".cat[data-t]"); if (ct) { E.tab = ct.dataset.t; E.bibRaiz = false; E.detalle = null; dibujar(); animarCambio(); window.scrollTo(0, 0); return; }
     if (e.target.closest("[data-agregar]")) return MOTOR ? iniciarNativo(true) : $("#b-agregar").click();
     const ir = e.target.closest("[data-ir]"); if (ir) { E.vista = "biblioteca"; E.bibRaiz = false; E.tab = ir.dataset.ir; E.detalle = null; dibujar(); animarCambio(); return; }
@@ -1255,6 +1271,9 @@ function enlazar() {
     if (listaBase && E.q) { const j = listaBase.findIndex((x) => x.id === s.id); if (j >= 0) return tocar(listaBase, j); }
     tocar(listaActual, +fila.dataset.i);
   });
+  $("#sel-cancelar").addEventListener("click", salirSeleccion);
+  $("#sel-todas").addEventListener("click", () => { E.sel = new Set(listaActual.map((x) => x.id)); dibujar(); pintarSeleccion(); });
+  $("#sel-borrar").addEventListener("click", () => { const l = [...(E.sel || [])].map((id) => porId.get(id)).filter(Boolean); if (l.length) borrarDelTelefono(l); });
   $("#contenido").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.classList.contains("fila")) e.target.click(); });
 
   $("#mini-abrir").addEventListener("click", abrirReproductor);
@@ -1444,14 +1463,14 @@ function gestos() {
     cancelar: (f) => { f.style.translate = ""; delete f.dataset.arr; delete f.dataset.sw; },
   });
   filas($("#contenido"), ".fila[data-id]",
-    (f) => { const s = porId.get(f.dataset.id); alternarFav(s).then(() => avisar(s.fav ? "Agregada a favoritas" : "Quitada de favoritas", 1400)); },
-    (f) => { const s = porId.get(f.dataset.id); if (!R.actual) tocar([s], 0); else { R.siguienteLuego(s); avisar("Sonará a continuación", 1400); } });
+    (f) => { if (E.sel) return; const s = porId.get(f.dataset.id); alternarFav(s).then(() => avisar(s.fav ? "Agregada a favoritas" : "Quitada de favoritas", 1400)); },
+    (f) => { if (E.sel) return; const s = porId.get(f.dataset.id); if (!R.actual) tocar([s], 0); else { R.siguienteLuego(s); avisar("Sonará a continuación", 1400); } });
   filas($("#cola-lista"), ".cq[data-pos]", (f) => R.quitarDeCola(+f.dataset.pos), null);
   // mantener pulsada una canción abre sus opciones
   let lp = null;
   const limpiar = () => { if (lp) { clearTimeout(lp.t); lp = null; } };
   $("#contenido").addEventListener("pointerdown", (e) => {
-    const f = e.target.closest(".fila[data-id]"); if (!f || e.target.closest("[data-mas]")) return;
+    const f = e.target.closest(".fila[data-id]"); if (!f || E.sel || e.target.closest("[data-mas]")) return;
     lp = { x: e.clientX, y: e.clientY, t: setTimeout(() => {
       lp = null; vibra(20); const parar = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
       window.addEventListener("click", parar, true); setTimeout(() => window.removeEventListener("click", parar, true), 700);
