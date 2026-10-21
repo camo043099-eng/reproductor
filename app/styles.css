@@ -616,7 +616,13 @@ body:has(#indice:not([hidden])) #contenido { padding-right: 30px; }
 .cq-bt button { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--tx2); background: rgba(255,255,255,.06); transition: transform .2s var(--rebote), background-color .2s; }
 .cq-bt button:active { transform: scale(.85); background: rgba(255,255,255,.16); }
 .cq-bt svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.hoja.ver #cola-lista .cq { animation: ent-sube calc(var(--am, 1) * .34s) var(--muelle) both; }
+.cq-agarre { width: 40px; height: 40px; display: grid; place-items: center; color: var(--tx2); touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; border-radius: 12px; }
+.cq-agarre:active { background: rgba(255,255,255,.08); }
+.cq-agarre svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; pointer-events: none; }
+.cq { transition: transform .22s cubic-bezier(.2,.8,.2,1), background .2s; }
+.cq.arrastra { position: relative; z-index: 3; background: #2c2c2e; box-shadow: 0 10px 28px rgba(0,0,0,.45); transition: none; transform-origin: center; }
+.cq.arrastra .cq-agarre { cursor: grabbing; color: var(--ac2); }
+.hoja.ver #cola-lista .cq { animation: ent-sube calc(var(--am, 1) * .34s) var(--muelle) backwards; }   /* backwards: no fija el transform, para que el arrastre pueda moverla */
 .hoja.ver #cola-lista .cq:nth-child(n+14) { animation: none; }
 
 /* hojas: sus botones y campos entran en cascada */
@@ -650,3 +656,18 @@ html .aj-menu > .aj-cat i svg { width: 18px; height: 18px; }
 html .aj-menu > .aj-cat span { gap: 1px; }
 html .aj-menu > .aj-cat b { font-size: 1rem; font-weight: 500; }
 html .aj-menu > .aj-cat small { color: #98989f; font-size: 0.8rem; }
+
+/* Subpáginas de Ajustes (Audio, Efectos, Apariencia…): una tarjeta por página con filas y separadores,
+   igual que el menú principal (estilo Mornye). Sin animación de entrada por fila, para que no cambie la forma al entrar. */
+html .aj-pag { display: flex; flex-direction: column; gap: 0; padding: 0; margin: 0; overflow: hidden; border-radius: 24px; background: #1c1c1e; }
+html .aj-pag > * { animation: none !important; }
+html .aj-pag [hidden] { display: none !important; }
+html .aj-pag > .aj-tit-pag { display: none; }
+html .aj-pag > .sub { margin: 0; padding: 18px 16px 6px; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #98989f; background: transparent; }
+html .aj-pag > .campo { min-height: 50px; margin: 0; padding: 10px 16px; border: 0; border-radius: 0; background: transparent; }
+html .aj-pag > .campo > span:first-child { font-size: 1rem; color: var(--tx); }
+html .aj-pag > .campo:not(:first-child):not(.sub + .campo) { border-top: 1px solid rgba(255, 255, 255, 0.1); }
+html .aj-pag > .boton { order: 1; display: flex; width: 100%; min-height: 50px; margin: 0; padding: 0 16px; border: 0; border-top: 1px solid rgba(255, 255, 255, 0.1); border-radius: 0; justify-content: flex-start; background: transparent; color: var(--ac2, #0a84ff); font-weight: 500; }
+html .aj-pag > .boton:active { background: rgba(255, 255, 255, 0.07); }
+html .aj-pag > .suave { margin: 0; padding: 6px 16px 14px; background: transparent; line-height: 1.35; }
+html .aj-pag > .aviso-hires { margin: 0; border-radius: 0; }

@@ -69,3 +69,17 @@ test("play con cola ya cargada usa alternar normal", async () => {
   f.llamadas.length = 0; await r.alternar();
   assert.equal(f.llamadas.some((x) => x[0] === "cargar"), false); assert.equal(f.llamadas.some((x) => x[0] === "alternar"), true);
 });
+
+test("moverA: reordena con arrastre y la posición sigue a la canción que suena", async () => {
+  const f = falso(), r = new ReproductorNativo(f.N); const l = canc(6);
+  await r.cargarCola(l, 2, true);                       // suena la 3ª (índice 2)
+  const suena = r.lista[r.pos];
+  r.moverA(0, 4);                                       // una de antes → después de la que suena
+  assert.equal(r.lista[r.pos], suena); assert.equal(r.pos, 1);
+  r.moverA(5, 0);                                       // una de después → al principio
+  assert.equal(r.lista[r.pos], suena); assert.equal(r.pos, 2);
+  r.moverA(r.pos, 0);                                   // la que suena → al principio
+  assert.equal(r.pos, 0); assert.equal(r.lista[0], suena);
+  r.moverA(3, 99);                                      // destino fuera de rango se ajusta al final
+  assert.equal(r.lista.length, 6);
+});

@@ -103,6 +103,15 @@ export class ReproductorNativo extends EventTarget {
     if (this.pos === i) this.pos = n; else if (this.pos === n) this.pos = i;
     this.N.mover({ de: i, a: n }); this._emitir("cola");
   }
+  /** Mueve la canción de `de` a `a` (posición final). Mantiene `pos` apuntando a la canción que suena. */
+  moverA(de, a) {
+    const n = this.lista.length; a = Math.max(0, Math.min(a, n - 1));
+    if (de === a || de < 0 || de >= n) return;
+    const [s] = this.lista.splice(de, 1); this.lista.splice(a, 0, s);
+    const P = this.pos;
+    if (de === P) this.pos = a; else if (de < P && a >= P) this.pos = P - 1; else if (de > P && a <= P) this.pos = P + 1;
+    this.N.mover({ de, a }); this._emitir("cola");
+  }
 
   // ── sonido ──
   _eq() {

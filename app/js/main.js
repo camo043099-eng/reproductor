@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.49";
+const VERSION = "0.9.50";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -905,7 +905,7 @@ async function borrarCancion(s) {
 const listaDelDetalle = () => (E.detalle?.tipo === "lista" && E.detalle.k !== "__fav" ? E.listas.find((x) => x.id === E.detalle.k) : null);
 function dibujarCola() {
   const lt = reproductor.listaEnOrden(), u = $("#cola-lista"), pos = reproductor.pos, ini = Math.max(0, Math.min(pos - 15, lt.length - 260)), l = lt.slice(ini, ini + 260);   // solo la ventana cercana: una cola de miles no se dibuja entera
-  const fila = (s, i) => `<li class="cq${i < pos ? " ya" : ""}" data-pos="${i}">${imgHtml(s)}<span class="info"><b>${esc(nom(s))}</b><span>${esc(s.artista || "")}</span></span><span class="cq-bt"><button type="button" data-sube="${i}" aria-label="Subir">${I.abajo.replace("<svg", '<svg style="transform:rotate(180deg)"')}</button><button type="button" data-baja="${i}" aria-label="Bajar">${I.abajo}</button><button type="button" data-quita="${i}" aria-label="Quitar"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></button></span></li>`;
+  const fila = (s, i) => `<li class="cq${i < pos ? " ya" : ""}" data-pos="${i}">${imgHtml(s)}<span class="info"><b>${esc(nom(s))}</b><span>${esc(s.artista || "")}</span></span><span class="cq-bt"><button type="button" data-quita="${i}" aria-label="Quitar de la cola"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></button><span class="cq-agarre" aria-label="Mantén y arrastra para cambiar de lugar" title="Arrastrar"><svg viewBox="0 0 24 24"><path d="M4 8h16M4 12h16M4 16h16"/></svg></span></span></li>`;
   let h = "", antes = l.filter((_, j) => ini + j < pos), ahora = lt[pos], luego = l.filter((_, j) => ini + j > pos);
   if (ini) h += `<li class="cq-nota">${ini} canciones anteriores</li>`;
   if (antes.length) h += `<li class="cq-tit">Ya sonaron</li>` + antes.map((s, j) => fila(s, ini + j)).join("");
@@ -914,6 +914,36 @@ function dibujarCola() {
   if (ini + l.length < lt.length) h += `<li class="cq-nota">${lt.length - ini - l.length} canciones más en la cola</li>`;
   u.innerHTML = h || `<li class="cq-nota">La cola está vacía</li>`;
   imagenes(u);
+}
+
+/** Reordenar la cola: se mantiene el asa ≡ y se arrastra; las filas vecinas se corren para dejar el hueco. */
+function arrastrarCola() {
+  const u = $("#cola-lista");
+  u.addEventListener("pointerdown", (e) => {
+    const g = e.target.closest(".cq-agarre"); if (!g || u.querySelector(".arrastra")) return;
+    e.stopPropagation(); e.preventDefault();                 // el asa no activa el deslizar-para-quitar
+    const fila = g.closest(".cq"), de = +fila.dataset.pos, alto = fila.getBoundingClientRect().height + 2;
+    const r0 = fila.getBoundingClientRect(), y0 = e.clientY, centro0 = r0.top + r0.height / 2;
+    const otras = new Map([...u.querySelectorAll(".cq[data-pos]")].filter((f) => f !== fila).map((f) => { const r = f.getBoundingClientRect(); return [+f.dataset.pos, { c: r.top + r.height / 2, f }]; }));
+    let t = de;
+    try { g.setPointerCapture(e.pointerId); } catch (_) { /* sin captura */ }
+    fila.classList.add("arrastra"); vibra(8);
+    const mover = (ev) => {
+      const dy = ev.clientY - y0, c = centro0 + dy; t = de;
+      for (const [p, o] of otras) { if (p > de && c > o.c) t = Math.max(t, p); if (p < de && c < o.c) t = Math.min(t, p); }
+      fila.style.transform = `translateY(${dy}px)`;
+      for (const [p, o] of otras) {
+        const d = t > de && p > de && p <= t ? -alto : t < de && p < de && p >= t ? alto : 0;
+        o.f.style.transform = d ? `translateY(${d}px)` : "";
+      }
+    };
+    const soltar = () => {
+      g.removeEventListener("pointermove", mover); g.removeEventListener("pointerup", soltar); g.removeEventListener("pointercancel", soltar);
+      fila.classList.remove("arrastra"); fila.style.transform = ""; for (const o of otras.values()) o.f.style.transform = "";
+      if (t !== de) { vibra(4); reproductor.moverA(de, t); }
+    };
+    g.addEventListener("pointermove", mover); g.addEventListener("pointerup", soltar); g.addEventListener("pointercancel", soltar);
+  }, true);
 }
 
 // ── ecualizador ──
@@ -1254,11 +1284,12 @@ function enlazar() {
   });
 
   $("#cola-lista").addEventListener("click", (e) => {
-    const f = e.target.closest(".cq"); if (!f) return;
-    const sube = e.target.closest("[data-sube]"), baja = e.target.closest("[data-baja]"), quita = e.target.closest("[data-quita]");
-    if (sube) R.mover(+sube.dataset.sube, -1); else if (baja) R.mover(+baja.dataset.baja, 1); else if (quita) R.quitarDeCola(+quita.dataset.quita);
+    const f = e.target.closest(".cq"); if (!f || e.target.closest(".cq-agarre")) return;
+    const quita = e.target.closest("[data-quita]");
+    if (quita) R.quitarDeCola(+quita.dataset.quita);
     else R.irA(R.orden[+f.dataset.pos]);
   });
+  arrastrarCola();
 
   $("#eq-bandas").addEventListener("input", (e) => { const i = e.target.dataset.b; if (i == null) return; if (R.eqNb === 31) R.ajustarBanda31(+i, +e.target.value); else R.ajustarBanda(+i, +e.target.value); if (MOTOR) dibujarCurva(); $("#eq-v" + i).textContent = (+e.target.value > 0 ? "+" : "") + e.target.value; guardarAjustes(); });
   $("#eq-presets").addEventListener("click", (e) => { const b = e.target.closest("[data-preset]"); if (!b) return; R.usarPreset(b.dataset.preset); mostrarEq(); guardarAjustes(); });
