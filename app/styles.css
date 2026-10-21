@@ -904,3 +904,6 @@ html[data-tema="mornye"] .chips-sel button.activo { background: #ff453a; border-
 .gesto-vol u { display: block; width: 100%; height: 0; border-radius: 99px; background: #fff; transition: height .12s linear; }
 /* la bienvenida muestra solo el anillo, sin cuadro negro detrás */
 .intro-logo img { border-radius: 0; box-shadow: none; background: none; }
+/* carátulas relacionadas en las tarjetas de Biblioteca */
+.cat i.con-img { width: 66px; height: 66px; border-radius: 16px; background: none; overflow: hidden; padding: 0; }
+.cat i.con-img img, .cat i.con-img .sinport { width: 100%; height: 100%; object-fit: cover; display: block; }

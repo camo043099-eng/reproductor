@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.86";
+const VERSION = "0.9.87";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -281,10 +281,11 @@ function dibujarInicio() {
   const tile = (d, k, ico, t) => `<button class="tile" type="button" data-det="${d}" data-k="${esc(k)}">${ico}<b>${esc(t)}</b></button>`;
   const ic = (svg, col) => `<span class="sinport fav" style="color:${col}">${svg}</span>`;
   const tiles = [];
-  if (mh.length) tiles.push(tile("lista", "__mix:" + mh[0].id, ic(I.fav.replace("<svg", '<svg fill="currentColor"'), "#7c5cff"), mh[0].nombre));
-  tiles.push(tile("lista", "__fav", ic(I.fav.replace("<svg", '<svg fill="currentColor"'), "var(--ac2)"), "Favoritas"));
-  if (mas.length) tiles.push(tile("lista", "__mas", ic(I.fav.replace("<svg", '<svg fill="currentColor"'), "#ffb44d"), "Más escuchadas"));
-  if (ult.length) tiles.push(tile("lista", "__ult", ic(I.lista.replace("<svg", '<svg fill="none" stroke="currentColor" stroke-width="1.6"'), "#4da3ff"), "Escuchadas hace poco"));
+  const cubre = (s, f) => (s ? imgHtml(s) : f);
+  if (mh.length) tiles.push(tile("lista", "__mix:" + mh[0].id, cubre(porId.get(mh[0].ids[0]), ic(I.fav.replace("<svg", '<svg fill="currentColor"'), "#7c5cff")), mh[0].nombre));
+  tiles.push(tile("lista", "__fav", cubre(fav[0], ic(I.fav.replace("<svg", '<svg fill="currentColor"'), "var(--ac2)")), "Favoritas"));
+  if (mas.length) tiles.push(tile("lista", "__mas", cubre(mas[0], ic(I.fav.replace("<svg", '<svg fill="currentColor"'), "#ffb44d")), "Más escuchadas"));
+  if (ult.length) tiles.push(tile("lista", "__ult", cubre(ult[0], ic(I.lista.replace("<svg", '<svg fill="none" stroke="currentColor" stroke-width="1.6"'), "#4da3ff")), "Escuchadas hace poco"));
   for (const a of (albsUlt.length ? albsUlt : albs)) { if (tiles.length >= 18) break; tiles.push(`<button class="tile" type="button" data-det="album" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.album || "Sin álbum")}</b></button>`); }
   const S = (k) => E.aj[k] !== false;
   const estante = (t, h) => h ? `<section class="estante"><h3>${t}</h3><div class="carril">${h}</div></section>` : "";
@@ -376,7 +377,10 @@ function dibujarRaiz() {
   const nAlb = albumesReales([...agrupar((s) => s.alb)]).length, nArt = agrupar((s) => normal(s.albumArtista || s.artista)).size, nFav = E.canciones.filter((s) => s.fav).length;
   const hayCarp = E.canciones.some((x) => x.carpeta), nCarp = hayCarp ? agrupar((s) => s.carpeta || "").size : 0;
   const filas = [["canciones", "Canciones", `${E.canciones.length} canciones`], ["albumes", "Álbumes", `${nAlb} álbumes`], ["artistas", "Artistas", `${nArt} artistas`], ...(hayCarp ? [["carpetas", "Carpetas", `${nCarp} carpetas`]] : []), ["listas", "Listas", `${nFav} favoritas · ${E.listas.length} listas`]];
-  c.innerHTML = `<div class="cats">${filas.map(([k, n, d]) => `<button class="cat" type="button" data-t="${k}" style="--ci:${({ canciones: "#8b6cff", albumes: "#ff4f8b", artistas: "#2fd4a4", carpetas: "#f5a524", listas: "#4da3ff" })[k]}"><i>${IC_CAT[k]}</i><span><b>${n}</b><small>${d}</small></span></button>`).join("")}</div>`;
+  const recientes = [...E.canciones].sort((a, b) => b.fecha - a.fecha);
+  const artista = [...agrupar((s) => normal(s.albumArtista || s.artista))].sort((a, b) => b[1].length - a[1].length)[0];
+  const foto = { canciones: recientes[0], albumes: recientes[0], artistas: artista ? artista[1][0] : null, carpetas: E.canciones.find((s) => s.carpeta) || null, listas: porId.get(E.listas[0]?.ids[0]) || E.canciones.find((s) => s.fav) || null };
+  c.innerHTML = `<div class="cats">${filas.map(([k, n, d]) => `<button class="cat" type="button" data-t="${k}" style="--ci:${({ canciones: "#8b6cff", albumes: "#ff4f8b", artistas: "#2fd4a4", carpetas: "#f5a524", listas: "#4da3ff" })[k]}"><i class="${foto[k] ? "con-img" : ""}">${foto[k] ? imgHtml(foto[k]) : IC_CAT[k]}</i><span><b>${n}</b><small>${d}</small></span></button>`).join("")}</div>`;
 }
 function dibujarBiblioteca() {
   const c = $("#contenido"), q = normal(E.q.trim()), d = E.detalle;
@@ -2008,9 +2012,9 @@ function aplicarOrdenNav() {
   // barra de volumen a la derecha, con el porcentaje del volumen del sistema
   const barraVol = document.createElement("div"); barraVol.className = "gesto-vol"; barraVol.hidden = true;
   barraVol.innerHTML = "<b></b><i><u></u></i>"; hoja.appendChild(barraVol);
-  let ocultarVol = 0;
-  const pintaVol = (p) => { clearTimeout(ocultarVol); barraVol.querySelector("b").textContent = p + "%"; barraVol.querySelector("u").style.height = p + "%"; barraVol.hidden = false; };
-  const sueltaVol = () => { ocultarVol = setTimeout(() => { barraVol.hidden = true; }, 800); };
+  let ocultarVol = 0, volActivo = false;
+  const pintaVol = (p) => { if (!volActivo) return; clearTimeout(ocultarVol); barraVol.querySelector("b").textContent = p + "%"; barraVol.querySelector("u").style.height = p + "%"; barraVol.hidden = false; };
+  const sueltaVol = () => { volActivo = false; clearTimeout(ocultarVol); ocultarVol = setTimeout(() => { barraVol.hidden = true; }, 500); };
   let base = 0, objetivo = 0, volAcc = 0, ultY = 0;
   deslizar(hoja, {
     puede: (e) => {
@@ -2021,14 +2025,14 @@ function aplicarOrdenNav() {
     acepta: (eje, dx, dy, ctx) => (ctx.izq ? eje === "x" : eje === "y" && !ctx.enPortada),
     empezar: (eje, ctx) => {
       if (ctx.izq) { base = R.tiempo || 0; objetivo = base; mostrar(fmt(base)); }
-      else { volAcc = 0; ultY = 0; if (MOTOR) MOTOR.volumen({ pasos: 0 }).then((r) => pintaVol(r.pct)).catch(() => {}); }
+      else { volAcc = 0; ultY = 0; volActivo = true; if (MOTOR) MOTOR.volumen({ pasos: 0 }).then((r) => pintaVol(r.pct)).catch(() => {}); }
     },
     mover: (dx, dy, eje, ctx) => {
       if (ctx.izq) {
         objetivo = Math.max(0, Math.min((R.duracion || 1e9), base + (dx / hoja.clientWidth) * 90));
         mostrar(`${fmt(objetivo)}  (${objetivo >= base ? "+" : "−"}${fmt(Math.abs(objetivo - base))})`);
       } else {
-        volAcc += -(dy - ultY) / 25; ultY = dy;
+        volAcc += -(dy - ultY) / 45; ultY = dy;
         const pasos = Math.trunc(volAcc); if (pasos) { volAcc -= pasos; if (MOTOR) MOTOR.volumen({ pasos }).then((r) => pintaVol(r.pct)).catch(() => {}); }
       }
     },
