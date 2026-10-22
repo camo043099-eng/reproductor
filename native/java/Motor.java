@@ -54,6 +54,8 @@ public final class Motor {
     }
     public static void reproducirSuave() {
         ExoPlayer p = jugador; if (p == null) return; parar();
+        // tras un stop (p. ej. "detener al cerrar desde recientes") el reproductor queda en IDLE: hay que volver a preparar o play no hace nada
+        if (p.getPlaybackState() == androidx.media3.common.Player.STATE_IDLE && p.getMediaItemCount() > 0) p.prepare();
         if (fadeMs <= 0 || p.isPlaying()) { fTransp = 1f; mezclar(); p.play(); return; }
         fTransp = 0f; mezclar(); p.play(); rampar(0f, 1f, fadeMs, null);
     }
