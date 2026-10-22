@@ -907,3 +907,39 @@ html[data-tema="mornye"] .chips-sel button.activo { background: #ff453a; border-
 /* carátulas relacionadas en las tarjetas de Biblioteca */
 .cat i.con-img { width: 66px; height: 66px; border-radius: 16px; background: none; overflow: hidden; padding: 0; }
 .cat i.con-img img, .cat i.con-img .sinport { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+
+/* ── Fase 6: pulido previo a Play Store ── */
+.acc-pista { align-items: flex-start; }
+.acc-pag { align-content: start; grid-auto-rows: max-content; }
+.cabeza-botones { align-items: center; }
+#b-actualizar.girando svg { animation: giro .9s linear infinite; }
+@keyframes giro { to { transform: rotate(360deg); } }
+.acc-lista { display: flex; gap: 8px; padding: 2px 16px 10px; overflow-x: auto; scrollbar-width: none; }
+.acc-lista::-webkit-scrollbar { display: none; }
+.acc-lista .boton { min-height: 40px; padding: 0 16px; font-size: .9rem; flex: 0 0 auto; }
+.acc-lista .boton.primario { background: #ff453a; border-color: #ff453a; color: #fff; box-shadow: 0 8px 22px rgba(255, 69, 58, .32); }
+.acciones-detalle { flex-wrap: wrap; }
+.acciones-detalle .boton { min-height: 40px; padding: 0 16px; font-size: .9rem; }
+.tarjeta .meta { opacity: .8; font-size: .75rem; }
+.rejilla.artistas { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 10px; }
+.tarjeta.redonda img { box-shadow: 0 6px 18px rgba(0, 0, 0, .4); }
+.tarjeta.redonda b { text-align: center; }
+.barra-sel .sel-acc { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(64px, 1fr); overflow-x: auto; scrollbar-width: none; }
+.barra-sel .sel-acc::-webkit-scrollbar { display: none; }
+.fila { -webkit-touch-callout: none; user-select: none; }
+/* diálogo propio */
+.dlg { display: grid; gap: 12px; padding: 8px 20px 20px; }
+.dlg h3 { margin: 6px 0 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; }
+.dlg p { margin: 0; font-size: .9rem; line-height: 1.4; }
+.dlg input { width: 100%; height: 50px; padding: 0 18px; border-radius: 16px; color: var(--tx); font-size: 1rem; background: rgba(255, 255, 255, .08); border: 1px solid var(--linea); outline: none; }
+.dlg input:focus { border-color: #ff453a; box-shadow: 0 0 0 3px rgba(255, 69, 58, .22); }
+.dlg-b { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 4px; }
+.dlg-b .boton { width: 100%; justify-content: center; min-height: 48px; }
+.dlg-b .boton.primario { background: #ff453a; border-color: #ff453a; color: #fff; box-shadow: 0 8px 22px rgba(255, 69, 58, .3); }
+.dlg-b .boton.peligro { background: rgba(255, 69, 58, .16); border-color: rgba(255, 69, 58, .5); color: #ff6b6b; }
+
+html .boton.primario.acento, html .boton.primario.acento * { background: #ff453a !important; color: #fff !important; border-color: #ff453a !important; }
+html .boton.primario.acento { box-shadow: 0 8px 22px rgba(255, 69, 58, .32); }
+.barra-sel { flex-direction: column; align-items: stretch; gap: 0; }
+.barra-sel .sel-fila > span { flex: 1; text-align: center; font-weight: 600; font-size: .9rem; white-space: nowrap; }

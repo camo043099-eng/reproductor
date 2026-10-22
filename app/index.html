@@ -23,9 +23,10 @@
 <div class="app" id="app">
   <header class="cabeza">
     <div class="cabeza-izq"><button class="ib" id="b-bib-atras" type="button" hidden aria-label="Volver a la biblioteca"></button><h1 id="titulo-vista"></h1></div>
-    <div class="cabeza-botones" hidden>
-      <button class="ib" id="b-agregar" type="button" aria-label="Agregar música"></button>
-      <button class="ib" id="b-ajustes" type="button" aria-label="Ajustes"></button>
+    <div class="cabeza-botones">
+      <button class="ib" id="b-actualizar" type="button" aria-label="Actualizar biblioteca" hidden></button>
+      <button class="ib" id="b-agregar" type="button" aria-label="Agregar música" hidden></button>
+      <button class="ib" id="b-ajustes" type="button" aria-label="Ajustes" hidden></button>
     </div>
   </header>
   <div class="buscador" id="buscador" hidden><input id="q" type="search" placeholder="Buscar canciones, artistas, álbumes…" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
@@ -40,6 +41,11 @@
     <span id="resumen" class="suave"></span>
     <label class="suave">Orden <select id="orden"><option value="titulo">Título</option><option value="artista">Artista</option><option value="album">Álbum</option><option value="reciente">Recientes</option></select></label>
   </div>
+  <div class="acc-lista" id="acc-lista" hidden>
+    <button class="boton primario acento" type="button" data-tocar-todo>Reproducir</button>
+    <button class="boton" type="button" data-tocar-azar>Aleatorio</button>
+    <button class="boton" type="button" data-sel-iniciar>Seleccionar</button>
+  </div>
   <main class="contenido" id="contenido" tabindex="-1"></main>
   <nav class="indice" id="indice" hidden aria-label="Ir a la letra"></nav><div class="burbuja" id="burbuja" hidden></div>
   <div class="aviso" id="aviso" role="status" aria-live="polite" hidden></div>
@@ -53,6 +59,7 @@
     <button type="button" id="sel-rango" aria-pressed="false">Rango</button>
   </div>
   <div class="sel-acc">
+    <button type="button" data-acc="tocar">Reproducir</button>
     <button type="button" data-acc="lista">Lista</button>
     <button type="button" data-acc="cola">Cola</button>
     <button type="button" data-acc="siguiente">Siguiente</button>
@@ -215,6 +222,15 @@
 <section class="hoja corta" id="hoja-menu" hidden role="dialog" aria-label="Opciones">
   <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span id="menu-titulo">Opciones</span><span></span></div>
   <div class="opciones" id="menu-op"></div>
+</section>
+
+<section class="hoja corta" id="hoja-dialogo" hidden role="dialog" aria-label="Diálogo">
+  <div class="dlg">
+    <h3 id="dlg-t"></h3>
+    <p class="suave" id="dlg-p" hidden></p>
+    <input id="dlg-in" type="text" maxlength="60" autocomplete="off" autocapitalize="sentences" spellcheck="false" hidden>
+    <div class="dlg-b"><button class="boton" type="button" id="dlg-no">Cancelar</button><button class="boton primario acento" type="button" id="dlg-si">Aceptar</button></div>
+  </div>
 </section>
 
 <!-- ajustes -->
