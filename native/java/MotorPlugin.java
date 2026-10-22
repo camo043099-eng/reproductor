@@ -347,6 +347,12 @@ public class MotorPlugin extends Plugin {
             return hecho;
         } catch (Throwable t) { usbMotivo = "error"; usbDetalle = String.valueOf(t.getMessage()); return false; }
     }
+    /** Lee los descriptores del DAC USB conectado (solo lectura) para saber qué formatos admite y si un driver propio sería viable. */
+    @PluginMethod public void usbInfo(final PluginCall call) {
+        UsbSonda.analizar(getContext(), (ok, motivo, texto, hex) -> {
+            JSObject o = new JSObject(); o.put("ok", ok); o.put("motivo", motivo); o.put("texto", texto); o.put("hex", hex); call.resolve(o);
+        });
+    }
     @PluginMethod public void usbDirecto(PluginCall call) {
         ui(call, () -> {
             usbDirecto = call.getBoolean("on", false);

@@ -243,6 +243,8 @@
 <details class="solo-nativo" hidden><summary class="suave pequeno">Diagnóstico del audio (técnico)</summary><p class="suave pequeno" id="diag-audio">Diagnóstico del DSP: —</p></details>
 <p class="suave pequeno solo-nativo" hidden id="aj-hires-nota">Los FLAC de 24 bits salen tal cual, sin ecualizador, sin ondas y sin ajuste de volumen. Se aplica al volver a abrir Onda.</p>
     <div class="campo solo-nativo" hidden><span>USB directo sin mezcla (bit-perfect)</span><label class="interruptor"><input type="checkbox" id="aj-usbdir"><span></span></label></div>
+    <div class="campo solo-nativo" hidden><span>Analizar mi DAC USB (técnico)</span><button class="boton" id="aj-usbinfo" type="button">Analizar</button></div>
+    <pre class="suave pequeno" id="aj-usbinfo-res" hidden style="white-space:pre-wrap;word-break:break-all;user-select:text"></pre>
     <p class="suave pequeno solo-nativo" hidden>Para un DAC o auriculares USB: el sonido sale sin que Android lo mezcle ni lo cambie. Necesita Android 14 o más. Si quieres sonido exacto, apaga el ecualizador y los efectos.</p>
     <div class="campo solo-nativo" hidden><span>Colchón de audio</span><select id="aj-colchon"><option value="150">Pequeño (150 ms)</option><option value="250">Medio (250 ms)</option><option value="400">Normal (400 ms)</option><option value="800">Grande (800 ms)</option><option value="1500">Máximo (1,5 s)</option></select></div>
     <p class="suave pequeno solo-nativo" hidden>Más grande evita cortes si el teléfono va justo; más pequeño responde más rápido al tocar. Se aplica al volver a abrir Onda.</p>

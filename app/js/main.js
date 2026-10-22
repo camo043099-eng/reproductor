@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.91";
+const VERSION = "0.9.92";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -1472,6 +1472,14 @@ function enlazar() {
     if (clave === "hires" && MOTOR) { reproductor.ponerHiRes(e.target.checked).catch(() => {}); avisar("Se aplica al volver a abrir Onda.", 3500); } if (clave === "saltos" || clave === "progreso" || clave === "largoMin") setTimeout(actualizarSaltos, 0); aplicarAvanzados(); guardarAjustes(); if (clave === "sistema") { await cargarTodo(); dibujar(); } });
   for (const [id, clave] of SELECTS) $("#" + id).addEventListener("change", async (e) => { E.aj[clave] = e.target.value; aplicarAvanzados(); guardarAjustes(); if (clave === "colchon") avisar("Se aplica al volver a abrir Onda"); if (clave === "minSeg") { await cargarTodo(); dibujar(); } if (clave === "largoMin") actualizarSaltos(); });
   $("#aj-copia").addEventListener("click", guardarCopia);
+  $("#aj-usbinfo")?.addEventListener("click", async () => {
+    const pre = $("#aj-usbinfo-res"); pre.hidden = false; pre.textContent = "Leyendo el DAC… si Android pide permiso USB, acéptalo.";
+    try {
+      const r = await MOTOR.usbInfo();
+      pre.textContent = r.ok ? r.texto + "\nRAW: " + r.hex : r.motivo === "sin-dispositivo" ? "No detecto un DAC USB conectado." : r.motivo === "permiso-denegado" ? "Rechazaste el permiso USB." : "No pude leerlo: " + r.motivo;
+      if (r.ok) { try { await navigator.clipboard.writeText(pre.textContent); avisar("Copiado al portapapeles"); } catch (_) { /* sin portapapeles: se puede copiar a mano */ } }
+    } catch (e) { pre.textContent = "Error: " + (e?.message || e); }
+  });
   $("#aj-restaurar").addEventListener("click", () => $("#f-copia").click());
   $("#f-copia").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) restaurarCopia(f); });
   $("#aj-hist-borrar").addEventListener("click", async () => { if (!confirm("¿Borrar todo tu historial de reproducción?")) return; HIST = { m: {}, d: {}, tot: 0 }; await db.poner("ajustes", HIST, "hist"); dibujar(); avisar("Historial borrado"); });
