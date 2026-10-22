@@ -324,26 +324,33 @@ public class MotorPlugin extends Plugin {
     private static float curva(float x) { x = Math.max(0f, Math.min(1f, x)); return x * x * (3f - 2f * x); }   // suavizado (smoothstep)
     // ── USB directo (bit-perfect, Android 14+) y colchón de audio ──
     private boolean usbDirecto = false;
+    private String usbMotivo = "", usbDetalle = "";   // por qué no se pudo activar: sin-usb, sin-bitperfect, rechazado, api o error
     private boolean aplicarUsbDirecto(boolean on) {
-        if (Build.VERSION.SDK_INT < 34) return false;
+        usbMotivo = ""; usbDetalle = "";
+        if (Build.VERSION.SDK_INT < 34) { usbMotivo = "api"; return false; }
         try {
             AudioManager am = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
             android.media.AudioAttributes aa = new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA).setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC).build();
-            boolean hecho = false;
+            boolean hecho = false, vioUsb = false, vioBp = false; StringBuilder sb = new StringBuilder();
             for (AudioDeviceInfo d : salidasDisponibles()) {
                 int t = d.getType(); if (t != 11 && t != 22) continue;                        // USB (dispositivo o auriculares)
+                vioUsb = true;
                 if (!on) { am.clearPreferredMixerAttributes(aa, d); hecho = true; continue; }
                 for (android.media.AudioMixerAttributes m : am.getSupportedMixerAttributes(d)) {
-                    if (m.getMixerBehavior() == android.media.AudioMixerAttributes.MIXER_BEHAVIOR_BIT_PERFECT) { if (am.setPreferredMixerAttributes(aa, d, m)) hecho = true; break; }
+                    boolean bp = m.getMixerBehavior() == android.media.AudioMixerAttributes.MIXER_BEHAVIOR_BIT_PERFECT;
+                    if (sb.length() < 300) sb.append(bp ? "BP " : "normal ").append(m.getFormat().getSampleRate()).append("Hz/").append(m.getFormat().getEncoding()).append("; ");
+                    if (bp) { vioBp = true; if (!hecho && am.setPreferredMixerAttributes(aa, d, m)) hecho = true; }
                 }
             }
+            usbDetalle = sb.toString();
+            if (!hecho) usbMotivo = !vioUsb ? "sin-usb" : (vioBp ? "rechazado" : "sin-bitperfect");
             return hecho;
-        } catch (Throwable t) { return false; }
+        } catch (Throwable t) { usbMotivo = "error"; usbDetalle = String.valueOf(t.getMessage()); return false; }
     }
     @PluginMethod public void usbDirecto(PluginCall call) {
         ui(call, () -> {
             usbDirecto = call.getBoolean("on", false);
-            JSObject o = new JSObject(); o.put("ok", aplicarUsbDirecto(usbDirecto)); o.put("api", Build.VERSION.SDK_INT); call.resolve(o);
+            JSObject o = new JSObject(); o.put("ok", aplicarUsbDirecto(usbDirecto)); o.put("api", Build.VERSION.SDK_INT); o.put("motivo", usbMotivo); o.put("detalle", usbDetalle); call.resolve(o);
         });
     }
     @PluginMethod public void colchon(PluginCall call) {
