@@ -160,7 +160,9 @@ public final class Motor {
         if (jugador != null) return;
         Context app = ctx.getApplicationContext(); appCtx = app;
         eq = new EqProcesador();
-        EqProcesador.salida16 = app.getSharedPreferences("onda_motor", Context.MODE_PRIVATE).getBoolean("salida16", false);
+        // el modo de 16 bits es solo un recurso de emergencia dentro de la sesión: ya no se guarda, para que un fallo puntual no deje el audio de 24 bits recortado para siempre
+        EqProcesador.salida16 = false;
+        app.getSharedPreferences("onda_motor", Context.MODE_PRIVATE).edit().remove("salida16").apply();
         jugador = construir(app, eq, true);
         restaurarSesion(app);                                            // la cola y la posición de la última vez, en pausa, listas para Play
         latido.removeCallbacks(latidoSesion); latido.postDelayed(latidoSesion, 5000);

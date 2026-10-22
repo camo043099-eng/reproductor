@@ -466,7 +466,7 @@ public class MotorPlugin extends Plugin {
                     || cod == PlaybackException.ERROR_CODE_AUDIO_TRACK_OFFLOAD_INIT_FAILED || cod == PlaybackException.ERROR_CODE_AUDIO_TRACK_OFFLOAD_WRITE_FAILED;
             if (deAudio && fallosAudio < 2) {                              // el teléfono no aceptó el formato de salida: se reintenta de forma más sencilla
                 fallosAudio++; ExoPlayer q = Motor.jugador;
-                if (fallosAudio == 1) { EqProcesador.salida16 = true; getContext().getSharedPreferences("onda_motor", Context.MODE_PRIVATE).edit().putBoolean("salida16", true).apply(); }
+                if (fallosAudio == 1) { EqProcesador.salida16 = true; }   // solo en esta sesión: no se guarda
                 else { sinEfectos = true; try { if (virt != null) virt.release(); } catch (Exception x) { } try { if (bass != null) bass.release(); } catch (Exception x) { } virt = null; bass = null; }
                 if (fallosAudio > 1) { JSObject o = new JSObject(); o.put("mensaje", "Desactivé los efectos de sonido del sistema para poder reproducir."); emitir("error", o); }
                 long pos = q.getCurrentPosition(); int idx = q.getCurrentMediaItemIndex(); q.prepare(); q.seekTo(idx, pos); q.play(); return;
