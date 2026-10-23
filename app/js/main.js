@@ -4,10 +4,10 @@ import { leerEtiquetas } from "./tags.js";
 import * as db from "./db.js";
 import { ReproductorNativo } from "./nativo.js";
 import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasGlobal, traducir, parsearLRC, lineaActual, albumGenerico } from "./internet.js";
-import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
+import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.94";
+const VERSION = "0.9.95";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -867,6 +867,31 @@ function aplicarIcono() {
   iconoAplicado = pedido;
   MOTOR.icono({ nombre: pedido }).catch(() => { iconoAplicado = null; });
 }
+// ── tamaño de toda la interfaz: pellizcar con dos dedos o deslizador en Apariencia ──
+const ESC_MIN = 0.8, ESC_MAX = 1.5;
+function ponerEscala(v, guardar) {
+  v = Math.max(ESC_MIN, Math.min(ESC_MAX, +v || 1)); if (Math.abs(v - 1) < 0.03) v = 1;
+  document.documentElement.style.zoom = v === 1 ? "" : String(v); E.aj.escala = v;
+  document.documentElement.style.setProperty("--vh", (1 / v) + "vh"); document.documentElement.style.setProperty("--vw", (1 / v) + "vw");   // las unidades de pantalla no se encogen con el zoom: se compensan
+  const r = $("#aj-escala"); if (r) { r.value = Math.round(v * 100); $("#aj-escala-v").textContent = Math.round(v * 100) + "%"; }
+  if (guardar) guardarAjustes();
+  return v;
+}
+function iniciarPellizco() {
+  let d0 = 0, e0 = 1, vivo = false, raf = 0, esc = 1;
+  const dist = (t) => Math.hypot(t[0].screenX - t[1].screenX, t[0].screenY - t[1].screenY) || 1;   // en píxeles de pantalla, que no cambian con el zoom
+  document.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 2 && !e.target.closest("input[type=range], #hoja-rep .portada-grande, .eq-bandas, #eq-curva")) { d0 = dist(e.touches); e0 = E.aj.escala || 1; esc = e0; vivo = true; }
+    else if (e.touches.length !== 2) vivo = false;
+  }, { passive: true });
+  document.addEventListener("touchmove", (e) => {
+    if (!vivo || e.touches.length !== 2) return;
+    if (e.cancelable) e.preventDefault();
+    esc = e0 * dist(e.touches) / d0; if (!raf) raf = requestAnimationFrame(() => { raf = 0; ponerEscala(esc, false); });
+  }, { passive: false });
+  const fin = () => { if (!vivo) return; vivo = false; const v = ponerEscala(esc, true); avisar(`Tamaño de la interfaz: ${Math.round(v * 100)}%`, 1400); };
+  document.addEventListener("touchend", fin); document.addEventListener("touchcancel", fin);
+}
 function aplicarAvanzados() {
   const r = document.documentElement, a = E.aj;
   r.classList.add("solido", "plano", "sinblur"); aplicarOrdenNav();
@@ -874,7 +899,7 @@ function aplicarAvanzados() {
   r.dataset.forma = a.forma || "redondeada"; r.style.setProperty("--am", String(+a.animN || 1)); r.style.fontSize = ((+a.texto || 1) * 16) + "px";
   pantallaEncendida(); r.classList.toggle("sinanim", !!a.anim || a.animN === "0"); r.classList.toggle("sinchips", a.chips === false); window.__vibrar = a.vib !== false;
   aplicarColores(); $("#aj-fondo-img").hidden = a.fondo !== "imagen";
-  r.style.setProperty("--lt", a.letraTam || "1");
+  r.style.setProperty("--lt", a.letraTam || "1"); ponerEscala(a.escala || 1, false);
   if (typeof ritmoEncender === "function" && reproductor) { ritmoApagar(); if (pila.includes("hoja-rep")) ritmoEncender(); else { const e2 = document.querySelector("#hoja-rep .portada-grande"); if (e2) { e2.classList.toggle("circulo", a.ritmo !== "off"); e2.classList.toggle("cd", (a.ritmo || "cd") === "cd"); } } }
   if (MOTOR && reproductor) { reproductor.ponerFundido(+a.fundido || 0).catch(() => {}); aplicarRealce(); reproductor.ponerAlCerrar?.(!!a.detener)?.catch(() => {});
     reproductor.ponerTransiciones?.(+(a.fadePlay ?? 250) || 0, Math.round((+a.brecha || 0) * 1000))?.catch?.(() => {});
@@ -1534,6 +1559,10 @@ function enlazar() {
   $("#f-imagen").addEventListener("change", async (e) => { const f = e.target.files[0]; e.target.value = ""; if (!f || !imagenPara) return; const m = await miniatura(f); if (m) { await ponerPortada(imagenPara.alb, m); avisar("Portada cambiada", 1800); } else avisar("No pude leer esa imagen."); });
   $("#aj-salida").addEventListener("click", elegirSalida);
   $("#aj-portadas").addEventListener("click", () => descargarFaltantes(true));
+  $("#aj-escala").addEventListener("input", (e) => { ponerEscala(+e.target.value / 100, false); });
+  $("#aj-escala").addEventListener("change", (e) => { ponerEscala(+e.target.value / 100, true); });
+  $("#aj-escala-r").addEventListener("click", () => { ponerEscala(1, true); avisar("Tamaño de la interfaz: 100%", 1400); });
+  iniciarPellizco();
   $("#aj-crossfeed").addEventListener("input", (e) => { $("#aj-crossfeed-v").textContent = (+e.target.value).toFixed(2); });
   $("#aj-crossfeed").addEventListener("change", (e) => { E.aj.crossfeed = +e.target.value; aplicarAvanzados(); guardarAjustes(); });
   $("#aj-fase").addEventListener("change", (e) => { E.aj.fase = e.target.checked; aplicarAvanzados(); guardarAjustes(); avisar(e.target.checked ? "Fase invertida activada" : "Fase normal", 2000); });

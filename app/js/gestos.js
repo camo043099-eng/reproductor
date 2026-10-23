@@ -1,5 +1,8 @@
 // Gestos táctiles sin librerías: arrastrar y soltar con resorte, usando eventos de puntero (sirven con dedo y con ratón).
 
+/** Zoom actual de la interfaz (1 = normal): los desplazamientos de dedo van en píxeles de pantalla y dentro de un elemento ampliado se multiplican. */
+export const zoomUI = () => parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+
 export const vibra = (ms = 12) => { if (window.__vibrar === false) return; try { navigator.vibrate?.(ms); } catch (_) { /* sin vibración */ } };
 
 /**
@@ -13,18 +16,18 @@ export function deslizar(el, o) {
   el.addEventListener("pointerdown", (e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const ctx = o.puede ? o.puede(e) : true; if (!ctx) return;
-    p = { id: e.pointerId, x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, lt: e.timeStamp, vx: 0, vy: 0, dx: 0, dy: 0, eje: null, ctx };
+    p = { id: e.pointerId, z: zoomUI(), x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, lt: e.timeStamp, vx: 0, vy: 0, dx: 0, dy: 0, eje: null, ctx };
   });
   el.addEventListener("pointermove", (e) => {
     if (!p || e.pointerId !== p.id) return;
-    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    const dx = (e.clientX - p.x) / p.z, dy = (e.clientY - p.y) / p.z;
     if (!p.eje) {
       if (Math.hypot(dx, dy) < 10) return;
       const eje = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
       if (o.acepta && !o.acepta(eje, dx, dy, p.ctx)) { p = null; return; }
       p.eje = eje; try { el.setPointerCapture(e.pointerId); } catch (_) { /* sin captura */ } o.empezar?.(eje, p.ctx);
     }
-    const dt = e.timeStamp - p.lt; if (dt > 0) { p.vx = (e.clientX - p.lx) / dt; p.vy = (e.clientY - p.ly) / dt; }
+    const dt = e.timeStamp - p.lt; if (dt > 0) { p.vx = (e.clientX - p.lx) / dt / p.z; p.vy = (e.clientY - p.ly) / dt / p.z; }
     p.lx = e.clientX; p.ly = e.clientY; p.lt = e.timeStamp; p.dx = dx; p.dy = dy;
     o.mover?.(dx, dy, p.eje, p.ctx);
   });
