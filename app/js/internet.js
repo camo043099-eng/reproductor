@@ -8,7 +8,8 @@ const json = async (texto, url) => JSON.parse(await conLimite(Promise.resolve(te
 
 /** URL de la portada más probable según artista, álbum y título (o null) */
 const GENERICOS = new Set(["music", "musica", "download", "downloads", "descargas", "audio", "audios", "songs", "unknown album", "album", "sin album", "0", "sdcard", "telegram", "whatsapp audio", "ringtones", "alarms", "notifications", "recordings", "podcasts", "mp3", "flac", "new folder"]);
-export const albumGenerico = (a) => !a || GENERICOS.has(norm(a)) || /^unknown|desconocid/.test(norm(a));
+const _gen = new Map();   // se llama por cada canción al dibujar listas: el resultado de cada texto se recuerda
+export const albumGenerico = (a) => { if (!a) return true; let r = _gen.get(a); if (r === undefined) { const n = norm(a); r = GENERICOS.has(n) || /^unknown|desconocid/.test(n); _gen.set(a, r); } return r; };
 const exacto = (a, b) => !!norm(a) && norm(a) === norm(b);
 export async function buscarPortadaUrl(texto, s) {
   const artista = s.albumArtista || s.artista || "", titulo = s.titulo || s.nombre || "", album = albumGenerico(s.album) ? "" : (s.album || ""), dur = s.duracion || 0;

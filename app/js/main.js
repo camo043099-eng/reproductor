@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.95";
+const VERSION = "0.9.96";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -99,7 +99,7 @@ function avisar(t, ms = 2800) {
   const a = $("#aviso"), err = /^(No pude|No encontr|Error|Falta|Tu tel)/i.test(t), ok = /^(Listo|Guardad|Agregad|Lista “|Copia|Portada|Carátulas nuevas|Historial borrado|Hecho)/i.test(t);
   clearTimeout(tAviso); clearTimeout(a._t); a.classList.remove("sale"); a.classList.toggle("error", err);
   a.innerHTML = `<span class="av-ico">${err ? AV_ERR : ok ? AV_OK : AV_INFO}</span><span></span>`; a.lastElementChild.textContent = t; a.hidden = false;
-  a.style.animation = "none"; void a.offsetWidth; a.style.animation = "";
+  a.style.animation = "none"; requestAnimationFrame(() => requestAnimationFrame(() => { a.style.animation = ""; }));   // reinicia la animación sin forzar un recalculo de toda la página
   if (ms) tAviso = setTimeout(() => { a.classList.add("sale"); a._t = setTimeout(() => { a.hidden = true; a.classList.remove("sale"); }, 280); }, ms);
 }
 
@@ -1852,14 +1852,17 @@ function finArranque() { if ("serviceWorker" in navigator && !MOTOR) navigator.s
 // ── Android: biblioteca leída del teléfono con MediaStore (sin copiar nada) ──
 const FORMATOS = { "audio/flac": "FLAC", "audio/x-flac": "FLAC", "audio/mpeg": "MP3", "audio/mp4": "AAC", "audio/aac": "AAC", "audio/ogg": "OGG", "audio/opus": "OPUS", "audio/x-wav": "WAV", "audio/wav": "WAV", "audio/x-ms-wma": "WMA", "audio/amr": "AMR", "audio/x-aiff": "AIFF" };
 async function fusionar(nuevas) {
-  const viejas = new Map(E.canciones.map((s) => [s.id, s])), vistos = new Set(), lista = [];
+  // solo se escribe lo que cambió: en un arranque normal la biblioteca es la misma y no hay que reescribir miles de filas ni redibujar todo
+  const viejas = new Map(E.canciones.map((s) => [s.id, s])), vistos = new Set(), lista = [], cambiadas = [];
   for (const c of nuevas) {
     vistos.add(c.id); const campos = { ...c, alb: claveAlbum(c), portadaId: idPortada({ ...c, alb: claveAlbum(c) }), formato: FORMATOS[c.mime] || (String(c.nombre).split(".").pop() || "").toUpperCase() };
     const v = viejas.get(c.id);
-    if (v) { Object.assign(v, campos); lista.push(v); } else lista.push({ fav: false, ...campos });
+    if (v) { let dif = false; for (const k in campos) if (v[k] !== campos[k]) { dif = true; break; } if (dif) { Object.assign(v, campos); cambiadas.push(v); } lista.push(v); }
+    else { const n = { fav: false, ...campos }; lista.push(n); cambiadas.push(n); }
   }
   const quitar = E.canciones.filter((s) => !vistos.has(s.id)).map((s) => s.id);
-  await db.lote("canciones", lista, quitar);
+  if (!cambiadas.length && !quitar.length && lista.length === E.canciones.length) return;   // nada nuevo: no se toca el disco ni la pantalla
+  await db.lote("canciones", cambiadas, quitar);
   E.canciones = filtradas(lista); E.version++; porId.clear(); for (const s of lista) porId.set(s.id, s);
   dibujar(); mostrarEspacio();
 }
