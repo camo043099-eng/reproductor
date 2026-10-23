@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.93";
+const VERSION = "0.9.94";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -313,7 +313,8 @@ function dibujarInicio() {
   ${S("inArtistas") ? estante("Artistas", arts.map((a) => `<button class="tarjeta redonda" type="button" data-det="artista" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.albumArtista || a.s.artista || "Desconocido")}</b><span>${a.n} canciones</span></button>`).join("")) : ""}`;
   $("#resumen").textContent = ""; imagenes(c);
   const acc = c.querySelector("[data-acc]");
-  if (acc) { const pista = acc.querySelector(".acc-pista"), pts = [...acc.querySelectorAll(".acc-puntos i")]; pista.addEventListener("scroll", () => { const n = Math.round(pista.scrollLeft / Math.max(1, pista.clientWidth)); pts.forEach((d, j) => d.classList.toggle("on", j === n)); }, { passive: true }); }
+  if (acc) { const pista = acc.querySelector(".acc-pista"), pts = [...acc.querySelectorAll(".acc-puntos i")]; const ajustaAlto = () => { const n = Math.round(pista.scrollLeft / Math.max(1, pista.clientWidth)), pg = pista.children[n]; if (pg) pista.style.height = pg.offsetHeight + "px"; return n; };
+    pista.addEventListener("scroll", () => { const n = Math.round(pista.scrollLeft / Math.max(1, pista.clientWidth)); pts.forEach((d, j) => d.classList.toggle("on", j === n)); ajustaAlto(); }, { passive: true }); requestAnimationFrame(ajustaAlto); }
   if (!mh.length && E.canciones.length) mixesDeHoy().then((m) => { if (m.mixes.length && E.vista === "inicio" && !E.detalle) dibujarInicio(); });
 }
 // canción de un género que sí tiene carátula real (si ninguna la tiene, se usa la de relleno)
@@ -558,9 +559,10 @@ function aplicarColores() {
   const r = document.documentElement, a = E.aj, t = (a.fondo === "imagen" && fondoUsuario?.tinta) || ultimaTinta;
   if (t) r.style.setProperty("--t", t.col);
   const ac = a.acento ?? "auto";
-  const mor = (a.tema || "mornye") === "mornye";                       // Mornye: acento rojo fijo, no depende de la portada
+  const claro = a.tema === "claro", mor = (a.tema || "mornye") === "mornye" || claro;                       // Mornye: acento rojo fijo, no depende de la portada
   r.classList.toggle("coche", !!a.coche);
   r.dataset.tema = a.tema === "nocturno" ? "nocturno" : mor ? "mornye" : "onda";
+  r.dataset.modo = claro ? "claro" : "oscuro"; { const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = claro ? "#f2f2f7" : "#000000"; const cs = document.querySelector('meta[name="color-scheme"]'); if (cs) cs.content = claro ? "light" : "dark"; }
   r.dataset.fuente = mor ? (a.fuente === "gsf" ? "gsf" : "inter") : "sistema";
   if (mor) { r.style.setProperty("--rebote", RESORTE_ESPACIAL); r.style.setProperty("--muelle", RESORTE_EFECTO); }
   else { r.style.removeProperty("--rebote"); r.style.removeProperty("--muelle"); }
