@@ -200,7 +200,8 @@ function generosDe(s) {
   return (s._g = [...out]);
 }
 const conteoGeneros = () => { const g = new Map(); for (const s of E.canciones) for (const x of generosDe(s)) g.set(x, (g.get(x) || 0) + 1); return g; };
-const coincide = (s, q) => !q || (s._b ||= normal([s.titulo, s.artista, s.albumArtista, s.album, s.nombre, s.genero, s.anio].join(" "))).includes(q);
+// todas las palabras de la búsqueda deben aparecer, en cualquier orden y en cualquier campo ("linkin numb" encuentra "Numb · Linkin Park")
+const coincide = (s, q) => { if (!q) return true; const b = (s._b ||= normal([s.titulo, s.artista, s.albumArtista, s.album, s.nombre, s.genero, s.anio].join(" "))); if (b.includes(q)) return true; for (const w of q.split(/\s+/)) if (w && !b.includes(w)) return false; return true; };
 function filaCancion(s, i, extra = "") {
   const sonando = reproductor.actual?.id === s.id;
   return `<li class="fila${sonando ? " sonando" : ""}${E.sel?.has(s.id) ? " marcada" : ""}" data-i="${i}" data-id="${esc(s.id)}" tabindex="0"><span class="ck" aria-hidden="true"></span>${imgHtml(s)}<span class="info"><b>${esc(nom(s))}</b><span>${esc(s.artista || "Artista desconocido")}${extra}</span></span><span class="dur">${fmt(s.duracion)}</span><button class="mas" type="button" data-mas aria-label="Más opciones"><i class="pts"></i></button></li>`;
@@ -748,9 +749,24 @@ function ajMostrar(k) {
 }
 function abrirAjustes(pag) {
   document.querySelectorAll("#hoja-aj select").forEach((s) => s._pintar?.());
-  ajMostrar(pag || null); if (!pila.includes("hoja-aj")) abrir("hoja-aj");
+  ajMostrar(pag || null); pintarAjustesRapidos(); if (!pila.includes("hoja-aj")) abrir("hoja-aj");
   requestAnimationFrame(() => setTimeout(() => { $("#aj-version").textContent = "v" + VERSION; mostrarEspacio(); }, 0));       // lo pesado, después de que la hoja ya se vea
 }
+/** Cabecera de Ajustes (cuántas canciones y horas hay) y estado de los 4 accesos rápidos. */
+function pintarAjustesRapidos() {
+  const n = E.canciones.length, seg = E.canciones.reduce((a, x) => a + (x.duracion || 0), 0), h = Math.round(seg / 3600);
+  const inf = $("#aj-hero-info"); if (inf) inf.textContent = `v${VERSION} · ${n} canciones${h ? " · " + h + " h" : ""}`;
+  const est = { eq: !!reproductor?.eqOn && !$("#eq-on").disabled, tema: E.aj.tema === "claro", coche: !!E.aj.coche };
+  document.querySelectorAll("#aj-rapidos .aj-rap").forEach((b) => { const k = b.dataset.rap; b.classList.toggle("on", !!est[k]); if (k === "eq") b.classList.toggle("off-hires", $("#eq-on").disabled); });
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("#aj-rapidos .aj-rap"); if (!b) return; const k = b.dataset.rap; vibra(8);
+  if (k === "eq") { const i = $("#eq-on"); if (i.disabled) { avisar("Hi-Res puro está activo: el ecualizador no actúa.", 2600); return; } i.checked = !i.checked; i.dispatchEvent(new Event("change", { bubbles: true })); }
+  else if (k === "tema") { const sel = $("#aj-tema"), claro = E.aj.tema === "claro"; if (!claro) E.aj.temaOscuro = E.aj.tema || "mornye"; sel.value = claro ? (E.aj.temaOscuro || "mornye") : "claro"; sel.dispatchEvent(new Event("change", { bubbles: true })); }
+  else if (k === "coche") { const i = $("#aj-coche"); i.checked = !i.checked; i.dispatchEvent(new Event("change", { bubbles: true })); }
+  else if (k === "sueno") { $("#r-sueno").click(); return; }
+  setTimeout(pintarAjustesRapidos, 60);
+});
 function ajBuscar(q) {
   const h = $("#hoja-aj"); q = sinAcentos(q.trim());
   if (!q) { ajMostrar(null); return; }
