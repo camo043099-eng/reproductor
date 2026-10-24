@@ -745,7 +745,7 @@ public class MotorPlugin extends Plugin {
                 if (Build.VERSION.SDK_INT < 29) { call.reject("Necesita Android 10 o más"); return; }
                 String nombre = call.getString("nombre", "onda-copia.json").replaceAll("[^A-Za-z0-9._-]", "_"), texto = call.getString("texto", "");
                 android.content.ContentValues v = new android.content.ContentValues();
-                v.put(MediaStore.Downloads.DISPLAY_NAME, nombre); v.put(MediaStore.Downloads.MIME_TYPE, "application/json"); v.put(MediaStore.Downloads.RELATIVE_PATH, "Download/Onda");
+                v.put(MediaStore.Downloads.DISPLAY_NAME, nombre); v.put(MediaStore.Downloads.MIME_TYPE, call.getString("mime", "application/json")); v.put(MediaStore.Downloads.RELATIVE_PATH, "Download/Onda");
                 Uri u = getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
                 if (u == null) throw new Exception("no se pudo crear el archivo");
                 try (java.io.OutputStream o = getContext().getContentResolver().openOutputStream(u)) { o.write(texto.getBytes("UTF-8")); }

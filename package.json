@@ -1,6 +1,6 @@
 {
   "name": "onda-reproductor",
-  "version": "0.9.100",
+  "version": "0.9.101",
   "private": true,
   "description": "Onda: reproductor de música propio (FLAC, ecualizador, ReplayGain)",
   "scripts": { "test": "node --test tests/*.test.mjs" },

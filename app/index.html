@@ -381,6 +381,7 @@
     <div class="aj-pag" data-pag="biblioteca" hidden>
       <h3 class="sub aj-tit-pag">Biblioteca</h3>
     <div class="campo solo-nativo" hidden><span>Ocultar tonos, alarmas y notas de voz</span><label class="interruptor"><input type="checkbox" id="aj-sistema" checked><span></span></label></div>
+    <div class="campo solo-nativo" hidden><span>Carpetas a ocultar (separadas por coma)</span><input type="text" id="aj-excl" maxlength="300" placeholder="Ej.: WhatsApp Audio, Podcasts" autocomplete="off" style="width:150px;height:38px"></div>
     <div class="campo solo-nativo" hidden><span>Ocultar audios cortos</span><select id="aj-min"><option value="0">No ocultar</option><option value="6">Menos de 6 s</option><option value="10">Menos de 10 s</option><option value="15">Menos de 15 s</option><option value="30">Menos de 30 s</option><option value="60">Menos de 1 min</option></select></div>
 <div class="campo"><span>Contar como reproducida después de</span><select id="aj-contar"><option value="auto">Automático (30 s o la mitad)</option><option value="0.25">25 % de la canción</option><option value="0.5">50 % de la canción</option><option value="0.75">75 % de la canción</option><option value="0.9">90 % de la canción</option></select></div>
 <p class="suave pequeno">Afecta a tus estadísticas y a las mezclas del día.</p>
@@ -419,6 +420,7 @@
 
 <input type="file" id="f-fondo" accept="image/*" hidden>
 <input type="file" id="f-copia" accept=".json,application/json" hidden>
+<input type="file" id="f-m3u" accept=".m3u,.m3u8,audio/x-mpegurl,audio/mpegurl,application/vnd.apple.mpegurl,text/plain" hidden>
 <input type="file" id="f-imagen" accept="image/*" hidden>
 <input type="file" id="f-audio" accept="audio/*,.flac,.mp3,.m4a,.aac,.ogg,.opus,.wav,.alac,.aiff" multiple hidden>
 <input type="file" id="f-carpeta" webkitdirectory multiple hidden>

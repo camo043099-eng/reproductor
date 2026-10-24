@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.100";
+const VERSION = "0.9.101";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -105,9 +105,11 @@ function avisar(t, ms = 2800) {
 
 // ── biblioteca ──
 const RUIDO = /\/(whatsapp[^/]*|recordings?|voice recorder|sound recorder|call recordings?|notifications?|ringtones?|alarms?)\//i;
+// carpetas que el usuario eligió ocultar (nombres separados por coma): coinciden con cualquier tramo de la ruta, sin importar mayúsculas ni tildes
+const carpetasExcluidas = () => String(E.aj.carpetasExcl || "").split(/[,;\n]/).map((x) => normal(x).trim().replace(/^\/+|\/+$/g, "")).filter(Boolean).map((x) => "/" + x + "/");
 function filtradas(lista) {
-  const sis = E.aj.sistema !== false, min = +E.aj.minSeg || 0;
-  return lista.filter((s) => !(sis && RUIDO.test("/" + (s.carpeta || "") + "/")) && !(min && s.duracion && s.duracion < min));
+  const sis = E.aj.sistema !== false, min = +E.aj.minSeg || 0, ex = carpetasExcluidas();
+  return lista.filter((s) => !(sis && RUIDO.test("/" + (s.carpeta || "") + "/")) && !(ex.length && ex.some((x) => ("/" + normal(s.carpeta || "").replace(/^\/+|\/+$/g, "") + "/").includes(x))) && !(min && s.duracion && s.duracion < min));
 }
 const hashCorto = (t) => { let h = 2166136261; for (const c of String(t)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
 // nombre del archivo de carátula en el teléfono: el id del álbum, salvo en álbumes genéricos ("Music"), donde cada canción tiene el suyo
@@ -423,7 +425,7 @@ function dibujarBiblioteca() {
     { let pos = 1 + (filas.length > 1 ? filas.length - 1 : 0); const aut = Object.entries(AUTO).map(([k, a]) => [k, a, a.f().length]).filter(([, , n]) => n > 0);
       for (const [k, a, n] of aut) filas.splice(pos++, 0, `<button class="tarjeta" type="button" data-det="lista" data-k="${k}"><span class="sinport" style="display:grid;place-items:center;color:${a.color}">${I.lista.replace("<svg", '<svg width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5"')}</span><b>${a.t}</b><span>${n} canciones</span></button>`); }
     for (const l of E.listas) filas.push(`<button class="tarjeta" type="button" data-det="lista" data-k="${esc(l.id)}"><span class="sinport" style="display:grid;place-items:center;color:var(--tx2)">${I.lista.replace("<svg", '<svg width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5"')}</span><b>${esc(l.nombre)}</b><span>${l.ids.length} canciones</span></button>`);
-    c.innerHTML = `<div class="acciones-detalle"><button class="boton" type="button" data-nueva-lista>Nueva lista</button></div><div class="rejilla">${filas.join("")}</div>`;
+    c.innerHTML = `<div class="acciones-detalle"><button class="boton" type="button" data-nueva-lista>Nueva lista</button><button class="boton" type="button" data-importar-m3u>Importar M3U</button></div><div class="rejilla">${filas.join("")}</div>`;
     $("#resumen").textContent = "";
   }
   imagenes(c); if (cl) marcarVista(cl, indiceUlt);
@@ -647,7 +649,7 @@ function perfilesSalida() {
   const p = (E.aj.perfiles ||= {}); if (E.aj.eqSalida && MOTOR && reproductor.ruta) p[reproductor.ruta] = { b: reproductor.bandasDb.slice(), p: reproductor.preampDb, x: reproductor.estadoEq ? reproductor.estadoEq() : undefined };
   return p;
 }
-async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn || !!reproductor._sinEq, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { tema: E.aj.tema || "mornye", icono: E.aj.icono || "auto", fuente: E.aj.fuente || "inter", mono: !!E.aj.mono, rvMezcla: E.aj.rvMezcla || 0, rvTam: E.aj.rvTam ?? 50, rvAmort: E.aj.rvAmort ?? 50, rvPre: E.aj.rvPre || 0, silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", realce: E.aj.realce || "0", ritmo: E.aj.ritmo || "cd", ritmoLat: E.aj.ritmoLat || "260", ritmoEst: E.aj.ritmoEst || "onda", blur: E.aj.blur !== false, eqSalida: !!E.aj.eqSalida, anim: !!E.aj.anim, inicioBib: !!E.aj.inicioBib, progreso: E.aj.progreso !== false, saltos: E.aj.saltos !== false, hires: !!E.aj.hires, detener: !!E.aj.detener, ritmoFps: E.aj.ritmoFps || "60", contar: E.aj.contar || "auto", largoMin: E.aj.largoMin || "20", fadePlay: E.aj.fadePlay ?? "250", brecha: E.aj.brecha || "0", tfg: E.aj.tfg || "120", tqg: E.aj.tqg || "0.7", tfa: E.aj.tfa || "6000", tqa: E.aj.tqa || "0.7", rgPre: E.aj.rgPre || "0", rgSin: E.aj.rgSin || "0", rgSube: !!E.aj.rgSube, retrasoBt: E.aj.retrasoBt || "0", sinEqAlt: !!E.aj.sinEqAlt, sugerir: E.aj.sugerir !== false, navLbl: E.aj.navLbl !== false, usbDir: !!E.aj.usbDir, sigAlbum: E.aj.sigAlbum !== false, cruce: E.aj.cruce || "0", colchon: E.aj.colchon || "400", pantalla: !!E.aj.pantalla, animN: E.aj.animN || "1", densidad: E.aj.densidad || "comoda", forma: E.aj.forma || "redondeada", texto: E.aj.texto || "1", nombre: E.aj.nombre || "", inTiles: E.aj.inTiles !== false, inVuelve: E.aj.inVuelve !== false, inMixes: E.aj.inMixes !== false, inEscuchadas: E.aj.inEscuchadas !== false, inNuevas: E.aj.inNuevas !== false, inFav: E.aj.inFav !== false, inArtistas: E.aj.inArtistas !== false, sugeridos: E.aj.sugeridos || [], perfiles: perfilesSalida() }, eqx: reproductor.estadoEq ? reproductor.estadoEq() : undefined }, "config").catch(() => {}); }
+async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn || !!reproductor._sinEq, vel: reproductor.velocidad, viz: !!E.aj.viz, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { tema: E.aj.tema || "mornye", icono: E.aj.icono || "auto", fuente: E.aj.fuente || "inter", mono: !!E.aj.mono, rvMezcla: E.aj.rvMezcla || 0, rvTam: E.aj.rvTam ?? 50, rvAmort: E.aj.rvAmort ?? 50, rvPre: E.aj.rvPre || 0, silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, carpetasExcl: E.aj.carpetasExcl || "", minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", realce: E.aj.realce || "0", ritmo: E.aj.ritmo || "cd", ritmoLat: E.aj.ritmoLat || "260", ritmoEst: E.aj.ritmoEst || "onda", blur: E.aj.blur !== false, eqSalida: !!E.aj.eqSalida, anim: !!E.aj.anim, inicioBib: !!E.aj.inicioBib, progreso: E.aj.progreso !== false, saltos: E.aj.saltos !== false, hires: !!E.aj.hires, detener: !!E.aj.detener, ritmoFps: E.aj.ritmoFps || "60", contar: E.aj.contar || "auto", largoMin: E.aj.largoMin || "20", fadePlay: E.aj.fadePlay ?? "250", brecha: E.aj.brecha || "0", tfg: E.aj.tfg || "120", tqg: E.aj.tqg || "0.7", tfa: E.aj.tfa || "6000", tqa: E.aj.tqa || "0.7", rgPre: E.aj.rgPre || "0", rgSin: E.aj.rgSin || "0", rgSube: !!E.aj.rgSube, retrasoBt: E.aj.retrasoBt || "0", sinEqAlt: !!E.aj.sinEqAlt, sugerir: E.aj.sugerir !== false, navLbl: E.aj.navLbl !== false, usbDir: !!E.aj.usbDir, sigAlbum: E.aj.sigAlbum !== false, cruce: E.aj.cruce || "0", colchon: E.aj.colchon || "400", pantalla: !!E.aj.pantalla, animN: E.aj.animN || "1", densidad: E.aj.densidad || "comoda", forma: E.aj.forma || "redondeada", texto: E.aj.texto || "1", nombre: E.aj.nombre || "", inTiles: E.aj.inTiles !== false, inVuelve: E.aj.inVuelve !== false, inMixes: E.aj.inMixes !== false, inEscuchadas: E.aj.inEscuchadas !== false, inNuevas: E.aj.inNuevas !== false, inFav: E.aj.inFav !== false, inArtistas: E.aj.inArtistas !== false, sugeridos: E.aj.sugeridos || [], perfiles: perfilesSalida() }, eqx: reproductor.estadoEq ? reproductor.estadoEq() : undefined }, "config").catch(() => {}); }
 let tSes = 0;
 async function guardarSesion(fuerza) {
   const ahora = Date.now(); if (!fuerza && ahora - tSes < 4000) return; tSes = ahora;
@@ -743,6 +745,47 @@ async function guardarCopia() {
     if (MOTOR) { const r = await MOTOR.guardarArchivo({ nombre, texto }); avisar(`Copia guardada en ${r.ruta}`, 5000); }
     else { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([texto], { type: "application/json" })); a.download = nombre; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); avisar("Copia descargada"); }
   } catch (e) { avisar("No pude guardar la copia: " + (e?.message || e)); }
+}
+// ── listas M3U ──
+async function exportarM3U(nombreLista, canciones) {
+  if (!canciones.length) { avisar("La lista está vacía."); return; }
+  const una = (t) => String(t || "").replace(/[\r\n]+/g, " ").trim();
+  const lin = ["#EXTM3U", "#PLAYLIST:" + una(nombreLista)];
+  for (const s of canciones) lin.push(`#EXTINF:${Math.round(s.duracion || 0) || -1},${una([s.artista, s.titulo || s.nombre].filter(Boolean).join(" - "))}`, (s.carpeta || "") + s.nombre);
+  const nombre = (normal(nombreLista).replace(/[^a-z0-9._-]+/g, "_").replace(/^_+|_+$/g, "") || "lista") + ".m3u", texto = lin.join("\n") + "\n", mime = "audio/x-mpegurl";
+  try {
+    if (MOTOR) { const r = await MOTOR.guardarArchivo({ nombre, texto, mime }); avisar(`Guardada en ${r.ruta}`, 5000); }
+    else { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([texto], { type: mime })); a.download = nombre; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); avisar("Guardada: lista descargada"); }
+  } catch (e) { avisar("No pude guardar la lista: " + (e?.message || e)); }
+}
+async function importarM3U(archivo) {
+  try {
+    const filas = (await archivo.text()).replace(/^﻿/, "").split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+    const sinExt = (t) => normal(t).replace(/\.[a-z0-9]{2,5}$/, "").replace(/\s+/g, " ").trim();
+    const porNombre = new Map(), porTexto = new Map();
+    for (const s of E.canciones) {
+      const n = normal(s.nombre); if (!porNombre.has(n)) porNombre.set(n, s);
+      for (const k of [normal([s.artista, s.titulo].filter(Boolean).join(" - ")), normal(s.titulo)]) if (k && !porTexto.has(k)) porTexto.set(k, s);
+    }
+    let nombre = "", info = "", total = 0; const ids = [];
+    for (const f of filas) {
+      if (/^#PLAYLIST:/i.test(f)) { nombre = f.slice(10).trim(); continue; }
+      if (/^#EXTINF:/i.test(f)) { info = f.slice(f.indexOf(",") + 1).trim(); continue; }
+      if (f[0] === "#") continue;
+      total++; let ruta = f; if (/%[0-9a-f]{2}/i.test(ruta)) { try { ruta = decodeURIComponent(ruta); } catch (_) {} }
+      const base = ruta.split(/[\\/]/).pop();
+      const s = porNombre.get(normal(base)) || (info && (porTexto.get(normal(info)) || porTexto.get(sinExt(info)))) || porTexto.get(sinExt(base));
+      info = ""; if (s && !ids.includes(s.id)) ids.push(s.id);
+    }
+    if (!total) { avisar("No encontré canciones en ese archivo."); return; }
+    if (!ids.length) { avisar("No encontré ninguna de esas canciones en tu biblioteca."); return; }
+    nombre = (nombre || archivo.name.replace(/\.[^.]+$/, "")).slice(0, 60) || "Lista importada";
+    let l = E.listas.find((x) => x.nombre === nombre);
+    if (!l) { l = { id: "l" + Date.now().toString(36), nombre, ids: [] }; E.listas.push(l); }
+    for (const id of ids) if (!l.ids.includes(id)) l.ids.push(id);
+    await db.poner("listas", l); dibujar();
+    avisar(`Lista “${nombre}” importada: ${ids.length} de ${total} canciones${ids.length < total ? " (el resto no está en tu biblioteca)" : ""}.`, 6000);
+  } catch (e) { avisar("No pude importar la lista: " + (e?.message || e)); }
 }
 async function restaurarCopia(archivo) {
   try {
@@ -878,6 +921,7 @@ async function pantallaEncendida() {
 document.addEventListener("visibilitychange", () => { if (!document.hidden) pantallaEncendida(); });
 function sincronizarAjustes() {
   { const n = $("#aj-nombre"); if (n) n.value = E.aj.nombre || ""; }
+  { const n = $("#aj-excl"); if (n) n.value = E.aj.carpetasExcl || ""; }
   for (const [id, clave, def] of TOGGLES) $("#" + id).checked = E.aj[clave] === undefined ? def : !!E.aj[clave];
   if (E.aj.icono === "auto") E.aj.icono = "normal";
   for (const [id, clave, def] of SELECTS) $("#" + id).value = E.aj[clave] ?? def;
@@ -1523,6 +1567,8 @@ function enlazar() {
   $("#b-ajustes").addEventListener("click", () => abrirAjustes());
   $("#aj-bateria")?.addEventListener("click", () => reproductor.pedirBateria?.().then((r) => { if (r?.yaLibre) avisar("Onda ya funciona sin restricciones. Falta fijarla en recientes (candado)."); }).catch(() => avisar("No pude abrir esa pantalla")));
   $("#aj-autoinicio")?.addEventListener("click", () => reproductor.abrirAutoinicio?.().then((r) => { if (!r?.ok) avisar("Tu teléfono no tiene esa pantalla. Busca “Inicio automático” en Ajustes del sistema."); }).catch(() => avisar("No pude abrir esa pantalla")));
+  $("#aj-excl")?.addEventListener("input", (e) => { E.aj.carpetasExcl = e.target.value.slice(0, 300); clearTimeout(E._te); E._te = setTimeout(async () => { guardarAjustes(); await cargarTodo(); dibujar(); }, 700); });
+  $("#f-m3u")?.addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) importarM3U(f); });
   $("#aj-nombre")?.addEventListener("input", (e) => { E.aj.nombre = e.target.value.slice(0, 24); if (E.vista === "inicio") $("#titulo-vista").textContent = saludo(); clearTimeout(E._tn); E._tn = setTimeout(guardarAjustes, 500); });
   $("#eq-reset").addEventListener("click", () => { restablecerEq(); mostrarEq(); guardarAjustes(); avisar("Ecualizador restablecido"); });
   $("#aj-reset-perfiles").addEventListener("click", () => { restablecerPerfiles(); avisar("Perfiles por salida borrados"); });
@@ -1570,11 +1616,13 @@ function enlazar() {
     const det = e.target.closest("[data-det]"); if (det) { if (E.vista !== "inicio" && E.vista !== "buscar") { E.vista = "biblioteca"; E.bibRaiz = false; } E.tab = det.dataset.det === "artista" ? "artistas" : det.dataset.det === "album" ? "albumes" : det.dataset.det === "carpeta" ? "carpetas" : "listas"; E.detalle = { tipo: det.dataset.det, k: det.dataset.k }; history.pushState({ det: 1 }, ""); dibujar(); animarCambio(); $("#contenido").scrollIntoView(); return; }
     if (e.target.closest("[data-volver]")) return history.back();
     if (e.target.closest("[data-nueva-lista]")) { await nuevaLista(); return; }
+    if (e.target.closest("[data-importar-m3u]")) { $("#f-m3u").click(); return; }
     if (e.target.closest("[data-opc-lista]")) {
       const l = E.listas.find((x) => x.id === E.detalle?.k); if (!l) return;
       menu(l.nombre, [
         { t: "Reproducir", f: () => tocar(listaActual, 0) },
         { t: "Reproducir aleatorio", f: () => tocar(listaActual, 0, true) },
+        { t: "Exportar como M3U", f: () => exportarM3U(l.nombre, listaActual) },
         { t: "Borrar lista", cls: "peligro", f: async () => { if (!(await confirmar(`¿Borrar la lista “${l.nombre}”?`, "Borrar lista"))) return; await db.borrar("listas", l.id); E.listas = E.listas.filter((x) => x !== l); E.detalle = null; dibujar(); } },
       ]);
       return;
@@ -1888,7 +1936,7 @@ async function iniciar() {
   }
   sincronizarAjustes(); cargarFondoUsuario();
   HIST = (await db.traer("ajustes", "hist").catch(() => null)) || { m: {}, d: {}, tot: 0 };
-  if (cfg?.av && (cfg.av.sistema === false || +cfg.av.minSeg)) await cargarTodo();
+  if (cfg?.av && (cfg.av.sistema === false || +cfg.av.minSeg || cfg.av.carpetasExcl)) await cargarTodo();
   if (MOTOR) { if (cfg?.esp) { reproductor.ancho = cfg.esp.a || 0; reproductor.env = cfg.esp.e || 0; reproductor.graves = cfg.esp.g || 0; } document.querySelectorAll("#aj-viz, #aj-gap, #aj-persistir, #aj-borrar").forEach((e) => { (e.closest(".campo") || e).hidden = true; }); $("#aj-info").textContent = "Motor de audio nativo (ExoPlayer): cambio de canción sin pausa, ecualizador de 10 bandas de 32 bits y lectura directa de tus archivos."; $("#b-agregar").setAttribute("aria-label", "Actualizar biblioteca"); reproductor.aplicarTodo(); reproductor.escucharRuta().catch(() => {}); document.querySelectorAll(".solo-nativo").forEach((e) => { e.hidden = false; }); $("#aj-salida").hidden = false; $("#aj-salida-info").hidden = false; etiquetaSalida(); reproductor.ponerSalida(E.aj.salida).catch(() => {}); }
   if (E.aj.inicioBib && E.canciones.length) E.vista = "biblioteca";
   dibujar(); mostrarEspacio();
