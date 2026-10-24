@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.99";
+const VERSION = "0.9.100";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -456,7 +456,7 @@ function dibujarDetalle(c, d) {
   ${d.k === "__baja" ? `<p class="nota-mix">Menos de ${KBPS_BAJO} kbps, las más escuchadas primero. Estas son las que más ganan si las consigues en FLAC o a 320 kbps.</p>` : ""}
   <div id="det-lista"></div>`;
   const cont = $("#det-lista");
-  if (listaActual.length) pintar(cont, listaActual, (s, i) => filaCancion(s, i, d.k === "__baja" ? ` · ${kbpsDe(s)} kbps ${esc(s.formato || "")}` : d.tipo === "album" ? "" : ` · ${esc(s.album || "")}`), (h) => `<ul class="lista" data-tandas>${h}</ul>`); else cont.innerHTML = `<div class="vacio">Aquí no hay canciones todavía.</div>`;
+  if (listaActual.length) pintar(cont, listaActual, (s, i) => filaCancion(s, i, d.k === "__baja" ? ` · ${kbpsDe(s)} kbps ${esc(s.formato || "")}` : d.k === "__dup" ? ` · ${esc(s.formato || "")}${kbpsDe(s) ? " " + kbpsDe(s) + " kbps" : ""}${s.tam ? " · " + (s.tam / 1048576).toFixed(1) + " MB" : ""}` : d.tipo === "album" ? "" : ` · ${esc(s.album || "")}`), (h) => `<ul class="lista" data-tandas>${h}</ul>`); else cont.innerHTML = `<div class="vacio">Aquí no hay canciones todavía.</div>`;
   imagenes(c);
 }
 
@@ -702,9 +702,22 @@ const sinEscuchar = () => E.canciones.filter((s) => !(HIST.m[claveC(s)]?.n > 0))
 const DIAS_NUEVAS = 30;
 const nuevasDelMes = () => { const t = Date.now() - DIAS_NUEVAS * 864e5; return E.canciones.filter((s) => s.fecha >= t).sort((a, b) => b.fecha - a.fecha); };
 const sinPortada = () => (conPortadaCargado ? E.canciones.filter((s) => !s.alb || !conPortada.has(s.alb)) : []);
+/** Canciones que parecen la misma (título y artista iguales, duración casi igual). En cada grupo va primero la de mayor tamaño. */
+const duplicadas = () => {
+  const g = new Map();
+  for (const s of E.canciones) { const k = normal((s.titulo || String(s.nombre || "").replace(/\.[^.]+$/, "")) + "|" + (s.artista || "")); if (!k.startsWith("|")) { if (!g.has(k)) g.set(k, []); g.get(k).push(s); } }
+  const sal = [];
+  for (const v of g.values()) {
+    if (v.length < 2) continue;
+    const ok = v.filter((a) => v.some((b) => b !== a && Math.abs((a.duracion || 0) - (b.duracion || 0)) <= 3));
+    if (ok.length > 1) sal.push(...ok.sort((a, b) => (b.tam || 0) - (a.tam || 0)));
+  }
+  return sal;
+};
 const AUTO = {
   __nuevas: { t: "Añadidas este mes", d: "Lo último que llegó, lo más nuevo primero.", color: "#2fd4a4", f: nuevasDelMes },
   __sinesc: { t: "Sin escuchar", d: "Canciones que todavía no has reproducido.", color: "#4da3ff", f: sinEscuchar },
+  __dup: { t: "Posibles duplicadas", d: "Mismo título, artista y duración casi igual. La más grande de cada grupo va primero. Toca Seleccionar para borrar las que sobren.", color: "#ffb44d", f: duplicadas },
   __sinport: { t: "Sin carátula", d: "Estas canciones no tienen carátula. En Ajustes > Carátulas puedes buscarlas.", color: "#ff7a59", f: sinPortada },
 };
 const tiempoLargo = (ms) => { const m = Math.round(ms / 60000); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`; };
