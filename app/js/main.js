@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.102";
+const VERSION = "0.9.103";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -126,7 +126,8 @@ async function migrarClaves(todas) {
   return todas;
 }
 async function cargarTodo() {
-  E.canciones = filtradas(await migrarClaves(await db.todo("canciones"))); E.listas = await db.todo("listas");
+  const guardadas = await migrarClaves(await db.todo("canciones")); for (const s of guardadas) delete s._b;   // versiones anteriores guardaron aquí un texto de búsqueda que nunca se actualizaba
+  E.canciones = filtradas(guardadas); E.listas = await db.todo("listas");
   porId.clear(); E.version++; for (const s of E.canciones) porId.set(s.id, s);
 }
 // los álbumes con nombre genérico ("Music", "Download"…) no son un álbum real: cada canción lleva su propia carátula
@@ -189,6 +190,8 @@ async function elegirCarpeta() {
 // ── listados ──
 let cacheOrden = { clave: "", lista: null };
 function ordenadas() { const clave = E.orden + "|" + E.version; if (cacheOrden.clave !== clave) cacheOrden = { clave, lista: ordenar(E.canciones) }; return cacheOrden.lista; }
+let _ga = null, _gaV = -1;
+const gruposAlbum = () => (_ga && _gaV === E.version ? _ga : (_gaV = E.version, _ga = agrupar((s) => s.alb)));   // una sola agrupación por versión de la biblioteca
 function ordenar(arr) {
   const k = E.orden, c = (a, b) => colador.compare(a, b);
   const f = { titulo: (a, b) => c(a.titulo || a.nombre, b.titulo || b.nombre), artista: (a, b) => c(a.artista, b.artista) || c(a.album, b.album) || (a.disco - b.disco) || (a.pista - b.pista), album: (a, b) => c(a.album, b.album) || (a.disco - b.disco) || (a.pista - b.pista), reciente: (a, b) => b.fecha - a.fecha }[k];
@@ -203,7 +206,14 @@ function generosDe(s) {
 }
 const conteoGeneros = () => { const g = new Map(); for (const s of E.canciones) for (const x of generosDe(s)) g.set(x, (g.get(x) || 0) + 1); return g; };
 // todas las palabras de la búsqueda deben aparecer, en cualquier orden y en cualquier campo ("linkin numb" encuentra "Numb · Linkin Park")
-const coincide = (s, q) => { if (!q) return true; const b = (s._b ||= normal([s.titulo, s.artista, s.albumArtista, s.album, s.nombre, s.genero, s.anio].join(" "))); if (b.includes(q)) return true; for (const w of q.split(/\s+/)) if (w && !b.includes(w)) return false; return true; };
+const cacheB = new WeakMap();   // texto de búsqueda por canción: no se guarda en disco y se rehace si cambian las etiquetas
+function textoBusqueda(s) {
+  const c = cacheB.get(s);   // se compara campo a campo (sin armar texto nuevo en cada letra) y se rehace solo si cambió alguna etiqueta
+  if (c && c.t === s.titulo && c.a === s.artista && c.r === s.albumArtista && c.l === s.album && c.n === s.nombre && c.g === s.genero && c.y === s.anio) return c.b;
+  const b = normal([s.titulo, s.artista, s.albumArtista, s.album, s.nombre, s.genero, s.anio].join(" "));
+  cacheB.set(s, { t: s.titulo, a: s.artista, r: s.albumArtista, l: s.album, n: s.nombre, g: s.genero, y: s.anio, b }); return b;
+}
+const coincide = (s, q) => { if (!q) return true; const b = textoBusqueda(s); if (b.includes(q)) return true; for (const w of q.split(/\s+/)) if (w && !b.includes(w)) return false; return true; };
 function filaCancion(s, i, extra = "") {
   const sonando = reproductor.actual?.id === s.id;
   return `<li class="fila${sonando ? " sonando" : ""}${E.sel?.has(s.id) ? " marcada" : ""}" data-i="${i}" data-id="${esc(s.id)}" tabindex="0"><span class="ck" aria-hidden="true"></span>${imgHtml(s)}<span class="info"><b>${esc(nom(s))}</b><span>${esc(s.artista || "Artista desconocido")}${extra}</span></span><span class="dur">${fmt(s.duracion)}</span><button class="mas" type="button" data-mas aria-label="Más opciones"><i class="pts"></i></button></li>`;
@@ -328,7 +338,7 @@ let _gcV = -1;
 const cancionDeGenero = (g) => { if (!_gc || _gcV !== E.version) { _gcV = E.version; _gc = new Map(); for (const s of E.canciones) for (const x of generosDe(s)) { const a = _gc.get(x); if (!a || (!conPortada.has(a.alb) && conPortada.has(s.alb))) _gc.set(x, s); } } return _gc.get(g) || null; };
 function dibujarBuscar() {
   _gc = null;
-  refrescarConPortada(true);
+  if (!conPortadaCargado || !E.q.trim()) refrescarConPortada(true);   // mientras se escribe no hace falta releer las carátulas en cada letra
   const c = $("#contenido"), q = normal(E.q.trim());
   if (!q) {
     const ult = ultimasEscuchadas().slice(0, 20), mas = masEscuchadas().slice(0, 20), fav = E.canciones.filter((s) => s.fav).slice(0, 20);
@@ -341,8 +351,8 @@ function dibujarBuscar() {
     c.innerHTML = h || `<div class="vacio">Escribe el nombre de una canción, un artista o un álbum.<br>Aquí verás lo que escuchas, lo más sonado y tus favoritas.</div>`; imagenes(c);
     return;
   }
-  listaActual = ordenar(E.canciones.filter((s) => coincide(s, q))); listaBase = ordenadas();
-  const albs = albumesReales([...agrupar((s) => s.alb)]).filter(([, v]) => v.some((s) => coincide(s, q))).slice(0, 10);
+  listaBase = ordenadas(); listaActual = listaBase.filter((s) => coincide(s, q));   // ya viene ordenada y en caché: no se reordena la biblioteca en cada letra
+  const albs = albumesReales([...gruposAlbum()]).filter(([, v]) => v.some((s) => coincide(s, q))).slice(0, 10);
   const cabeza = (albs.length ? `<section class="estante"><h3>Álbumes</h3><div class="carril">${albs.map(([k, v]) => `<button class="tarjeta" type="button" data-det="album" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].album || "Sin álbum")}</b><span>${esc(v[0].albumArtista || v[0].artista || "")}</span></button>`).join("")}</div></section>` : "") +
     (listaActual.length ? `<h3 class="sub">Canciones</h3>` : `<div class="vacio">Nada coincide con “${esc(E.q)}”.</div>`);
   pintar(c, listaActual, (s, i) => filaCancion(s, i), (h) => cabeza + `<ul class="lista" data-tandas>${h}</ul>`);
@@ -1571,7 +1581,7 @@ function enlazar() {
   $("#nav-menu").addEventListener("click", () => abrirAjustes());
   $("#aj-stats").addEventListener("click", () => abrirStats());
   $("#b-bib-atras").addEventListener("click", () => { E.bibRaiz = true; E.detalle = null; if (E.q) { E.q = ""; $("#q").value = ""; } dibujar(); animarCambio(); window.scrollTo(0, 0); });
-  { let tq = 0; $("#q").addEventListener("input", (e) => { E.q = e.target.value; clearTimeout(tq); tq = setTimeout(dibujar, 140); }); }
+  { let tq = 0; $("#q").addEventListener("input", (e) => { E.q = e.target.value; clearTimeout(tq); tq = setTimeout(dibujar, E.canciones.length > 3000 ? 240 : 140); }); }
   $("#b-agregar").addEventListener("click", () => (MOTOR ? iniciarNativo(true) : menu("Agregar música", [
     { t: "Elegir canciones", f: () => $("#f-audio").click() }, { t: "Elegir una carpeta completa", f: elegirCarpeta }])));
   $("#b-ajustes").addEventListener("click", () => abrirAjustes());
