@@ -60,9 +60,21 @@ export class ReproductorNativo extends EventTarget {
   async cargarCola(canciones, indice = 0, sonar = true, posMs = 0) {
     this.original = canciones.slice(); let lista = canciones.slice(), pos = indice;
     if (this.aleatorio && lista.length > 1) { const cur = lista[indice]; lista = [cur, ...barajar(lista.filter((_, k) => k !== indice))]; pos = 0; }
+    // arranque rápido: con colas largas solo se manda al motor un tramo (la canción tocada y las siguientes) para que suene al instante; el resto se completa enseguida, sin cortar el sonido
+    const completa = lista, token = this._tokCola = (this._tokCola || 0) + 1, parcial = sonar && lista.length > 150;
+    if (parcial) { lista = lista.slice(pos, pos + 60); pos = 0; }
     this.lista = lista; this.pos = pos; this._pos = posMs / 1000; this._dur = this.actual?.duracion || 0;
     await this.N.cargar({ items: lista.map(dato), indice: pos, sonar, posMs }); this._armado = true;
     this._emitir("cola"); this._emitir("cambio", this.actual); this._sonando = sonar; this._emitir("estado");
+    if (parcial) { const tramo = lista, largo = tramo.length; setTimeout(() => this._completarCola(completa, tramo, largo, token), 1200); }
+  }
+  /** Reemplaza el tramo inicial por la cola completa: el motor conserva la canción que suena y solo añade las demás alrededor. */
+  async _completarCola(completa, tramo, largo, token) {
+    if (token !== this._tokCola || this.lista !== tramo || tramo.length !== largo) return;     // mientras tanto se cargó o editó otra cola
+    const k = completa.indexOf(this.actual); if (k < 0) return;
+    try { await this.N.reordenar({ items: completa.map(dato), indice: k }); } catch (_) { return; }
+    if (token !== this._tokCola || this.lista !== tramo) return;
+    this.lista = completa; this.pos = k; this._emitir("cola"); this._emitir("colaCompleta");
   }
   async sincronizar(canciones, e) {                                    // la app se abrió y el motor ya estaba tocando
     this.lista = canciones; this.original = canciones.slice(); this.pos = e.indice; this._pos = e.pos / 1000; this._sonando = !!e.sonando; this._armado = true; this._dur = e.dur > 0 ? e.dur / 1000 : this.actual?.duracion || 0;

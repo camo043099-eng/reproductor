@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.104";
+const VERSION = "0.9.105";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -1558,6 +1558,7 @@ function enlazar() {
   R.addEventListener("tiempo", () => { actualizarTiempo(); guardarSesion(); contarTiempo(); });
   R.addEventListener("duracion", (e) => { const s = porId.get(e.detail.id); if (s && Math.abs((s.duracion || 0) - e.detail.duracion) > 1) { s.duracion = e.detail.duracion; db.poner("canciones", s); if (pila.includes("hoja-letra") && letraAct.id === s.id && !letraAct.L) cargarLetra(s); } });   // con la duración real la letra que no se encontró se vuelve a buscar sola
   R.addEventListener("cola", () => { if (pila.includes("hoja-cola")) dibujarCola(); });
+  R.addEventListener("colaCompleta", () => guardarSesion(true));         // la cola completa llegó al motor poco después de empezar: se guarda entera
   R.addEventListener("detalles", () => actualizarMini());
   R.addEventListener("tiempo", () => actualizarLetra());
   R.addEventListener("cambio", () => { if (pila.includes("hoja-letra") && R.actual) cargarLetra(R.actual); });
