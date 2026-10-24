@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.103";
+const VERSION = "0.9.104";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -519,13 +519,14 @@ function aplicarRealce() {                                                // sol
   const malo = s && /^(MP3|AAC|OGG|WMA)$/.test(s.formato || "") && s.bitrate > 0 && s.bitrate < 315;
   const v = malo && m === "suave" ? 0.10 : malo && m === "medio" ? 0.18 : 0; if (v === ultimoRealce) return; ultimoRealce = v; try { reproductor.ponerRealce(v).catch(() => {}); } catch (_) { /* motor aún no listo */ }
 }
+const paraLetra = (s) => (reproductor.actual?.id === s.id && reproductor.duracion > 0 ? { ...s, duracion: reproductor.duracion } : s);   // al buscar la letra manda la duración real, no la estimada de los MP3
 let letraPrevia = null;                                                    // baja la letra en segundo plano para que ya esté lista al abrirla
 function bajarLetraPrevia(s) {
   if (!s || letraPrevia === s.id || navigator.onLine === false) return; letraPrevia = s.id;
   setTimeout(async () => {
     if (reproductor.actual?.id !== s.id) return;
     if (await db.traer("ajustes", "letra2:" + s.id).catch(() => null)) return;
-    try { const L = await Promise.race([buscarLetraCompleta(texto, s), new Promise((_, no) => setTimeout(() => no(new Error("t")), 20000))]); if (L) await db.poner("ajustes", L, "letra2:" + s.id); } catch (_) { /* se busca al abrir la letra */ }
+    try { const L = await Promise.race([buscarLetraCompleta(texto, paraLetra(s)), new Promise((_, no) => setTimeout(() => no(new Error("t")), 60000))]); if (L) { await db.poner("ajustes", L, "letra2:" + s.id); if (pila.includes("hoja-letra") && letraAct.id === s.id && !letraAct.L) cargarLetra(s); } } catch (_) { /* se busca al abrir la letra */ }
   }, 2500);
 }
 function actualizarMini() {
@@ -1555,7 +1556,7 @@ function enlazar() {
   R.addEventListener("cambio", () => { reiniciarConteo(); actualizarMini(); if (pila.includes("hoja-cola")) dibujarCola(); });
   R.addEventListener("estado", () => { actualizarEstado(); if (reproductor.sonando && !ritRaf && pila.includes("hoja-rep")) ritmoEncender(); guardarSesion(true); guardarHist(); });
   R.addEventListener("tiempo", () => { actualizarTiempo(); guardarSesion(); contarTiempo(); });
-  R.addEventListener("duracion", (e) => { const s = porId.get(e.detail.id); if (s && Math.abs((s.duracion || 0) - e.detail.duracion) > 1) { s.duracion = e.detail.duracion; db.poner("canciones", s); } });
+  R.addEventListener("duracion", (e) => { const s = porId.get(e.detail.id); if (s && Math.abs((s.duracion || 0) - e.detail.duracion) > 1) { s.duracion = e.detail.duracion; db.poner("canciones", s); if (pila.includes("hoja-letra") && letraAct.id === s.id && !letraAct.L) cargarLetra(s); } });   // con la duración real la letra que no se encontró se vuelve a buscar sola
   R.addEventListener("cola", () => { if (pila.includes("hoja-cola")) dibujarCola(); });
   R.addEventListener("detalles", () => actualizarMini());
   R.addEventListener("tiempo", () => actualizarLetra());
@@ -2104,7 +2105,12 @@ async function cargarLetra(s) {
   let L = await db.traer("ajustes", "letra2:" + s.id).catch(() => null), error = false;
   const emb = MOTOR && reproductor.letras ? reproductor.letras[s.id] : null, embSinc = emb && parsearLRC(emb).length > 0;   // letra que trae el propio archivo
   if (embSinc && !(L && L.sincronizada && L.manual)) L = { sincronizada: emb, plana: "", incrustada: true };
-  if (!L) { try { L = await Promise.race([buscarLetraCompleta(texto, s), new Promise((_, no) => setTimeout(() => no(new Error("tiempo")), 20000))]); } catch (_) { error = true; } if (L && emb && !L.sincronizada) L = { sincronizada: "", plana: emb, incrustada: true }; if (L) await db.poner("ajustes", L, "letra2:" + s.id).catch(() => {}); }
+  if (!L) {
+    const busqueda = buscarLetraCompleta(texto, paraLetra(s));
+    try { L = await Promise.race([busqueda, new Promise((_, no) => setTimeout(() => no(new Error("tiempo")), 20000))]); } catch (_) { error = true; }
+    // si tardó más de 20 s se sigue esperando en segundo plano: al llegar se guarda y se muestra sola (antes se perdía y había que volver a empezar la canción)
+    if (error) busqueda.then(async (tarde) => { if (!tarde) return; await db.poner("ajustes", tarde, "letra2:" + s.id).catch(() => {}); if (pila.includes("hoja-letra") && letraAct.id === s.id && !letraAct.L) cargarLetra(s); }).catch(() => {});
+    if (L && emb && !L.sincronizada) L = { sincronizada: "", plana: emb, incrustada: true }; if (L) await db.poner("ajustes", L, "letra2:" + s.id).catch(() => {}); }
   if (letraAct.id !== s.id) return;                                       // mientras tanto cambió la canción
   if (!L) { cuerpo.innerHTML = `<div class="vacio">${error ? "No pude buscar la letra. ¿Tienes internet?" : "No encontré la letra de esta canción."}<br><button class="boton" id="letra-reintento" type="button" style="margin-top:14px">Intentar otra vez</button> <button class="boton" id="letra-buscar" type="button" style="margin-top:14px">Buscar otra letra</button> <button class="boton" id="letra-pegar" type="button" style="margin-top:14px">Pegar letra</button></div>`; return; }
   const lineas = parsearLRC(L.sincronizada);
@@ -2116,7 +2122,8 @@ async function cargarLetra(s) {
     const tl = parsearLRC(L.traduccion); if (tl.length) letraAct.trad = lineas.map((l) => { const m = tl.find((x) => Math.abs(x.t - l.t) < 0.6); return m ? m.txt : ""; });
   }
   letraAct.off = (await db.traer("ajustes", "letraoff:" + s.id).catch(() => 0)) || 0; $("#letra-sync").hidden = !letraAct.sinc; ponerDesfaseLetra(0);
-  pintarLetra(); if (letraAct.sinc) actualizarLetra(true);
+  pintarLetra();
+  if (letraAct.sinc) { actualizarLetra(true); setTimeout(() => { if (letraAct.id === s.id && pila.includes("hoja-letra")) { letraAct.idx = -2; actualizarLetra(true); } }, 450); }   // se vuelve a centrar cuando la hoja ya terminó de abrirse
 }
 function pintarLetra() {
   const cuerpo = $("#letra-cuerpo"), ver = tradLetra && letraAct.trad;
