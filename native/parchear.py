@@ -52,6 +52,17 @@ if "MotorServicio" not in x:
     x = x.replace("<application", permisos + "    <application", 1)
     x = x.replace("</application>", servicio + "    </application>", 1)
 assert "MotorServicio" in x
+# widget de pantalla de inicio (carátula, título y controles)
+receptor = """        <receiver android:name="com.camo.onda.OndaWidget" android:exported="false" android:label="Onda">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_onda_info" />
+        </receiver>
+"""
+if "OndaWidget" not in x:
+    x = x.replace("</application>", receptor + "    </application>", 1)
+assert "OndaWidget" in x
 open(m, "w").write(x)
 
 # 3) Bibliotecas de Media3 (ExoPlayer)
@@ -83,6 +94,10 @@ for n in ("ic_launcher.xml", "ic_launcher_round.xml"):
     open(res + "/mipmap-anydpi-v26/" + n, "w").write(adaptativo)
 # el fondo de la ventana de arranque (Android 12+) en el mismo color del icono
 print("icono de Onda instalado")
+
+# 4a) Recursos del widget (diseño, fondo e iconos de los botones)
+shutil.copytree("native/widget/res", res, dirs_exist_ok=True)
+print("widget instalado")
 
 # 4b) Iconos de temporada: la actividad de inicio pasa a ser un alias por icono (solo uno activo; lo cambia MotorPlugin.icono)
 import sys

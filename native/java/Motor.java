@@ -97,8 +97,9 @@ public final class Motor {
         });
         p.addListener(new androidx.media3.common.Player.Listener() {
             @Override public void onPositionDiscontinuity(androidx.media3.common.Player.PositionInfo antes, androidx.media3.common.Player.PositionInfo ahora, int motivo) { if (motivo == androidx.media3.common.Player.DISCONTINUITY_REASON_INTERNAL || motivo == androidx.media3.common.Player.DISCONTINUITY_REASON_SKIP) saltos++; if (p == jugador) guardarSesion(); }
-            @Override public void onIsPlayingChanged(boolean sonando) { if (p == jugador) guardarSesion(); }
-            @Override public void onMediaItemTransition(MediaItem item, int motivo) { if (p == jugador) guardarSesion(); }
+            @Override public void onIsPlayingChanged(boolean sonando) { if (p == jugador) { guardarSesion(); OndaWidget.actualizar(app); } }
+            @Override public void onPlayWhenReadyChanged(boolean listo, int motivo) { if (p == jugador) OndaWidget.actualizar(app); }
+            @Override public void onMediaItemTransition(MediaItem item, int motivo) { if (p == jugador) { guardarSesion(); OndaWidget.actualizar(app); } }
         });
         return p;
     }
