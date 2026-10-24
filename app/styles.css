@@ -1056,3 +1056,10 @@ html[data-modo="claro"] .aj-rap i { background: rgba(0, 0, 0, 0.06); }
 html[data-modo="claro"] .aj-rap.on i { background: #ff453a; color: #fff; }
 
 html, body { touch-action: pan-x pan-y; }   /* sin zoom nativo del navegador: el pellizco lo gestiona Onda y escala toda la interfaz */
+
+/* editar información de una canción */
+#hoja-editar { max-height: 92dvh; overflow-y: auto; }
+.ed-c { display: grid; gap: 6px; }
+.ed-c span { font-size: .8rem; font-weight: 600; color: var(--tx2); padding-left: 4px; }
+.ed-dos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+#ed-reset { width: 100%; justify-content: center; min-height: 46px; }

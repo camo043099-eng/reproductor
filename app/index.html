@@ -233,6 +233,23 @@
   </div>
 </section>
 
+<!-- editar información de una canción -->
+<section class="hoja corta" id="hoja-editar" hidden role="dialog" aria-label="Editar información">
+  <div class="dlg">
+    <h3>Editar información</h3>
+    <p class="suave">Se guarda solo en Onda y no cambia el archivo de la canción.</p>
+    <label class="ed-c"><span>Título</span><input id="ed-titulo" type="text" maxlength="160" autocomplete="off" spellcheck="false"></label>
+    <label class="ed-c"><span>Artista</span><input id="ed-artista" type="text" maxlength="160" autocomplete="off" spellcheck="false"></label>
+    <label class="ed-c"><span>Álbum</span><input id="ed-album" type="text" maxlength="160" autocomplete="off" spellcheck="false"></label>
+    <div class="ed-dos">
+      <label class="ed-c"><span>Año</span><input id="ed-anio" type="text" inputmode="numeric" maxlength="4" autocomplete="off"></label>
+      <label class="ed-c"><span>Género</span><input id="ed-genero" type="text" maxlength="60" autocomplete="off" spellcheck="false"></label>
+    </div>
+    <div class="dlg-b"><button class="boton" type="button" id="ed-no">Cancelar</button><button class="boton primario acento" type="button" id="ed-si">Guardar</button></div>
+    <button class="boton" type="button" id="ed-reset" hidden>Volver a la información del archivo</button>
+  </div>
+</section>
+
 <!-- ajustes -->
 <section class="hoja" id="hoja-aj" hidden role="dialog" aria-label="Ajustes">
   <div class="hoja-top"><button class="ib" id="aj-atras" aria-label="Cerrar"></button><span id="aj-titulo">Ajustes</span><span></span></div>

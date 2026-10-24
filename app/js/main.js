@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.98";
+const VERSION = "0.9.99";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -1038,6 +1038,7 @@ function abrirHojaCancion(s) {
     fila(I.lista, "Ir al álbum", "album"),
     fila(I.lista, "Ir al artista", "artista"),
     fila(I.lista, "Ver detalles", "detalles"),
+    fila(I.lista, "Editar información", "editar"),
     fila(I.letra, "Ver letra", "letra"),
     fila(I.eq, "Ecualizador", "eq"),
     fila(I.lista, "Elegir carátula entre resultados…", "caratula"),
@@ -1048,7 +1049,7 @@ function abrirHojaCancion(s) {
     sigue: () => sigue(), lista: () => agregarALista(s), comp: () => { if (navigator.share) navigator.share({ title: nom(s), text: `${s.artista || ""} · ${s.album || ""}` }).catch(() => {}); else avisar("Compartir no está disponible aquí"); },
     mix: () => tocar(E.canciones.filter((x) => normal(x.albumArtista || x.artista) === artista), 0, true), final: () => alFinal(),
     album: () => irA("album", s.alb, "albumes"), artista: () => irA("artista", artista, "artistas"),
-    detalles: () => verDetalles(s), caratula: () => abrirSelectorPortada(s), galeria: () => elegirImagen(s),
+    detalles: () => verDetalles(s), editar: () => editarInfo(s), caratula: () => abrirSelectorPortada(s), galeria: () => elegirImagen(s),
     letra: () => $("#r-letra").click(), eq: () => $("#r-eq").click(),
     sueno: () => { dibujarSueno(); abrir("hoja-sueno"); },
   };
@@ -1068,6 +1069,7 @@ function opcionesCancion(s, enLista) {
   op.push({ t: "Elegir carátula entre resultados…", f: () => setTimeout(() => abrirSelectorPortada(s), 0) }, { t: "Buscar portada en internet", f: () => portadaWeb(s) }, { t: "Elegir portada de mi galería", f: () => elegirImagen(s) }, { t: "Ver letra", f: () => { if (reproductor.actual?.id !== s.id) tocar([s], 0).then(abrirLetra); else abrirLetra(); } });
   if (enLista) op.push({ t: "Quitar de esta lista", f: async () => { enLista.ids = enLista.ids.filter((x) => x !== s.id); await db.poner("listas", enLista); dibujar(); } });
   op.push({ t: "Ver detalles", f: () => setTimeout(() => verDetalles(s), 0) });
+  op.push({ t: "Editar información", f: () => setTimeout(() => editarInfo(s), 0) });
   op.push({ t: "Seleccionar varias", f: () => setTimeout(() => empezarSeleccion(s), 0) });
   if (MOTOR) op.push({ t: "Borrar del teléfono", cls: "peligro", f: () => setTimeout(() => borrarDelTelefono([s]), 0) });
   if (!MOTOR) op.push({ t: "Borrar de la biblioteca", cls: "peligro", f: async () => { if (!(await confirmar(`¿Borrar “${s.titulo || s.nombre}” de la app?`, "Borrar", "El archivo original de tu teléfono no se toca."))) return; await borrarCancion(s); } });
@@ -1095,6 +1097,39 @@ function verRuta(s) {
   ];
   $("#ruta-cuerpo").innerHTML = filas.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("");
   abrir("hoja-ruta");
+}
+/* ── editar la información de una canción: se guarda en Onda, no se escribe en el archivo ── */
+const CAMPOS_ED = [["titulo", "ed-titulo"], ["artista", "ed-artista"], ["album", "ed-album"], ["anio", "ed-anio"], ["genero", "ed-genero"]];
+async function aplicarEdicion(s, nuevo) {
+  const antC = claveC(s), antAlb = s.alb;
+  if (nuevo) {
+    for (const k of Object.keys(nuevo)) {
+      if (String(s[k] ?? "") === String(nuevo[k] ?? "")) continue;
+      s.orig = s.orig || {}; if (!(k in s.orig)) s.orig[k] = s[k] ?? null;   // lo que traía el archivo, para poder volver
+      s.ed = s.ed || {}; s.ed[k] = nuevo[k]; s[k] = nuevo[k];
+    }
+    if (s.ed && !Object.keys(s.ed).length) { delete s.ed; delete s.orig; }
+  } else if (s.orig) { for (const k of Object.keys(s.orig)) s[k] = s.orig[k]; delete s.ed; delete s.orig; }
+  else return;
+  s.alb = claveAlbum(s); s.portadaId = idPortada(s);
+  if (s.alb !== antAlb && !conPortada.has(s.alb)) { const b = await db.traer("portadas", antAlb).catch(() => null); if (b) await ponerPortada(s.alb, b); }   // la carátula sigue a la canción
+  const nuevaC = claveC(s); if (nuevaC !== antC && HIST.m[antC] && !HIST.m[nuevaC]) { HIST.m[nuevaC] = HIST.m[antC]; delete HIST.m[antC]; guardarHist(); }   // no se pierden sus reproducciones
+  await db.poner("canciones", s);
+  E.version++; porId.set(s.id, s); dibujar(); if (reproductor.actual?.id === s.id) actualizarMini();
+}
+function editarInfo(s) {
+  for (const [k, id] of CAMPOS_ED) $("#" + id).value = s[k] ?? "";
+  $("#ed-reset").hidden = !s.ed;
+  const fin = () => { $("#ed-si").onclick = $("#ed-no").onclick = $("#ed-reset").onclick = null; cerrar("hoja-editar"); };
+  $("#ed-no").onclick = fin;
+  $("#ed-si").onclick = async () => {
+    const nuevo = {};
+    for (const [k, id] of CAMPOS_ED) { let v = $("#" + id).value.trim(); if (k === "anio") { const n = parseInt(v, 10); v = !v ? null : n >= 1000 && n <= 2999 ? n : (s.anio ?? null); } nuevo[k] = v; }
+    if (!nuevo.titulo) { avisar("El título no puede quedar vacío."); return; }
+    await aplicarEdicion(s, nuevo); fin(); avisar("Información actualizada");
+  };
+  $("#ed-reset").onclick = async () => { await aplicarEdicion(s, null); fin(); avisar("Volviste a la información del archivo"); };
+  abrir("hoja-editar");
 }
 function verDetalles(s) {
   detSong = s;
@@ -1869,7 +1904,8 @@ async function fusionar(nuevas) {
   // solo se escribe lo que cambió: en un arranque normal la biblioteca es la misma y no hay que reescribir miles de filas ni redibujar todo
   const viejas = new Map(E.canciones.map((s) => [s.id, s])), vistos = new Set(), lista = [], cambiadas = [];
   for (const c of nuevas) {
-    vistos.add(c.id); const campos = { ...c, alb: claveAlbum(c), portadaId: idPortada({ ...c, alb: claveAlbum(c) }), formato: FORMATOS[c.mime] || (String(c.nombre).split(".").pop() || "").toUpperCase() };
+    vistos.add(c.id); const base = { ...c, ...(viejas.get(c.id)?.ed || {}) };   // lo que editó el usuario manda sobre las etiquetas del archivo
+    const campos = { ...base, alb: claveAlbum(base), portadaId: idPortada({ ...base, alb: claveAlbum(base) }), formato: FORMATOS[c.mime] || (String(c.nombre).split(".").pop() || "").toUpperCase() };
     const v = viejas.get(c.id);
     if (v) { let dif = false; for (const k in campos) if (v[k] !== campos[k]) { dif = true; break; } if (dif) { Object.assign(v, campos); cambiadas.push(v); } lista.push(v); }
     else { const n = { fav: false, ...campos }; lista.push(n); cambiadas.push(n); }
