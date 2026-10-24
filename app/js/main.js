@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.96";
+const VERSION = "0.9.97";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -320,7 +320,7 @@ function dibujarInicio() {
 }
 // canción de un género que sí tiene carátula real (si ninguna la tiene, se usa la de relleno)
 let conPortada = new Set(), conPortadaCargado = false;
-function refrescarConPortada(redibujar) { db.claves("portadas").then((k) => { const n = conPortada.size; conPortada = new Set(k); if (redibujar && !conPortadaCargado) { conPortadaCargado = true; if (E.vista === "buscar" && !E.q && !E.detalle) dibujarBuscar(); } conPortadaCargado = true; }).catch(() => {}); }
+function refrescarConPortada(redibujar) { db.claves("portadas").then((k) => { const n = conPortada.size; conPortada = new Set(k); if (redibujar && !conPortadaCargado) { conPortadaCargado = true; if (E.vista === "buscar" && !E.q && !E.detalle) dibujarBuscar(); else if (E.vista === "biblioteca" && ((E.tab === "listas" && !E.detalle) || E.detalle?.k === "__sinport")) dibujar(); } conPortadaCargado = true; }).catch(() => {}); }
 let _gc = null;                                                           // género → canción con carátula (una sola pasada, no una por género)
 let _gcV = -1;
 const cancionDeGenero = (g) => { if (!_gc || _gcV !== E.version) { _gcV = E.version; _gc = new Map(); for (const s of E.canciones) for (const x of generosDe(s)) { const a = _gc.get(x); if (!a || (!conPortada.has(a.alb) && conPortada.has(s.alb))) _gc.set(x, s); } } return _gc.get(g) || null; };
@@ -419,6 +419,9 @@ function dibujarBiblioteca() {
     const fav = E.canciones.filter((s) => s.fav);
     const filas = [`<button class="tarjeta" type="button" data-det="lista" data-k="__fav"><span class="sinport" style="display:grid;place-items:center;color:var(--ac2)">${I.fav.replace("<svg", '<svg width="56" height="56" fill="currentColor"')}</span><b>Favoritas</b><span>${fav.length} canciones</span></button>`];
     { const nb = calidadBaja().length; if (nb) filas.splice(1, 0, `<button class="tarjeta" type="button" data-det="lista" data-k="__baja"><span class="sinport" style="display:grid;place-items:center;color:#ffb44d">${I.eq.replace("<svg", '<svg width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5"')}</span><b>Calidad baja</b><span>${nb} canciones</span></button>`); }
+    if (!conPortadaCargado) refrescarConPortada(true);
+    { let pos = 1 + (filas.length > 1 ? filas.length - 1 : 0); const aut = Object.entries(AUTO).map(([k, a]) => [k, a, a.f().length]).filter(([, , n]) => n > 0);
+      for (const [k, a, n] of aut) filas.splice(pos++, 0, `<button class="tarjeta" type="button" data-det="lista" data-k="${k}"><span class="sinport" style="display:grid;place-items:center;color:${a.color}">${I.lista.replace("<svg", '<svg width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5"')}</span><b>${a.t}</b><span>${n} canciones</span></button>`); }
     for (const l of E.listas) filas.push(`<button class="tarjeta" type="button" data-det="lista" data-k="${esc(l.id)}"><span class="sinport" style="display:grid;place-items:center;color:var(--tx2)">${I.lista.replace("<svg", '<svg width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5"')}</span><b>${esc(l.nombre)}</b><span>${l.ids.length} canciones</span></button>`);
     c.innerHTML = `<div class="acciones-detalle"><button class="boton" type="button" data-nueva-lista>Nueva lista</button></div><div class="rejilla">${filas.join("")}</div>`;
     $("#resumen").textContent = "";
@@ -435,6 +438,7 @@ function cancionesDe(d) {
   if (d.k === "__mas") return masEscuchadas();
   if (d.k === "__ult") return ultimasEscuchadas();
   if (d.k === "__olv") return sinEscuchar();
+  if (AUTO[d.k]) return AUTO[d.k].f();
   if (d.k === "__baja") return calidadBaja();
   if (d.k.startsWith("__gen:")) { const g = d.k.slice(6); return E.canciones.filter((s) => generosDe(s).includes(g)); }
   const l = E.listas.find((x) => x.id === d.k); return l ? l.ids.map((id) => porId.get(id)).filter(Boolean) : [];
@@ -443,11 +447,12 @@ function dibujarDetalle(c, d) {
   listaActual = cancionesDe(d); listaBase = null;
   const l = d.tipo === "lista" && !d.k.startsWith("__") ? E.listas.find((x) => x.id === d.k) : null;
   E.detalleTitulo = null;
-  const titulo = d.k.startsWith("__mix:") ? (mixPorId(d.k.slice(6))?.nombre || "Tu mix") : d.tipo === "carpeta" ? nombreCarpeta(d.k) : d.tipo === "album" ? (listaActual[0]?.album || "Álbum") : d.tipo === "artista" ? (listaActual[0]?.albumArtista || listaActual[0]?.artista || "Artista") : l ? l.nombre : ({ __fav: "Favoritas", __mas: "Más escuchadas", __ult: "Escuchadas hace poco", __olv: "Para redescubrir", __baja: "Calidad baja" }[d.k] || (d.k.startsWith("__gen:") ? "Mix " + d.k.slice(6) : "Favoritas"));
+  const titulo = d.k.startsWith("__mix:") ? (mixPorId(d.k.slice(6))?.nombre || "Tu mix") : d.tipo === "carpeta" ? nombreCarpeta(d.k) : d.tipo === "album" ? (listaActual[0]?.album || "Álbum") : d.tipo === "artista" ? (listaActual[0]?.albumArtista || listaActual[0]?.artista || "Artista") : l ? l.nombre : ({ __fav: "Favoritas", __mas: "Más escuchadas", __ult: "Escuchadas hace poco", __olv: "Para redescubrir", __baja: "Calidad baja", ...Object.fromEntries(Object.entries(AUTO).map(([k, a]) => [k, a.t])) }[d.k] || (d.k.startsWith("__gen:") ? "Mix " + d.k.slice(6) : "Favoritas"));
   $("#resumen").textContent = "";
   E.detalleTitulo = titulo;
   c.innerHTML = `<div class="cabecera-detalle"><button class="ib" type="button" data-volver aria-label="Volver">${I.volver}</button><h2>${esc(titulo)}</h2>${l ? `<button class="ib" type="button" data-opc-lista aria-label="Opciones de la lista">${I.mas3}</button>` : ""}</div>
   <div class="acciones-detalle"><button class="boton primario" type="button" data-tocar-todo>Reproducir</button><button class="boton" type="button" data-tocar-azar>Aleatorio</button><button class="boton" type="button" data-sel-iniciar>Seleccionar</button>${d.k.startsWith("__mix:") ? `<button class="boton" type="button" data-renovar-mixes>Renovar mixes</button>` : ""}${d.tipo === "album" ? `<button class="boton" type="button" data-portada-album>Buscar carátula</button>` : ""}</div>
+  ${AUTO[d.k] ? `<p class="nota-mix">${esc(AUTO[d.k].d)}</p>` : ""}
   ${d.k === "__baja" ? `<p class="nota-mix">Menos de ${KBPS_BAJO} kbps, las más escuchadas primero. Estas son las que más ganan si las consigues en FLAC o a 320 kbps.</p>` : ""}
   <div id="det-lista"></div>`;
   const cont = $("#det-lista");
@@ -693,6 +698,15 @@ const kbpsDe = (s) => (s.bitrate > 0 ? s.bitrate : s.tam > 0 && s.duracion > 0 ?
 const calidadBaja = () => E.canciones.filter((s) => /^(MP3|AAC|OGG|WMA)$/.test(s.formato || "") && kbpsDe(s) > 0 && kbpsDe(s) < KBPS_BAJO)
   .sort((a, b) => (HIST.m[claveC(b)]?.n || 0) - (HIST.m[claveC(a)]?.n || 0) || kbpsDe(a) - kbpsDe(b));
 const sinEscuchar = () => E.canciones.filter((s) => !(HIST.m[claveC(s)]?.n > 0));
+/* Listas automáticas: se calculan solas con lo que ya sabemos de cada canción */
+const DIAS_NUEVAS = 30;
+const nuevasDelMes = () => { const t = Date.now() - DIAS_NUEVAS * 864e5; return E.canciones.filter((s) => s.fecha >= t).sort((a, b) => b.fecha - a.fecha); };
+const sinPortada = () => (conPortadaCargado ? E.canciones.filter((s) => !s.alb || !conPortada.has(s.alb)) : []);
+const AUTO = {
+  __nuevas: { t: "Añadidas este mes", d: "Lo último que llegó, lo más nuevo primero.", color: "#2fd4a4", f: nuevasDelMes },
+  __sinesc: { t: "Sin escuchar", d: "Canciones que todavía no has reproducido.", color: "#4da3ff", f: sinEscuchar },
+  __sinport: { t: "Sin carátula", d: "Estas canciones no tienen carátula. En Ajustes > Carátulas puedes buscarlas.", color: "#ff7a59", f: sinPortada },
+};
 const tiempoLargo = (ms) => { const m = Math.round(ms / 60000); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`; };
 function abrirStats() {
   const dias = [...Array(7)].map((_, i) => 6 - i).map((o) => ({ ms: HIST.d[diaDe(o)] || 0, l: "DLMXJVS"[new Date(Date.now() - o * 864e5).getDay()] }));
