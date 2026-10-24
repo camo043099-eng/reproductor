@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.105";
+const VERSION = "0.9.106";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -2122,9 +2122,9 @@ async function cargarLetra(s) {
   if (!letraAct.trad && L.traduccion && lineas.length) {                  // traducción que ya trae el servicio, alineada por tiempo
     const tl = parsearLRC(L.traduccion); if (tl.length) letraAct.trad = lineas.map((l) => { const m = tl.find((x) => Math.abs(x.t - l.t) < 0.6); return m ? m.txt : ""; });
   }
-  letraAct.off = (await db.traer("ajustes", "letraoff:" + s.id).catch(() => 0)) || 0; $("#letra-sync").hidden = !letraAct.sinc; ponerDesfaseLetra(0);
-  pintarLetra();
-  if (letraAct.sinc) { actualizarLetra(true); setTimeout(() => { if (letraAct.id === s.id && pila.includes("hoja-letra")) { letraAct.idx = -2; actualizarLetra(true); } }, 450); }   // se vuelve a centrar cuando la hoja ya terminó de abrirse
+  letraAct.off = (await db.traer("ajustes", "letraoff:" + s.id).catch(() => 0)) || 0; $("#letra-sync").hidden = !letraAct.sinc;
+  pintarLetra(); ponerDesfaseLetra(0);   // primero se dibuja la letra y después se centra la línea que suena (antes fallaba al centrar una línea que aún no existía y la letra nunca aparecía si la canción iba adelantada)
+  if (letraAct.sinc) { setTimeout(() => { if (letraAct.id === s.id && pila.includes("hoja-letra")) { letraAct.idx = -2; actualizarLetra(true); } }, 450); }   // se vuelve a centrar cuando la hoja ya terminó de abrirse
 }
 function pintarLetra() {
   const cuerpo = $("#letra-cuerpo"), ver = tradLetra && letraAct.trad;
@@ -2192,10 +2192,11 @@ function ponerDesfaseLetra(d) {
 function actualizarLetra(salto) {
   if (!pila.includes("hoja-letra") || !letraAct.lineas.length) return;
   bucleLetra();
+  { const c0 = $("#letra-cuerpo").firstElementChild; if (!c0 || c0.tagName !== "P") return; }   // la letra todavía se está cargando: no hay líneas que resaltar
   const i = lineaActual(letraAct.lineas, tEst() + ADELANTO_LETRA - (reproductor.ruta === "bluetooth" ? (+E.aj.retrasoBt || 0) / 1000 : 0) + (letraAct.off || 0)); if (i === letraAct.idx) return;
   letraAct.idx = i; const ps = $("#letra-cuerpo").children;
   for (let k = 0; k < ps.length; k++) { ps[k].classList.toggle("actual", k === i); ps[k].classList.toggle("pasada", k < i); }
-  if (i >= 0) ps[i].scrollIntoView({ block: "center", behavior: salto ? "auto" : "smooth" });
+  if (i >= 0 && ps[i]) ps[i].scrollIntoView({ block: "center", behavior: salto ? "auto" : "smooth" });
 }
 
 async function portadasNativas() {
