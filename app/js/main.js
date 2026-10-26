@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.107";
+const VERSION = "0.9.108";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -463,7 +463,7 @@ function dibujarDetalle(c, d) {
   $("#resumen").textContent = "";
   E.detalleTitulo = titulo;
   c.innerHTML = `<div class="cabecera-detalle"><button class="ib" type="button" data-volver aria-label="Volver">${I.volver}</button><h2>${esc(titulo)}</h2>${l ? `<button class="ib" type="button" data-opc-lista aria-label="Opciones de la lista">${I.mas3}</button>` : ""}</div>
-  <div class="acciones-detalle"><button class="boton primario" type="button" data-tocar-todo>Reproducir</button><button class="boton" type="button" data-tocar-azar>Aleatorio</button><button class="boton" type="button" data-sel-iniciar>Seleccionar</button>${d.k.startsWith("__mix:") ? `<button class="boton" type="button" data-renovar-mixes>Renovar mixes</button>` : ""}${d.tipo === "album" ? `<button class="boton" type="button" data-portada-album>Buscar carátula</button>` : ""}</div>
+  <div class="acciones-detalle"><button class="boton primario" type="button" data-tocar-todo>Reproducir</button><button class="boton" type="button" data-tocar-azar>Aleatorio</button><button class="boton" type="button" data-sel-iniciar>Seleccionar</button>${d.k === "__dup" && MOTOR ? `<button class="boton" type="button" data-limpiar-dup>Limpiar duplicadas</button>` : ""}${d.k.startsWith("__mix:") ? `<button class="boton" type="button" data-renovar-mixes>Renovar mixes</button>` : ""}${d.tipo === "album" ? `<button class="boton" type="button" data-portada-album>Buscar carátula</button>` : ""}</div>
   ${AUTO[d.k] ? `<p class="nota-mix">${esc(AUTO[d.k].d)}</p>` : ""}
   ${d.k === "__baja" ? `<p class="nota-mix">Menos de ${KBPS_BAJO} kbps, las más escuchadas primero. Estas son las que más ganan si las consigues en FLAC o a 320 kbps.</p>` : ""}
   <div id="det-lista"></div>`;
@@ -716,17 +716,27 @@ const DIAS_NUEVAS = 30;
 const nuevasDelMes = () => { const t = Date.now() - DIAS_NUEVAS * 864e5; return E.canciones.filter((s) => s.fecha >= t).sort((a, b) => b.fecha - a.fecha); };
 const sinPortada = () => (conPortadaCargado ? E.canciones.filter((s) => !s.alb || !conPortada.has(s.alb)) : []);
 /** Canciones que parecen la misma (título y artista iguales, duración casi igual). En cada grupo va primero la de mayor tamaño. */
-const duplicadas = () => {
-  const g = new Map();
+const gruposDup = () => {
+  const g = new Map(), sal = [];
   for (const s of E.canciones) { const k = normal((s.titulo || String(s.nombre || "").replace(/\.[^.]+$/, "")) + "|" + (s.artista || "")); if (!k.startsWith("|")) { if (!g.has(k)) g.set(k, []); g.get(k).push(s); } }
-  const sal = [];
   for (const v of g.values()) {
     if (v.length < 2) continue;
     const ok = v.filter((a) => v.some((b) => b !== a && Math.abs((a.duracion || 0) - (b.duracion || 0)) <= 3));
-    if (ok.length > 1) sal.push(...ok.sort((a, b) => (b.tam || 0) - (a.tam || 0)));
+    if (ok.length > 1) sal.push(ok.sort((a, b) => (b.tam || 0) - (a.tam || 0)));
   }
   return sal;
 };
+const duplicadas = () => gruposDup().flat();
+/** Puntaje de calidad: sin pérdida (FLAC, WAV…) por encima de con pérdida; a igual formato, más kbps; si empatan, más tamaño. */
+const puntajeCalidad = (s) => (/^(FLAC|ALAC|WAV|AIFF?|APE|WV)$/i.test(s.formato || "") ? 1e9 : 0) + kbpsDe(s) * 1e3 + (s.tam || 0) / 1e9;
+/** Marca para borrar la copia de peor calidad de cada grupo (deja la mejor). Devuelve cuántas marcó. */
+function marcarDuplicadasBajas() {
+  const ids = new Set();
+  for (const v of gruposDup()) { const mejor = v.reduce((a, b) => (puntajeCalidad(b) > puntajeCalidad(a) ? b : a)); for (const s of v) if (s !== mejor) ids.add(s.id); }
+  E.sel = ids; E.selAncla = null; E.selRango = false; pintarSeleccion();
+  document.querySelectorAll("#contenido .fila").forEach((f) => f.classList.toggle("marcada", ids.has(f.dataset.id)));
+  return ids.size;
+}
 const AUTO = {
   __nuevas: { t: "Añadidas este mes", d: "Lo último que llegó, lo más nuevo primero.", color: "#2fd4a4", f: nuevasDelMes },
   __sinesc: { t: "Sin escuchar", d: "Canciones que todavía no has reproducido.", color: "#4da3ff", f: sinEscuchar },
@@ -1609,6 +1619,7 @@ function enlazar() {
   $("#acc-lista").addEventListener("click", (e) => {
     if (e.target.closest("[data-tocar-todo]")) return tocar(listaActual, 0);
     if (e.target.closest("[data-tocar-azar]")) return tocar(listaActual, 0, true);
+    if (e.target.closest("[data-limpiar-dup]")) { const n = marcarDuplicadasBajas(); return avisar(n ? `Marqué ${n} de menor calidad. Revisa y toca Eliminar.` : "No hay copias de menor calidad.", 3500); }
     if (e.target.closest("[data-sel-iniciar]")) return iniciarSeleccion();
   });
   $("#b-actualizar").addEventListener("click", () => $("#b-agregar").click());
@@ -1658,6 +1669,7 @@ function enlazar() {
       ]);
       return;
     }
+    if (e.target.closest("[data-limpiar-dup]")) { const n = marcarDuplicadasBajas(); return avisar(n ? `Marqué ${n} de menor calidad. Revisa y toca Eliminar.` : "No hay copias de menor calidad.", 3500); }
     if (e.target.closest("[data-sel-iniciar]")) return iniciarSeleccion();
     if (e.target.closest("[data-tocar-todo]")) return tocar(listaActual, 0);
     if (e.target.closest("[data-tocar-azar]")) return tocar(listaActual, 0, true);
