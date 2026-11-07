@@ -8,7 +8,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.12.1";
+const VERSION = "0.13.0";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -71,14 +71,13 @@ function placa(t) {
 }
 const SIN = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" fill="#17171d"/><path d="M19 32V15l14-3v17" fill="none" stroke="#6b6b7a" stroke-width="2.500"/><circle cx="16" cy="32" r="3.500" fill="#6b6b7a"/><circle cx="30" cy="29" r="3.500" fill="#6b6b7a"/></svg>');
 const vigia = "IntersectionObserver" in window ? new IntersectionObserver((es) => {
-  for (const e of es) if (e.isIntersecting) { vigia.unobserve(e.target); hidratar(e.target); }
+  for (const e of es) if (e.isIntersecting) { vigia.unobserve(e.target); if (!urlsPort.has(e.target.dataset.alb)) e.target.dataset.cargando = ""; hidratar(e.target); }   // esqueleto (pulso) solo en las carátulas que están a la vista y aún no llegan: miles de animaciones a la vez bloqueaban la pantalla
 }, { rootMargin: "200px" }) : null;
 async function hidratar(img) {
   const u = await portadaUrl(img.dataset.alb), fin = () => { delete img.dataset.cargando; };
   if (u && img.src !== u) { img.addEventListener("load", fin, { once: true }); img.addEventListener("error", fin, { once: true }); img.src = u; } else fin();
 }
-function imagenes(raiz) { raiz.querySelectorAll("img[data-alb]:not([data-obs])").forEach((i) => { i.dataset.obs = "1"; if (!i.dataset.alb) return; if (!urlsPort.has(i.dataset.alb)) i.dataset.cargando = "";   // esqueleto (pulso) hasta que llega la carátula real
-      if (vigia) vigia.observe(i); else hidratar(i); }); }
+function imagenes(raiz) { raiz.querySelectorAll("img[data-alb]:not([data-obs])").forEach((i) => { i.dataset.obs = "1"; if (!i.dataset.alb) return;  if (vigia) vigia.observe(i); else hidratar(i); }); }
 const imgsDe = (alb) => document.querySelectorAll(`img[data-alb="${CSS.escape(alb)}"]`);
 
 // pinta listas largas por tandas: lo primero aparece al instante y el resto llega entre cuadros, sin congelar la pantalla
@@ -307,8 +306,9 @@ function accesos(tiles) {
 }
 /** Listas inteligentes con su número de canciones; se recalcula solo si cambia la biblioteca, las carátulas o el historial (agrupar duplicadas cuesta). */
 let _autoC = { k: "", v: [] };
+const claveAuto = () => [E.version, conPortada.size, conPortadaCargado, HIST.tot || 0].join("|");
 function listasInteligentes() {
-  const k = [E.version, conPortada.size, conPortadaCargado, HIST.tot || 0].join("|");
+  const k = claveAuto();
   if (_autoC.k !== k) { _autoC = { k, v: Object.entries(AUTO).map(([id, a]) => [id, a, a.f().length]).filter(([, , n]) => n > 0) }; }
   return _autoC.v;
 }
@@ -343,15 +343,19 @@ function dibujarInicio() {
     ...generos.slice(0, 5).map(([g]) => `<button class="chip" data-det="lista" data-k="${esc("__gen:" + g)}" type="button">${esc(g)}</button>`),
     `<button class="chip" data-ir="canciones" type="button">Canciones</button>`, `<button class="chip" data-ir="albumes" type="button">Álbumes</button>`, `<button class="chip" data-ir="artistas" type="button">Artistas</button>`, `<button class="chip" data-ir="listas" type="button">Listas</button>`];
   const hero = (albsUlt.length ? albsUlt : albs).slice(0, 10);
-  const autos = listasInteligentes(), nb = calidadBaja().length;
-  const autoHtml = autos.map(([id, a, n]) => `<button class="auto" type="button" data-det="lista" data-k="${id}" style="--c:${a.color}"><b>${a.t}</b><span>${n} canciones</span></button>`).join("") + (nb ? `<button class="auto" type="button" data-det="lista" data-k="__baja" style="--c:#ffb44d"><b>Calidad baja</b><span>${nb} canciones</span></button>` : "");
+  // contarlas (sobre todo las duplicadas) cuesta: si no están en caché, el Inicio sale al instante con un esqueleto y se rellenan cuando el navegador queda libre
+  const seccionAutos = () => { const autos = listasInteligentes(), nb = calidadBaja().length;
+    const h = autos.map(([id, a, n]) => `<button class="auto" type="button" data-det="lista" data-k="${id}" style="--c:${a.color}"><b>${a.t}</b><span>${n} canciones</span></button>`).join("") + (nb ? `<button class="auto" type="button" data-det="lista" data-k="__baja" style="--c:#ffb44d"><b>Calidad baja</b><span>${nb} canciones</span></button>` : "");
+    return h ? `<section class="estante"><h3>Listas inteligentes</h3><div class="autos">${h}</div></section>` : ""; };
+  const autosListas = _autoC.k === claveAuto();
+  const autoHtml = autosListas ? seccionAutos() : `<section class="estante" data-autos><h3>Listas inteligentes</h3><div class="autos"><i class="esq esq-auto"></i><i class="esq esq-auto"></i></div></section>`;
   const recFila = (s, i) => `<button class="tarjeta rec" type="button" data-lista="rec" data-i="${i}">${imgHtml(s)}<b>${esc(nom(s))}</b><span>${esc(s.artista || "")}</span></button>`;
   c.innerHTML = `<button class="buscar-falso" type="button" data-ir-buscar><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.500-3.500"/></svg><span>Buscar canciones, artistas, álbumes…</span></button>
   <div class="fichas">${fichas.join("")}</div>
   ${S("inVuelve") && hero.length ? `<section class="estante hero"><h3>Vuelve a tu música</h3><div class="carril">${hero.map((a) => albumTarjeta(a, true)).join("")}</div></section>` : ""}
   ${S("inTiles") ? accesos(tiles) : ""}
   ${S("inEscuchadas") && listasInicio.rec.length ? `<section class="estante seleccion recs"><div class="sec-cab"><h3>Recomendados para ti</h3><button class="pill" type="button" data-sel-todo>Reproducir todo</button></div><div class="lista-rec">${listasInicio.rec.slice(0, 6).map(recFila).join("")}</div></section>` : ""}
-  ${autoHtml ? `<section class="estante"><h3>Listas inteligentes</h3><div class="autos">${autoHtml}</div></section>` : ""}
+  ${autoHtml}
   ${S("inMixes") ? mh.length ? `<section class="estante"><h3>Hecho para ti</h3>${MIXES.aprendiendo ? `<p class="nota-mix">Escucha más música y aprenderé tus gustos.</p>` : ""}<div class="carril">${paraTi}</div></section>` : "" : ""}
   ${S("inMixes") ? estante("Tus mixes", mixes) : ""}
   ${S("inEscuchadas") ? estante("Escuchadas hace poco", listasInicio.ult.map((s, i) => cancion(s, i, "ult")).join("")) : ""}
@@ -361,6 +365,7 @@ function dibujarInicio() {
   ${S("inNuevas") ? estante("Canciones nuevas", listasInicio.rec.map((s, i) => cancion(s, i, "rec")).join("")) : ""}
   ${S("inArtistas") ? estante("Artistas", arts.map((a) => `<button class="tarjeta redonda" type="button" data-det="artista" data-k="${esc(a.k)}">${imgHtml(a.s)}<b>${esc(a.s.albumArtista || a.s.artista || "Desconocido")}</b><span>${a.n} canciones</span></button>`).join("")) : ""}`;
   $("#resumen").textContent = ""; imagenes(c);
+  if (!autosListas) ocioso(() => { const sec = c.querySelector("[data-autos]"); if (sec && c.isConnected && E.vista === "inicio" && !E.detalle) sec.outerHTML = seccionAutos(); });
   const acc = c.querySelector("[data-acc]");
   if (acc) { const pista = acc.querySelector(".acc-pista"), pts = [...acc.querySelectorAll(".acc-puntos i")]; const ajustaAlto = () => { const n = Math.round(pista.scrollLeft / Math.max(1, pista.clientWidth)), pg = pista.children[n]; if (pg) pista.style.height = pg.offsetHeight + "px"; return n; };
     pista.addEventListener("scroll", () => { const n = Math.round(pista.scrollLeft / Math.max(1, pista.clientWidth)); pts.forEach((d, j) => d.classList.toggle("on", j === n)); ajustaAlto(); }, { passive: true }); requestAnimationFrame(ajustaAlto); }

@@ -16,7 +16,7 @@ try:
             pg.goto("http://localhost:8767/"); pg.wait_for_function("window.__onda && window.__onda.E.canciones.length>=395", timeout=60000); pg.wait_for_selector(".buscar-falso", timeout=20000)
             assert pg.locator(".estante.hero .tarjeta.grande").count() >= 3, "falta el carrusel de carátulas"
             assert pg.locator(".lista-rec .tarjeta.rec").count() == 6, "faltan los 6 recomendados"
-            assert pg.locator(".autos .auto").count() >= 1, "faltan las listas inteligentes"
+            pg.wait_for_selector(".autos .auto", timeout=8000); assert pg.locator(".autos .auto").count() >= 1, "faltan las listas inteligentes"   # llegan en reposo, tras un esqueleto
             bbox = pg.locator(".buscar-falso").bounding_box(); assert bbox["height"] >= 44, "el buscador debe medir al menos 44 px"
             pg.click(".lista-rec .tarjeta.rec >> nth=0"); pg.wait_for_selector("#mini:not([hidden])", timeout=8000)          # tocar un recomendado reproduce
             pg.click(".auto >> nth=0"); pg.wait_for_selector("#contenido .fila", timeout=8000); pg.click("#nav [data-v=inicio]"); pg.wait_for_selector(".buscar-falso")      # una lista inteligente abre su detalle y se vuelve

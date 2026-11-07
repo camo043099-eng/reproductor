@@ -1,0 +1,42 @@
+/* Onda — Biblioteca y Buscar (Fase 4): filas, categorías, rejillas de álbumes y artistas, orden, índice A‑Z y barra de selección. */
+
+/* filas de canciones */
+html .fila { border-radius: var(--r-m); padding: var(--e2) var(--e3) var(--e2) var(--e2); }
+html .fila img, html .portada-mini { width: 52px; height: 52px; border-radius: var(--r-s); }
+html .fila .info b { font-size: .9375rem; font-weight: 700; }
+html .fila .info span { color: var(--c-suave); font-size: .8125rem; font-weight: 500; }
+html .fila.sonando { background: color-mix(in srgb, var(--ac-1) 16%, transparent); }
+html .fila.sonando .info b { color: var(--ac2); }
+html .fila:active { background: color-mix(in srgb, var(--ac-1) 24%, transparent); }
+html .fila .dur, html .fila .mas { color: var(--c-suave); }
+
+/* categorías de la Biblioteca y de Buscar */
+html .cat { border-radius: var(--r-l); background: var(--c-sup); border: 0; }
+html .cat i { border-radius: var(--r-m); }
+html .cat i.con-img { border-radius: var(--r-m); }
+html .cat-b { border-radius: var(--r-m); background: var(--c-sup); font-weight: 700; }
+html .ver-todo { background: var(--c-sup); color: var(--c-suave); }
+
+/* barra de orden y botones de acción */
+html .barra-orden select { background: var(--c-sup); border: 0; border-radius: var(--r-s); padding: 6px var(--e3); font-weight: 600; }
+html .acc-lista .boton:not(.primario), html .acciones-detalle .boton:not(.primario) { background: var(--c-sup) !important; border: 0 !important; border-radius: var(--r-m); color: var(--c-texto); }
+html .acciones-detalle .boton.primario, html .acc-lista .boton.primario { background: var(--acento) !important; color: #fff !important; border: 0 !important; border-radius: var(--r-m); }
+
+/* rejillas de álbumes, artistas y carpetas */
+html .rejilla .tarjeta img, html .rejilla .tarjeta .sinport { border-radius: var(--r-m); box-shadow: var(--sombra-1); }
+html .rejilla .tarjeta.redonda img { border-radius: 50%; }
+html .rejilla .tarjeta b { font-weight: 700; }
+html .rejilla .tarjeta span { color: var(--c-suave); }
+
+/* índice A‑Z */
+html .indice { background: var(--c-sup); border: 0; color: var(--c-suave); }
+html .indice.tocando { background: var(--c-sup-alta); color: var(--c-texto); }
+
+/* barra de selección múltiple */
+html .barra-sel { background: var(--c-sup) !important; border: 1px solid rgba(var(--w), .06) !important; border-radius: var(--r-l); box-shadow: var(--sombra-2) !important; }
+html .barra-sel button { color: var(--ac2); }
+html .barra-sel .peligro { color: var(--rojo); }
+html .barra-sel #sel-rango.activo { background: var(--acento); color: #fff; }
+
+/* estados vacíos */
+html .vacio { color: var(--c-suave); font-weight: 500; }

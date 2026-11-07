@@ -12,6 +12,7 @@
 .esq-titulo { width: 46%; height: 22px; border-radius: var(--r-s); }
 .esq-tarj { flex: 1 1 0; aspect-ratio: 1; }
 .esq-rec { height: 72px; }
+.esq-auto { height: 72px; border-radius: var(--r-m); }
 
 /* carátulas que todavía no han llegado: pulsan suavemente */
 img[data-cargando] { animation: esq-pulso 1.3s ease-in-out infinite; }

@@ -19,7 +19,7 @@ test("el modo selección no cambia la maquetación de las filas (display en .ck/
 
 test("el service worker guarda en caché los CSS y la fuente del rediseño, y index.html los enlaza", () => {
   const sw = readFileSync(new URL("../app/sw.js", import.meta.url), "utf8"), html = readFileSync(new URL("../app/index.html", import.meta.url), "utf8");
-  for (const f of ["css/tokens.css", "css/navegacion.css", "css/reproductor.css", "css/inicio.css", "css/esqueleto.css", "fonts/Montserrat-VF.ttf"]) {
+  for (const f of ["css/tokens.css", "css/navegacion.css", "css/reproductor.css", "css/inicio.css", "css/biblioteca.css", "css/esqueleto.css", "fonts/Montserrat-VF.ttf"]) {
     assert.ok(sw.includes(`"${f}"`), `${f} falta en SHELL de sw.js`);
     assert.ok(existsSync(new URL("../app/" + f, import.meta.url)), `${f} no existe`);
   }
@@ -45,4 +45,11 @@ test("esqueletos de carga: el Inicio trae uno en el HTML, las carátulas pendien
   assert.match(html, /class="esq-inicio"/); assert.match(js, /dataset\.cargando/); assert.match(esq, /prefers-reduced-motion/);
   assert.ok(!/(^|\n)[^{}]*\{[^}]*(left|top|width|height)\s*:[^}]*\}\s*@keyframes/.test(esq), "el esqueleto solo debe animar transform y opacity");
   const anims = [...esq.matchAll(/@keyframes[^{]+\{([^]*?\})\s*\}/g)].map((m) => m[1]).join(" "); assert.ok(!/(left|top|width|height|margin)\s*:/.test(anims), "keyframes con propiedades de maquetación");
+});
+
+test("el pulso de carátula pendiente solo se pone a las imágenes a la vista (con miles de animaciones a la vez se bloqueaba la búsqueda ~1 s)", () => {
+  const js = readFileSync(new URL("../app/js/main.js", import.meta.url), "utf8");
+  const imagenes = js.match(/function imagenes\(raiz\)[^\n]*/)[0];
+  assert.ok(!/cargando/.test(imagenes), "imagenes() no debe marcar data-cargando: eso lo hace el IntersectionObserver");
+  assert.match(js.match(/const vigia[\s\S]*?\}, \{ rootMargin/)[0], /dataset\.cargando/);
 });
