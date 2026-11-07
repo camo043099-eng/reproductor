@@ -57,3 +57,6 @@ html #hoja-aj .seg { border-radius: var(--r-s); background: var(--c-sup-alta) !i
 html #hoja-aj .seg button { border-radius: 10px; }
 html #hoja-aj .seg button[aria-pressed="true"], html #hoja-aj .seg .on { background: var(--acento); color: #fff; }
 html #hoja-aj input[type="range"] { accent-color: var(--ac-1); }
+
+/* si queda una categoría sola en la última fila, ocupa todo el ancho */
+html #hoja-aj .aj-grupo > .aj-cat:last-child:nth-child(odd):not(:only-child) { grid-column: 1 / -1; min-height: 0; grid-template-columns: auto 1fr; align-items: center; }

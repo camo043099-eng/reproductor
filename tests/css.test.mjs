@@ -74,3 +74,14 @@ test("el gesto de cambio de sección no se activa sobre carruseles ni arrastra l
   assert.match(js, /j >= 0 && j < SECCIONES\.length \? `\$\{dx \* 0\.25\}px 0` : ""/);
   assert.ok(!/id="aj-icono"/.test(readFileSync(new URL("../app/index.html", import.meta.url), "utf8")));
 });
+
+test("Ajustes: cada categoría del menú tiene su página y su título, y no hay páginas sueltas", () => {
+  const html = readFileSync(new URL("../app/index.html", import.meta.url), "utf8"), js = readFileSync(new URL("../app/js/main.js", import.meta.url), "utf8");
+  const cats = [...html.matchAll(/class="aj-cat"[^>]*data-ir="(\w+)"/g)].map((m) => m[1]).sort();
+  const pags = [...html.matchAll(/class="aj-pag" data-pag="(\w+)"/g)].map((m) => m[1]).sort();
+  assert.deepEqual(cats, pags);
+  const titulos = js.match(/const TITULOS_AJ = \{([^}]*)\}/)[1];
+  for (const p of pags) assert.ok(new RegExp(`(^|[ ,])${p}:`).test(titulos), `falta el título de ${p}`);
+  const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]);
+  assert.equal(new Set(ids).size, ids.length, "ids duplicados en index.html");
+});

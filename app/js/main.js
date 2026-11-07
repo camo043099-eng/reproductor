@@ -9,7 +9,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.16.0";
+const VERSION = "0.17.0";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -866,7 +866,7 @@ async function restaurarCopia(archivo) {
 // ── pantalla de ajustes: categorías, buscador y subpáginas ──
 let ajPag = null;
 const sinAcentos = (t) => String(t).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-const TITULOS_AJ = { audio: "Audio", efectos: "Carátula y efectos", apariencia: "Apariencia", caratulas: "Carátulas", biblioteca: "Biblioteca", datos: "Datos y almacenamiento", acerca: "Acerca de Onda" };
+const TITULOS_AJ = { audio: "Sonido", reproduccion: "Reproducción", apariencia: "Apariencia", inicio: "Inicio", caratulas: "Carátulas", biblioteca: "Biblioteca", datos: "Datos y almacenamiento", acerca: "Acerca de Onda" };
 function ajMostrar(k) {
   ajPag = k || null; const h = $("#hoja-aj");
   $("#aj-q").value = ""; h.classList.remove("buscando"); h.querySelectorAll(".aj-oculto").forEach((e) => e.classList.remove("aj-oculto"));
@@ -1573,7 +1573,7 @@ function enlazar() {
     const ir = e.target.closest("[data-ir]"); if (ir) { E.vista = "biblioteca"; E.bibRaiz = false; E.tab = ir.dataset.ir; E.detalle = null; dibujar(); animarCambio(); return; }
     if (e.target.closest("[data-ir-buscar]")) { document.querySelector("#nav [data-v=buscar]").click(); setTimeout(() => $("#q").focus(), 60); return; }
     if (e.target.closest("[data-estadisticas]")) return abrirStats();
-    if (e.target.closest("[data-personalizar]")) { abrirAjustes("apariencia"); return; }
+    if (e.target.closest("[data-personalizar]")) { abrirAjustes("inicio"); return; }
     if (e.target.closest("[data-renovar-mixes]")) { mixesDeHoy(true).then(() => { avisar("Mixes renovados"); dibujar(); }); return; }
     if (e.target.closest("[data-portadas]")) return descargarFaltantes(true);
     if (e.target.closest("[data-portada-album]")) { const s0 = listaActual[0]; if (s0) portadaWeb(s0); return; }
