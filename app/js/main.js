@@ -8,7 +8,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.9.111";
+const VERSION = "0.9.112";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -79,19 +79,29 @@ const imgsDe = (alb) => document.querySelectorAll(`img[data-alb="${CSS.escape(al
 
 // pinta listas largas por tandas: lo primero aparece al instante y el resto llega entre cuadros, sin congelar la pantalla
 let tokenPintado = 0, forzarPintado = () => {}, vistaLista = { completa: true };
-function pintar(c, items, f, envoltura) {
-  const mi = ++tokenPintado, N = 30; forzarPintado = () => {}; let lote = 40; const vl = vistaLista = { completa: items.length <= N };
+// perezoso (n): en vez de pintar todo entre cuadros, dibuja n filas y añade n más solo al acercarse al final con el scroll (listas de búsqueda: miles de filas bloqueaban la pantalla)
+function pintar(c, items, f, envoltura, perezoso = 0) {
+  const mi = ++tokenPintado, N = perezoso || 30; forzarPintado = () => {}; let lote = perezoso || 40; const vl = vistaLista = { completa: items.length <= N };
   c.innerHTML = envoltura(items.slice(0, N).map(f).join(""));
   const cont = c.querySelector("[data-tandas]"); let i = N;
   const paso = () => {
     if (mi !== tokenPintado || !cont.isConnected || i >= items.length) return;
     const t0 = performance.now(), fin = Math.min(items.length, i + lote); let h = ""; for (let k = i; k < fin; k++) h += f(items[k], k);
     const t = document.createElement("template"); t.innerHTML = h; imagenes(t.content); cont.appendChild(t.content); i = fin;
-    const dt = performance.now() - t0; lote = dt > 9 ? Math.max(8, lote >> 1) : dt < 4 ? Math.min(120, lote + 12) : lote;      // cada tanda cabe en ~un cuadro: la pantalla no se congela
-    if (i >= items.length) vl.completa = true; else requestAnimationFrame(paso);
+    const dt = performance.now() - t0; if (!perezoso) lote = dt > 9 ? Math.max(8, lote >> 1) : dt < 4 ? Math.min(120, lote + 12) : lote;      // cada tanda cabe en ~un cuadro: la pantalla no se congela
+    if (i >= items.length) vl.completa = true; else if (!perezoso) requestAnimationFrame(paso);
   };
   forzarPintado = () => { if (mi !== tokenPintado || i >= items.length) return; let h = ""; for (let k = i; k < items.length; k++) h += f(items[k], k); const t = document.createElement("template"); t.innerHTML = h; imagenes(t.content); cont.appendChild(t.content); i = items.length; vl.completa = true; };
-  if (items.length > N) requestAnimationFrame(paso);
+  if (items.length > N && !perezoso) requestAnimationFrame(paso);
+  if (items.length > N && perezoso) {                                  // un centinela al final: cuando se acerca a la pantalla llega la siguiente tanda
+    const ce = document.createElement("div"); c.append(ce);
+    const io = new IntersectionObserver((es) => {
+      if (!es.some((e) => e.isIntersecting)) return;
+      if (mi === tokenPintado && cont.isConnected && i < items.length) paso();
+      if (mi !== tokenPintado || !cont.isConnected || i >= items.length) { io.disconnect(); ce.remove(); } else { io.unobserve(ce); io.observe(ce); }
+    }, { rootMargin: "900px" });
+    io.observe(ce);
+  }
   imagenes(c);
 }
 const nom = (s) => String((s && (s.titulo || s.nombre)) || "").replace(/_/g, " ").replace(/\s{2,}/g, " ").trim();   // solo para mostrar: los _ de nombres de archivo se ven como espacios
@@ -418,7 +428,7 @@ function dibujarBiblioteca() {
     listaActual = q ? ordenadas().filter((s) => coincide(s, q)) : ordenadas(); listaBase = q ? ordenadas() : null;
     const dur = listaActual.reduce((a, s) => a + (s.duracion || 0), 0);
     $("#resumen").textContent = `${listaActual.length} canciones · ${fmt(dur)}`;
-    pintar(c, listaActual, (s, i) => filaCancion(s, i), (h) => `<ul class="lista" data-tandas>${h}</ul>`);
+    pintar(c, listaActual, (s, i) => filaCancion(s, i), (h) => `<ul class="lista" data-tandas>${h}</ul>`, q ? 50 : 0);
     if (!listaActual.length) c.innerHTML = `<div class="vacio">Nada coincide con “${esc(E.q)}”.</div>`;
     const base = { titulo: (s) => s.titulo || s.nombre, artista: (s) => s.artista, album: (s) => s.album }[E.orden]; if (base) montarIndice(listaActual, base);
   } else if (E.tab === "albumes") {

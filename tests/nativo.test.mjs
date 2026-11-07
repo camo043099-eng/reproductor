@@ -79,3 +79,44 @@ test("moverA: reordena con arrastre y la posición sigue a la canción que suena
   r.moverA(3, 99);                                      // destino fuera de rango se ajusta al final
   assert.equal(r.lista.length, 6);
 });
+
+// ── la música no debe arrancar sola al abrir la app ──
+test("al abrir: si el motor empieza a sonar sin que nadie lo pida (p. ej. un reintento tras un error), se pausa", async () => {
+  const f = falso(), r = new ReproductorNativo(f.N);
+  f.oyentes.estado({ sonando: false, pos: 0, dur: 0 });                  // el motor restaura la cola en pausa
+  await r.cargarCola(canc(3), 0, false);                                  // la app restaura la sesión sin sonar
+  f.oyentes.estado({ sonando: true, pos: 0, dur: 100000 });               // y de pronto suena solo
+  assert.ok(f.llamadas.some(([k]) => k === "pausa"), "debe mandar pausa al motor");
+  assert.equal(r._sonando, false);
+});
+
+test("al abrir: si la persona toca play, una canción o siguiente, suena y no se pausa", async () => {
+  for (const orden of [(r) => r.alternar(), (r) => r.cargarCola(canc(3), 1, true), (r) => r.siguiente(), (r) => r.anterior(), (r) => r.irA(2)]) {
+    const f = falso(), r = new ReproductorNativo(f.N);
+    f.oyentes.estado({ sonando: false, pos: 0, dur: 0 });
+    await orden(r);
+    f.oyentes.estado({ sonando: true, pos: 0, dur: 100000 });
+    assert.ok(!f.llamadas.some(([k]) => k === "pausa"), "no debe pausar si la persona lo pidió");
+  }
+});
+
+test("al abrir: si el motor ya estaba sonando (la app se reabre con música puesta), no se pausa", async () => {
+  const f = falso(), r = new ReproductorNativo(f.N);
+  f.oyentes.estado({ sonando: true, pos: 5000, dur: 100000 });
+  assert.ok(!f.llamadas.some(([k]) => k === "pausa"));
+});
+
+test("pasados los primeros segundos ya no interviene (play desde la notificación, el widget o Bluetooth)", async () => {
+  const f = falso(), r = new ReproductorNativo(f.N);
+  f.oyentes.estado({ sonando: false, pos: 0, dur: 0 });
+  r._tAbrir = performance.now() - 60000;
+  f.oyentes.estado({ sonando: true, pos: 0, dur: 100000 });
+  assert.ok(!f.llamadas.some(([k]) => k === "pausa"));
+});
+
+test("al abrir: si el primer dato del motor llega por sincronizar y ya sonaba, tampoco se pausa", async () => {
+  const f = falso(), r = new ReproductorNativo(f.N);
+  await r.sincronizar(canc(3), { indice: 1, pos: 5000, dur: 100000, sonando: true });
+  f.oyentes.estado({ sonando: true, pos: 6000, dur: 100000 });
+  assert.ok(!f.llamadas.some(([k]) => k === "pausa"));
+});

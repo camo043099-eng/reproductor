@@ -13,11 +13,16 @@ export class ReproductorNativo extends EventTarget {
     this.lista = []; this.original = []; this.pos = -1;
     this.aleatorio = false; this.repetir = "no"; this.rgModo = "pista"; this.preampDb = 0; this.eqOn = true; this.eqModo = "grafico"; this.eqNb = 10; this.g31 = new Array(31).fill(0); this.filtros = []; this.grave = 0; this.agudo = 0; this.bal = 0; this.bandasDb = PRESETS.Plano.slice(); this.velocidad = 1; this.volumen = 1; this.ancho = 0; this.env = 0; this.graves = 0;
     this.letras = {}; this.ruta = "altavoz";
+    this._tAbrir = performance.now(); this._sonabaAlAbrir = null; this._orden = false;   // para que la música no arranque sola al abrir (ver on("estado"))
     this._armado = false;                                   // true cuando el motor nativo ya tiene la cola cargada (tras cargarCola o sincronizar)
     this._pos = 0; this._dur = 0; this._sonando = false; this._dormirEn = 0; this._tSueno = null;
     const on = (n, f) => N.addListener(n, f);
     on("tiempo", (e) => { const nuevo = e.pos / 1000, est = this._sonando && this._posAt ? this._pos + ((performance.now() - this._posAt) / 1000) * (this.velocidad || 1) : nuevo, dif = nuevo - est; this._pos = Math.abs(dif) < 1.5 && Math.abs(dif) > 0.02 ? est + dif * 0.35 : nuevo; this._posAt = performance.now(); if (e.dur > 0) this._dur = e.dur / 1000; this._emitir("tiempo"); });
-    on("estado", (e) => { this._sonando = !!e.sonando; this._pos = e.pos / 1000; this._posAt = performance.now(); if (e.dur > 0) this._dur = e.dur / 1000; this._emitir("estado"); });
+    on("estado", (e) => {
+      if (this._sonabaAlAbrir === null) this._sonabaAlAbrir = !!e.sonando;                                   // cómo estaba el motor al abrir la app
+      // En los primeros segundos, si el motor pasa a sonar sin que la persona haya pedido sonar (el motor llama a play() al recuperarse de un error de arranque), se pausa
+      if (e.sonando && !this._sonabaAlAbrir && !this._orden && performance.now() - this._tAbrir < 10000) { this.N.pausa().catch(() => {}); return; }
+      this._sonando = !!e.sonando; this._pos = e.pos / 1000; this._posAt = performance.now(); if (e.dur > 0) this._dur = e.dur / 1000; this._emitir("estado"); });
     on("cambio", (e) => { if (e.indice >= 0 && e.indice < this.lista.length) { this.pos = e.indice; this._pos = 0; this._dur = this.actual?.duracion || 0; this._emitir("cambio", this.actual); } });
     on("detalles", (e) => { const s = this.lista.find((x) => x.id === e.id); if (!s) return; if (e.sampleRate) s.sampleRate = e.sampleRate; if (e.bits) s.bits = e.bits; if (e.canales) s.canales = e.canales; if (e.bitrate) s.bitrate = e.bitrate; this._emitir("detalles", s); });
     on("error", (e) => this._emitir("error", { mensaje: e.mensaje }));
@@ -58,6 +63,7 @@ export class ReproductorNativo extends EventTarget {
 
   /** Reemplaza la cola y empieza en `indice`. Con `sonar` falso solo la deja lista. */
   async cargarCola(canciones, indice = 0, sonar = true, posMs = 0) {
+    if (sonar) this._orden = true;
     this.original = canciones.slice(); let lista = canciones.slice(), pos = indice;
     if (this.aleatorio && lista.length > 1) { const cur = lista[indice]; lista = [cur, ...barajar(lista.filter((_, k) => k !== indice))]; pos = 0; }
     // arranque rápido: con colas largas solo se manda al motor un tramo (la canción tocada y las siguientes) para que suene al instante; el resto se completa enseguida, sin cortar el sonido
@@ -77,17 +83,17 @@ export class ReproductorNativo extends EventTarget {
     this.lista = completa; this.pos = k; this._emitir("cola"); this._emitir("colaCompleta");
   }
   async sincronizar(canciones, e) {                                    // la app se abrió y el motor ya estaba tocando
-    this.lista = canciones; this.original = canciones.slice(); this.pos = e.indice; this._pos = e.pos / 1000; this._sonando = !!e.sonando; this._armado = true; this._dur = e.dur > 0 ? e.dur / 1000 : this.actual?.duracion || 0;
+    this.lista = canciones; this.original = canciones.slice(); this.pos = e.indice; this._pos = e.pos / 1000; if (this._sonabaAlAbrir === null) this._sonabaAlAbrir = !!e.sonando; this._sonando = !!e.sonando; this._armado = true; this._dur = e.dur > 0 ? e.dur / 1000 : this.actual?.duracion || 0;
     this._emitir("cola"); this._emitir("cambio", this.actual); this._emitir("estado");
   }
   /** Play/pausa: solo manda el comando al motor nativo. La cola se restaura en el arranque (Motor.restaurarSesion). */
   alternar() {
-    this._sonando = !this._sonando; this._posAt = performance.now(); this._emitir("estado"); return this.N.alternar();
+    this._orden = true; this._sonando = !this._sonando; this._posAt = performance.now(); this._emitir("estado"); return this.N.alternar();
   }
   pausa() { return this.N.pausa(); }
-  siguiente() { return this.N.siguiente(); }
-  anterior() { return this.N.anterior(); }
-  irA(i) { return this.N.irA({ indice: i }); }
+  siguiente() { this._orden = true; return this.N.siguiente(); }
+  anterior() { this._orden = true; return this.N.anterior(); }
+  irA(i) { this._orden = true; return this.N.irA({ indice: i }); }
   buscar(seg) { this._pos = Math.max(0, seg); this._posAt = performance.now(); this.N.buscar({ ms: Math.round(Math.max(0, seg) * 1000) }); this._emitir("tiempo"); }
 
   ponerAleatorio(v) {
