@@ -16,17 +16,16 @@
   --fuente: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-/* modo oscuro: los nombres antiguos pasan a la paleta nueva (el tema claro se rehace en la Fase 7) */
-html:not([data-modo="claro"]) {
+/* los nombres antiguos de variables apuntan a la paleta nueva (Onda tiene un único tema, oscuro) */
+html:root {
   --bg: var(--c-fondo); --sup: var(--c-sup); --sup2: rgba(var(--w), .07); --tx: var(--c-texto); --tx2: var(--c-suave);
   --surf: var(--c-sup); --surf2: var(--c-sup-alta); --surf3: var(--c-sup-alta); --sup-borde: rgba(var(--w), .07); --linea: rgba(var(--w), .10); --ac2: #b9a8ff; --sw: #b9a8ff;
 }
-html[data-modo="claro"] { --ac2: var(--ac-1); --sw: var(--ac-1); }
 
 /* tipografía: una sola familia (Montserrat), empaquetada para que funcione sin internet */
-html, html body, html[data-fuente] , html[data-fuente] body, button, input, select, textarea { font-family: var(--fuente); }
+html, html body, button, input, select, textarea { font-family: var(--fuente); }
 
 /* fondo: gris azulado liso con un leve resplandor del color de la carátula arriba */
-html:not([data-modo="claro"]) .ambiente { background: radial-gradient(120% 42% at 50% -10%, color-mix(in srgb, var(--ac-1) 20%, transparent), transparent 72%), var(--c-fondo); }
-html:not([data-modo="claro"])[data-fondo="negro"] .ambiente { background: #000; }
-html:not([data-modo="claro"])[data-fondo="portada"] .ambiente, html:not([data-modo="claro"])[data-fondo="imagen"] .ambiente { background: var(--c-fondo); }
+html:root .ambiente { background: radial-gradient(120% 42% at 50% -10%, color-mix(in srgb, var(--ac-1) 20%, transparent), transparent 72%), var(--c-fondo); }
+html:root[data-fondo="negro"] .ambiente { background: #000; }
+html:root[data-fondo="portada"] .ambiente, html:root[data-fondo="imagen"] .ambiente { background: var(--c-fondo); }

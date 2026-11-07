@@ -1,7 +1,7 @@
 /* Onda — reproductor completo (Fase 2): carátula circular con anillo de progreso, título centrado, controles con degradado.
    Sin visualizador ni ondas: no se analiza el audio para dibujar nada. */
 html .hoja.completa { background: linear-gradient(180deg, color-mix(in srgb, var(--ac-1) 34%, var(--c-fondo)) 0%, var(--c-fondo) 64%) !important; }
-html[data-modo="claro"] .hoja.completa { background: linear-gradient(180deg, color-mix(in srgb, var(--ac-1) 18%, #fff) 0%, #f2f2f7 70%) !important; }
+
 
 /* carátula circular y anillo */
 .hoja.completa > .rep-disco { position: relative; flex: none; width: min(calc(80 * var(--vw, 1vw)), calc(40 * var(--vh, 1vh)), 340px); aspect-ratio: 1; margin: auto; }
@@ -21,14 +21,14 @@ html[data-modo="claro"] .hoja.completa { background: linear-gradient(180deg, col
 
 /* barra de posición y tiempos */
 html #r-barra { height: 6px; background: linear-gradient(to right, var(--ac-1) var(--p, 0%), rgba(var(--w), .2) var(--p, 0%)); box-shadow: none; }
-html[data-modo="claro"] #r-barra { background: linear-gradient(to right, var(--ac-1) var(--p, 0%), rgba(0, 0, 0, .14) var(--p, 0%)); }
+
 
 /* controles: el play lleva el degradado; el resto, iconos suaves de 44 px o más */
 .hoja.completa .controles .ib { color: var(--c-suave); }
 .hoja.completa .controles .ib.grande { color: var(--c-texto); }
 .hoja.completa .controles .ib[aria-pressed="true"], .hoja.completa .controles #r-rep:not([data-modo="no"]) { color: var(--ac2); }
 html .hoja.completa .controles .play { background: var(--acento); color: #fff; box-shadow: var(--sombra-2); }
-html[data-modo="claro"] .hoja.completa .controles .play { background: var(--acento); color: #fff; }
+
 
 /* en pausa la carátula se encoge solo un poco (antes 84 %: quedaba pequeña dentro del anillo) */
 .hoja.completa .rep-disco .portada-grande.pausada { transform: scale(.94); }

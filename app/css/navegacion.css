@@ -18,9 +18,9 @@ html .nav { background: var(--c-sup) !important; border: 1px solid rgba(var(--w)
 html .nav button { min-height: var(--toque); border-radius: var(--r-m); color: var(--c-suave); font-size: .6875rem; font-weight: 600; gap: 2px; }
 html .nav button[aria-current="page"] { background: var(--acento); color: #fff; box-shadow: none; }
 html .nav button[aria-current="page"] span { font-weight: 700; }
-html[data-modo="claro"] .nav { background: #fff !important; }
-html[data-modo="claro"] .nav button { color: rgba(0, 0, 0, .55); }
-html[data-modo="claro"] .nav button[aria-current="page"] { color: #fff; }
+
+
+
 
 /* mini reproductor: tarjeta redondeada con carátula circular y botón de play con degradado */
 html .mini { border-radius: var(--r-l); background: var(--c-sup) !important; border: 1px solid rgba(var(--w), .06) !important; box-shadow: var(--sombra-2) !important; }
@@ -28,3 +28,8 @@ html .mini-info img, html #mini-port { border-radius: 50%; width: 44px; height: 
 html .mini #mini-play { width: var(--toque); height: var(--toque); background: var(--acento) !important; color: #fff; border: 0 !important; }
 html .mini .mini-barra { left: 24px; right: 24px; bottom: 4px; }
 html .mini .mini-barra i { background: var(--acento); }
+
+/* deslizar de lado con fuerza: la página no se desplaza en horizontal y el gesto de cambio de sección lo recibe solo Onda (si no, el navegador y el gesto se pelean y todo vibra) */
+html, html body { overflow-x: clip; overscroll-behavior-x: none; }
+html #contenido { touch-action: pan-y; }
+html .carril, html .fichas, html .pestanas, html .acc-lista, html .acc-pista { overscroll-behavior-x: contain; }

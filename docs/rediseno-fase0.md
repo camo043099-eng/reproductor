@@ -85,3 +85,4 @@ No de golpe. En cada fase se extrae **solo la pantalla de esa fase** a su módul
 - **Pantalla de bienvenida (intro) nueva.** Falta definir cómo la quieres.
 - **Menú de Ajustes nuevo** (ya previsto en la Fase 6).
 - **Se conserva** el color que cambia con la carátula de cada canción.
+- **Un solo tema (0.14.0):** Onda queda con un único tema oscuro; se eliminaron Claro, Nocturno, Onda original, el selector de fuente y las fuentes Inter/Google Sans Flex. Además se corrigió el temblor al deslizar de lado con fuerza (la página ya no se desplaza en horizontal y `#contenido` solo acepta desplazamiento vertical del navegador).

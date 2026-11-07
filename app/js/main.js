@@ -8,7 +8,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.13.0";
+const VERSION = "0.14.0";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -617,13 +617,8 @@ function aplicarColores() {
   const r = document.documentElement, a = E.aj, t = (a.fondo === "imagen" && fondoUsuario?.tinta) || ultimaTinta;
   if (t) r.style.setProperty("--t", t.col);
   const ac = a.acento ?? "auto";
-  const claro = a.tema === "claro", mor = (a.tema || "mornye") === "mornye" || claro;                       // Mornye: acento rojo fijo, no depende de la portada
   r.classList.toggle("coche", !!a.coche);
-  r.dataset.tema = a.tema === "nocturno" ? "nocturno" : mor ? "mornye" : "onda";
-  r.dataset.modo = claro ? "claro" : "oscuro"; { const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = claro ? "#f2f2f7" : "#1c2129"; const cs = document.querySelector('meta[name="color-scheme"]'); if (cs) cs.content = claro ? "light" : "dark"; }
-  r.dataset.fuente = mor ? (a.fuente === "gsf" ? "gsf" : "inter") : "sistema";
-  if (mor) { r.style.setProperty("--rebote", RESORTE_ESPACIAL); r.style.setProperty("--muelle", RESORTE_EFECTO); }
-  else { r.style.removeProperty("--rebote"); r.style.removeProperty("--muelle"); }
+  r.style.setProperty("--rebote", RESORTE_ESPACIAL); r.style.setProperty("--muelle", RESORTE_EFECTO);          // resortes de movimiento (Material 3 Expressive)
   // Acento en degradado (--ac-1 → --ac-2) y color de texto/iconos (--ac2): toman el tono de la carátula que suena; sin carátula, el degradado de respaldo violeta → azul (css/tokens.css)
   const tono = ac !== "auto" ? null : Number(/hsl\((\d+)/.exec(t?.ac || "")?.[1]);
   if (ac !== "auto") { r.style.setProperty("--ac-1", ac); r.style.setProperty("--ac-2", ac); r.style.setProperty("--ac2", ac); r.style.setProperty("--sw", ac); }
@@ -633,7 +628,7 @@ function aplicarColores() {
   const u = f === "portada" ? ultimaPortada : f === "imagen" ? fondoUsuario?.url : null;
   r.style.setProperty("--fondo-img", u ? `url("${u}")` : "none");
 }
-// Resortes de Mornye (Material 3 Expressive): curva CSS linear() muestreada de un resorte masa-muelle.
+// Resortes de movimiento (Material 3 Expressive): curva CSS linear() muestreada de un resorte masa-muelle.
 // Espacial por defecto (ζ 0.8, k 700) con un poco de rebote; efectos sin rebote (ζ 1, k 1600).
 function resorteCss(zeta, k) {
   const w = Math.sqrt(k), wd = w * Math.sqrt(1 - zeta * zeta);
@@ -701,7 +696,7 @@ function perfilesSalida() {
   const p = (E.aj.perfiles ||= {}); if (E.aj.eqSalida && MOTOR && reproductor.ruta) p[reproductor.ruta] = { b: reproductor.bandasDb.slice(), p: reproductor.preampDb, x: reproductor.estadoEq ? reproductor.estadoEq() : undefined };
   return p;
 }
-async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn || !!reproductor._sinEq, vel: reproductor.velocidad, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { tema: E.aj.tema || "mornye", icono: E.aj.icono || "auto", fuente: E.aj.fuente || "inter", mono: !!E.aj.mono, rvMezcla: E.aj.rvMezcla || 0, rvTam: E.aj.rvTam ?? 50, rvAmort: E.aj.rvAmort ?? 50, rvPre: E.aj.rvPre || 0, silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, carpetasExcl: E.aj.carpetasExcl || "", agitar: !!E.aj.agitar, agitarSens: E.aj.agitarSens || "20", minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", realce: E.aj.realce || "0", blur: E.aj.blur !== false, eqSalida: !!E.aj.eqSalida, anim: !!E.aj.anim, inicioBib: !!E.aj.inicioBib, progreso: E.aj.progreso !== false, saltos: E.aj.saltos !== false, hires: !!E.aj.hires, detener: !!E.aj.detener, contar: E.aj.contar || "auto", largoMin: E.aj.largoMin || "20", fadePlay: E.aj.fadePlay ?? "250", brecha: E.aj.brecha || "0", tfg: E.aj.tfg || "120", tqg: E.aj.tqg || "0.7", tfa: E.aj.tfa || "6000", tqa: E.aj.tqa || "0.7", rgPre: E.aj.rgPre || "0", rgSin: E.aj.rgSin || "0", rgSube: !!E.aj.rgSube, retrasoBt: E.aj.retrasoBt || "0", sinEqAlt: !!E.aj.sinEqAlt, sugerir: E.aj.sugerir !== false, navLbl: E.aj.navLbl !== false, usbDir: !!E.aj.usbDir, sigAlbum: E.aj.sigAlbum !== false, cruce: E.aj.cruce || "0", colchon: E.aj.colchon || "400", pantalla: !!E.aj.pantalla, animN: E.aj.animN || "1", densidad: E.aj.densidad || "comoda", forma: E.aj.forma || "redondeada", texto: E.aj.texto || "1", nombre: E.aj.nombre || "", inTiles: E.aj.inTiles !== false, inVuelve: E.aj.inVuelve !== false, inMixes: E.aj.inMixes !== false, inEscuchadas: E.aj.inEscuchadas !== false, inNuevas: E.aj.inNuevas !== false, inFav: E.aj.inFav !== false, inArtistas: E.aj.inArtistas !== false, sugeridos: E.aj.sugeridos || [], retrasoBtDisp: E.aj.retrasoBtDisp || {}, perfiles: perfilesSalida() }, eqx: reproductor.estadoEq ? reproductor.estadoEq() : undefined }, "config").catch(() => {}); }
+async function guardarAjustes() { await db.poner("ajustes", { orden: E.orden, bandas: reproductor.bandasDb, pre: reproductor.preampDb, esp: MOTOR ? { a: reproductor.ancho, e: reproductor.env, g: reproductor.graves } : undefined, rg: reproductor.rgModo, eq: reproductor.eqOn || !!reproductor._sinEq, vel: reproductor.velocidad, auto: E.aj.auto !== false, salida: E.aj.salida || null, av: { icono: E.aj.icono || "auto", mono: !!E.aj.mono, rvMezcla: E.aj.rvMezcla || 0, rvTam: E.aj.rvTam ?? 50, rvAmort: E.aj.rvAmort ?? 50, rvPre: E.aj.rvPre || 0, silencio: !!E.aj.silencio, ruido: E.aj.ruido !== false, enfoque: E.aj.enfoque !== false, sistema: E.aj.sistema !== false, carpetasExcl: E.aj.carpetasExcl || "", agitar: !!E.aj.agitar, agitarSens: E.aj.agitarSens || "20", minSeg: E.aj.minSeg || "0", acento: E.aj.acento ?? "auto", fondo: E.aj.fondo || "degradado", letraTam: E.aj.letraTam || "1", plano: !!E.aj.plano, vib: E.aj.vib !== false, chips: E.aj.chips !== false, fundido: E.aj.fundido || "0", realce: E.aj.realce || "0", blur: E.aj.blur !== false, eqSalida: !!E.aj.eqSalida, anim: !!E.aj.anim, inicioBib: !!E.aj.inicioBib, progreso: E.aj.progreso !== false, saltos: E.aj.saltos !== false, hires: !!E.aj.hires, detener: !!E.aj.detener, contar: E.aj.contar || "auto", largoMin: E.aj.largoMin || "20", fadePlay: E.aj.fadePlay ?? "250", brecha: E.aj.brecha || "0", tfg: E.aj.tfg || "120", tqg: E.aj.tqg || "0.7", tfa: E.aj.tfa || "6000", tqa: E.aj.tqa || "0.7", rgPre: E.aj.rgPre || "0", rgSin: E.aj.rgSin || "0", rgSube: !!E.aj.rgSube, retrasoBt: E.aj.retrasoBt || "0", sinEqAlt: !!E.aj.sinEqAlt, sugerir: E.aj.sugerir !== false, navLbl: E.aj.navLbl !== false, usbDir: !!E.aj.usbDir, sigAlbum: E.aj.sigAlbum !== false, cruce: E.aj.cruce || "0", colchon: E.aj.colchon || "400", pantalla: !!E.aj.pantalla, animN: E.aj.animN || "1", densidad: E.aj.densidad || "comoda", forma: E.aj.forma || "redondeada", texto: E.aj.texto || "1", nombre: E.aj.nombre || "", inTiles: E.aj.inTiles !== false, inVuelve: E.aj.inVuelve !== false, inMixes: E.aj.inMixes !== false, inEscuchadas: E.aj.inEscuchadas !== false, inNuevas: E.aj.inNuevas !== false, inFav: E.aj.inFav !== false, inArtistas: E.aj.inArtistas !== false, sugeridos: E.aj.sugeridos || [], retrasoBtDisp: E.aj.retrasoBtDisp || {}, perfiles: perfilesSalida() }, eqx: reproductor.estadoEq ? reproductor.estadoEq() : undefined }, "config").catch(() => {}); }
 let tSes = 0;
 async function guardarSesion(fuerza) {
   const ahora = Date.now(); if (!fuerza && ahora - tSes < 4000) return; tSes = ahora;
@@ -888,13 +883,12 @@ function abrirAjustes(pag) {
 function pintarAjustesRapidos() {
   const n = E.canciones.length, seg = E.canciones.reduce((a, x) => a + (x.duracion || 0), 0), h = Math.round(seg / 3600);
   const inf = $("#aj-hero-info"); if (inf) inf.textContent = `v${VERSION} · ${n} canciones${h ? " · " + h + " h" : ""}`;
-  const est = { eq: !!reproductor?.eqOn && !$("#eq-on").disabled, tema: E.aj.tema === "claro", coche: !!E.aj.coche };
+  const est = { eq: !!reproductor?.eqOn && !$("#eq-on").disabled, coche: !!E.aj.coche };
   document.querySelectorAll("#aj-rapidos .aj-rap").forEach((b) => { const k = b.dataset.rap; b.classList.toggle("on", !!est[k]); if (k === "eq") b.classList.toggle("off-hires", $("#eq-on").disabled); });
 }
 document.addEventListener("click", (e) => {
   const b = e.target.closest("#aj-rapidos .aj-rap"); if (!b) return; const k = b.dataset.rap; vibra(8);
   if (k === "eq") { const i = $("#eq-on"); if (i.disabled) { avisar("Hi-Res puro está activo: el ecualizador no actúa.", 2600); return; } i.checked = !i.checked; i.dispatchEvent(new Event("change", { bubbles: true })); }
-  else if (k === "tema") { const sel = $("#aj-tema"), claro = E.aj.tema === "claro"; if (!claro) E.aj.temaOscuro = E.aj.tema || "mornye"; sel.value = claro ? (E.aj.temaOscuro || "mornye") : "claro"; sel.dispatchEvent(new Event("change", { bubbles: true })); }
   else if (k === "coche") { const i = $("#aj-coche"); i.checked = !i.checked; i.dispatchEvent(new Event("change", { bubbles: true })); }
   else if (k === "sueno") { $("#r-sueno").click(); return; }
   setTimeout(pintarAjustesRapidos, 60);
@@ -989,7 +983,7 @@ window.addEventListener("devicemotion", (e) => {
 });
 // ── ajustes avanzados ──
 const TOGGLES = [["aj-wifi", "wifi", true], ["aj-fordef", "fordef", false], ["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false], ["aj-anim", "anim", false], ["aj-iniciobib", "inicioBib", false], ["aj-coche", "coche", false], ["aj-progreso", "progreso", true], ["aj-saltos", "saltos", true], ["aj-hires", "hires", false], ["aj-detener", "detener", false], ["aj-rgsube", "rgSube", false], ["aj-sineqalt", "sinEqAlt", false], ["aj-sugerir", "sugerir", true], ["aj-navlbl", "navLbl", true], ["aj-usbdir", "usbDir", false], ["aj-sigalbum", "sigAlbum", true], ["aj-agitar", "agitar", false], ["aj-pantalla", "pantalla", false], ["aj-intiles", "inTiles", true], ["aj-invuelve", "inVuelve", true], ["aj-inmixes", "inMixes", true], ["aj-inesc", "inEscuchadas", true], ["aj-innuevas", "inNuevas", true], ["aj-infav", "inFav", true], ["aj-inartistas", "inArtistas", true]];
-const SELECTS = [["aj-tema", "tema", "mornye"], ["aj-fuente", "fuente", "inter"], ["aj-icono", "icono", "normal"], ["aj-min", "minSeg", "0"], ["aj-agitarsens", "agitarSens", "20"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-realce", "realce", "0"], ["aj-contar", "contar", "auto"], ["aj-largo", "largoMin", "20"], ["aj-fadeplay", "fadePlay", "250"], ["aj-brecha", "brecha", "0"], ["aj-tfg", "tfg", "120"], ["aj-tqg", "tqg", "0.7"], ["aj-tfa", "tfa", "6000"], ["aj-tqa", "tqa", "0.7"], ["aj-rgpre", "rgPre", "0"], ["aj-rgsin", "rgSin", "0"], ["aj-retrasobt", "retrasoBt", "0"], ["aj-animn", "animN", "1"], ["aj-colchon", "colchon", "400"], ["aj-cruce", "cruce", "0"], ["aj-densidad", "densidad", "comoda"], ["aj-forma", "forma", "redondeada"], ["aj-texto", "texto", "1"], ["aj-volsens", "volSens", "45"]];
+const SELECTS = [["aj-icono", "icono", "normal"], ["aj-min", "minSeg", "0"], ["aj-agitarsens", "agitarSens", "20"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-realce", "realce", "0"], ["aj-contar", "contar", "auto"], ["aj-largo", "largoMin", "20"], ["aj-fadeplay", "fadePlay", "250"], ["aj-brecha", "brecha", "0"], ["aj-tfg", "tfg", "120"], ["aj-tqg", "tqg", "0.7"], ["aj-tfa", "tfa", "6000"], ["aj-tqa", "tqa", "0.7"], ["aj-rgpre", "rgPre", "0"], ["aj-rgsin", "rgSin", "0"], ["aj-retrasobt", "retrasoBt", "0"], ["aj-animn", "animN", "1"], ["aj-colchon", "colchon", "400"], ["aj-cruce", "cruce", "0"], ["aj-densidad", "densidad", "comoda"], ["aj-forma", "forma", "redondeada"], ["aj-texto", "texto", "1"], ["aj-volsens", "volSens", "45"]];
 let tocadoEnfoque = false;
 let _wl = null;
 async function pantallaEncendida() {

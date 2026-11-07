@@ -189,7 +189,7 @@ input[type="range"] { width: 100%; accent-color: #fff; height: 28px; background:
 button, .fila { user-select: none; -webkit-user-select: none; }
 img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none; pointer-events: none; }
 
-.chips .chip.activo{color:#000}
+.chips .chip.activo {color:#000}
 
 .indice { position: fixed; right: 2px; top: calc(22 * var(--vh, 1vh)); bottom: calc(190px + env(safe-area-inset-bottom, 0px)); z-index: 20; display: flex; flex-direction: column; justify-content: space-between; align-items: center; width: 22px; touch-action: none; user-select: none; -webkit-user-select: none; font-size: .62rem; font-weight: 800; color: var(--tx2); padding: 4px 0; border-radius: 12px; }
 .indice span { line-height: 1; pointer-events: none; }
@@ -616,7 +616,7 @@ html.sinlbl { --nav: 52px; } html.sinlbl .nav button span { display: none; }
 .registro { margin: 8px 12px; max-height: 50vh; overflow: auto; font-size: 12px; white-space: pre-wrap; word-break: break-word; user-select: text; -webkit-user-select: text; }
 .aviso-hires { color: var(--ac2); padding: 8px 12px; margin: 6px 0; border-radius: 14px; background: rgba(var(--w), .08); }
 
-/* Menú de Ajustes al estilo Mornye: una tarjeta agrupada con filas separadas por líneas,
+/* Menú de Ajustes: una tarjeta agrupada con filas separadas por líneas,
    sin bordes por fila (como las listas de ajustes de iOS). Solo cambia el aspecto. */
 html .aj-grupo { display: grid; gap: 0; padding: 0; overflow: hidden; border-radius: 22px; background: var(--surf2, #1c1c1e); }
 html .aj-grupo > .aj-cat { position: relative; gap: 12px; padding: 12px 16px; border: 0 !important; border-radius: 0; background: transparent !important; }
@@ -629,7 +629,7 @@ html .aj-grupo > .aj-cat b { font-size: 1rem; font-weight: 500; }
 html .aj-grupo > .aj-cat small { color: #98989f; font-size: 0.8rem; }
 
 /* Subpáginas de Ajustes (Audio, Efectos, Apariencia…): una tarjeta por página con filas y separadores,
-   igual que el menú principal (estilo Mornye). Sin animación de entrada por fila, para que no cambie la forma al entrar. */
+   igual que el menú principal (estilo del menú principal). Sin animación de entrada por fila, para que no cambie la forma al entrar. */
 html .aj-pag { display: flex; flex-direction: column; gap: 0; padding: 0; margin: 0; overflow: hidden; border-radius: 24px; background: var(--surf2, #1c1c1e); }
 html .aj-pag > * { animation: none !important; }
 html .aj-pag [hidden] { display: none !important; }
@@ -677,23 +677,16 @@ html .aj-pag > .aviso-hires { margin: 0; border-radius: 0; }
 .barra-sel #sel-rango.activo { background: var(--ac2); color: #000; }
 .barra-sel .sel-fila > span { min-width: 0; }
 
-/* Estilo Mornye (por defecto): acento del degradado de la carátula (css/tokens.css), selección y pestañas en ese color, bordes más redondeados y encabezados algo más ajustados. Con "Onda original" nada de esto se aplica. */
-html[data-tema="mornye"] { --linea: rgba(var(--w), 0.12); }
-html[data-tema="mornye"] h1, html[data-tema="mornye"] .sub, html[data-tema="mornye"] .estante h3 { letter-spacing: -0.02em; }
-html[data-tema="mornye"] .pestanas button[aria-selected="true"], html[data-tema="mornye"] .chip.activo { background: var(--acento); color: #fff; border-color: var(--ac-1); }
-html[data-tema="mornye"] .fila { border-radius: 12px; }
-html[data-tema="mornye"] .tile { border-radius: 12px; }
-html[data-tema="mornye"] .fila:active { background: color-mix(in srgb, var(--ac-1) 14%, transparent); }
+/* Estilo único de Onda: acento del degradado de la carátula (css/tokens.css), selección y pestañas en ese color, bordes más redondeados y encabezados algo más ajustados. */
+html:root { --linea: rgba(var(--w), 0.12); }
+html:root h1, html:root .sub, html:root .estante h3 { letter-spacing: -0.02em; }
+html:root .pestanas button[aria-selected="true"], html:root .chip.activo { background: var(--acento); color: #fff; border-color: var(--ac-1); }
+html:root .fila { border-radius: 12px; }
+html:root .tile { border-radius: 12px; }
+html:root .fila:active { background: color-mix(in srgb, var(--ac-1) 14%, transparent); }
 
-/* Tipografías de Mornye (incluidas en app/fonts). Con "Onda original" se usa la del sistema. */
-@font-face { font-family: "Inter Mornye"; src: url("fonts/InterVariable.ttf") format("truetype"); font-weight: 100 900; font-display: swap; }
-@font-face { font-family: "Google Sans Flex Mornye"; src: url("fonts/GoogleSansFlex.ttf") format("truetype"); font-weight: 1 1000; font-display: swap; }
-html[data-fuente="inter"], html[data-fuente="inter"] body { font-family: "Inter Mornye", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-html[data-fuente="gsf"], html[data-fuente="gsf"] body { font-family: "Google Sans Flex Mornye", "Inter Mornye", system-ui, sans-serif; }
-
-/* Cristal de Mornye: superficies tintadas más oscuras y con más desenfoque (solo en el estilo Mornye). */
-html[data-tema="mornye"] .vidrio, html[data-tema="mornye"] .mini, html[data-tema="mornye"] .nav, html[data-tema="mornye"] .hoja.corta,
-html[data-tema="mornye"] .aviso, html[data-tema="mornye"] .tile, html[data-tema="mornye"] .boton, html[data-tema="mornye"] .chip {
+/* Cristal: superficies tintadas más oscuras y con más desenfoque. */
+html:root .vidrio, html:root .mini, html:root .nav, html:root .hoja.corta, html:root .aviso, html:root .tile, html:root .boton, html:root .chip {
   background: linear-gradient(135deg, rgba(58, 58, 60, 0.62), rgba(28, 28, 30, 0.55)); -webkit-backdrop-filter: blur(16px) saturate(180%); backdrop-filter: blur(16px) saturate(180%);
 }
 
@@ -701,23 +694,23 @@ html[data-tema="mornye"] .aviso, html[data-tema="mornye"] .tile, html[data-tema=
 body.rep-abierto #nav { z-index: 60; }
 body.rep-abierto #hoja-rep { padding-bottom: calc(var(--nav) + 26px + env(safe-area-inset-bottom, 0px)); }
 
-/* ── Rediseño por fases (Mornye). Fase 1: reproductor, mini reproductor y barra inferior. Con "Onda original" nada de esto aplica. */
-html[data-tema="mornye"] { --mini: 60px; }
-html[data-tema="mornye"] .nav { height: 64px; border-radius: 26px; background: linear-gradient(135deg, rgba(58, 58, 60, 0.62), rgba(28, 28, 30, 0.7)); }
-html[data-tema="mornye"] .mini { height: 60px; border-radius: 18px; padding: 0 10px 0 8px; gap: 4px; background: linear-gradient(135deg, rgba(58, 58, 60, 0.7), rgba(28, 28, 30, 0.66)); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(var(--w), 0.12); }
-html[data-tema="mornye"] .mini-info { gap: 10px; }
-html[data-tema="mornye"] .mini-info img { width: 44px; height: 44px; border-radius: 10px; }
-html[data-tema="mornye"] .mini-texto b { font-size: 0.95rem; font-weight: 600; letter-spacing: -0.01em; }
-html[data-tema="mornye"] .mini-texto span { font-size: 0.8125rem; }
-html[data-tema="mornye"] .mini .ib { width: 44px; height: 44px; }
-html[data-tema="mornye"] .mini-barra { left: 14px; right: 14px; bottom: 0; height: 2px; }
-html[data-tema="mornye"] .mini-barra i { background: var(--ac2); }
-html[data-tema="mornye"] .hoja.completa { background: linear-gradient(180deg, color-mix(in srgb, var(--t) 55%, var(--bg)) 0%, var(--bg2, #0b0b0d) 62%, var(--bg) 100%); }
-html[data-tema="mornye"] .datos h2 { font-size: 1.6rem; letter-spacing: -0.02em; }
-html[data-tema="mornye"] .datos p { font-size: 1rem; }
-html[data-tema="mornye"] .controles .play { background: #fff; color: #000; }
-html[data-tema="mornye"] .extras { background: rgba(28, 28, 30, 0.55); }
-html[data-tema="mornye"] #r-barra { accent-color: var(--ac-1); }
+/* ── Reproductor, mini reproductor y barra inferior ── */
+html:root { --mini: 60px; }
+html:root .nav { height: 64px; border-radius: 26px; background: linear-gradient(135deg, rgba(58, 58, 60, 0.62), rgba(28, 28, 30, 0.7)); }
+html:root .mini { height: 60px; border-radius: 18px; padding: 0 10px 0 8px; gap: 4px; background: linear-gradient(135deg, rgba(58, 58, 60, 0.7), rgba(28, 28, 30, 0.66)); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(var(--w), 0.12); }
+html:root .mini-info { gap: 10px; }
+html:root .mini-info img { width: 44px; height: 44px; border-radius: 10px; }
+html:root .mini-texto b { font-size: 0.95rem; font-weight: 600; letter-spacing: -0.01em; }
+html:root .mini-texto span { font-size: 0.8125rem; }
+html:root .mini .ib { width: 44px; height: 44px; }
+html:root .mini-barra { left: 14px; right: 14px; bottom: 0; height: 2px; }
+html:root .mini-barra i { background: var(--ac2); }
+html:root .hoja.completa { background: linear-gradient(180deg, color-mix(in srgb, var(--t) 55%, var(--bg)) 0%, var(--bg2, #0b0b0d) 62%, var(--bg) 100%); }
+html:root .datos h2 { font-size: 1.6rem; letter-spacing: -0.02em; }
+html:root .datos p { font-size: 1rem; }
+html:root .controles .play { background: #fff; color: #000; }
+html:root .extras { background: rgba(28, 28, 30, 0.55); }
+html:root #r-barra { accent-color: var(--ac-1); }
 
 
 /* ── Fase 2 (Inicio): accesos directos 3×3 deslizables, selección rápida ── */
@@ -734,16 +727,14 @@ html[data-tema="mornye"] #r-barra { accent-color: var(--ac-1); }
 .seleccion .sec-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 16px; }
 .seleccion .sec-cab h3 { margin: 0; }
 .pill { flex: 0 0 auto; padding: 8px 14px; border-radius: 999px; font-weight: 700; font-size: 0.85rem; background: #fff; color: #000; }
-html[data-tema="mornye"] .pill { background: var(--acento); color: #fff; }
-html[data-tema="mornye"] .acc-pag .tile { background: rgba(var(--w), .06); }
+html:root .pill { background: var(--acento); color: #fff; }
+html:root .acc-pag .tile { background: rgba(var(--w), .06); }
 
 /* ── Sueño del audiófilo: negro absoluto y letras rojo tenue (para no despertar a nadie) ── */
-html[data-tema="nocturno"] { accent-color: #7a1f1f; color-scheme: dark; }
-html[data-tema="nocturno"] *, html[data-tema="nocturno"] *::before, html[data-tema="nocturno"] *::after {
-  background: #000 !important; background-image: none !important; color: #9a3030 !important; border-color: #2a0b0b !important;
-  box-shadow: none !important; text-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
-html[data-tema="nocturno"] img, html[data-tema="nocturno"] .sinport { opacity: .22 !important; filter: grayscale(1) !important; }
-html[data-tema="nocturno"] .mix b, html[data-tema="nocturno"] .tarjeta b, html[data-tema="nocturno"] .tile b { color: #9a3030 !important; }
+
+
+
+
 
 /* ── Gestos de reproducción: burbuja de tiempo / volumen ── */
 .gesto-vista { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); padding: 8px 16px; border-radius: 999px; background: rgba(20,20,24,.82); color: #fff; font-weight: 700; font-size: 1rem; pointer-events: none; z-index: 5; white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -754,7 +745,7 @@ html[data-tema="nocturno"] .mix b, html[data-tema="nocturno"] .tarjeta b, html[d
 .fila-nav.arrastrando { transform: scale(1.02); box-shadow: 0 10px 24px rgba(0,0,0,.45); }
 .fila-nav .asa { font-size: 1.3rem; padding: 0 6px; cursor: grab; touch-action: none; }
 
-html[data-tema="nocturno"] .pill, html[data-tema="nocturno"] .fila-nav { border: 1px solid #5a1a1a !important; }
+
 
 /* ── Fase 3 (Biblioteca): botón flotante "Nueva" y filas con miniatura más grande ── */
 .fab { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); z-index: 40; height: 52px; padding: 0 20px; border-radius: 999px; font-weight: 700; font-size: 0.95rem; color: #fff; background: var(--acento); box-shadow: 0 10px 26px color-mix(in srgb, var(--ac-1) 38%, transparent); transition: transform .3s var(--rebote, ease), opacity .2s ease; }
@@ -762,14 +753,14 @@ html[data-tema="nocturno"] .pill, html[data-tema="nocturno"] .fila-nav { border:
 .fab[hidden] { display: none; }
 @starting-style { .fab { transform: translateY(24px) scale(.8); opacity: 0; } }
 body.rep-abierto .fab, body.sin-fab .fab { display: none; }
-html[data-tema="mornye"] .fila img, html[data-tema="mornye"] .fila .sinport { width: 56px; height: 56px; border-radius: 10px; }
-html[data-tema="mornye"] .fila .info b { font-size: 1rem; }
+html:root .fila img, html:root .fila .sinport { width: 56px; height: 56px; border-radius: 10px; }
+html:root .fila .info b { font-size: 1rem; }
 
 /* ── Fase 4 (Buscar): accesos de categoría ── */
 .cats-b { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 4px 16px 14px; }
 .cat-b { min-height: 72px; border-radius: 18px; padding: 14px; text-align: left; font-weight: 700; font-size: 1rem; color: var(--tx); background: rgba(var(--w), .08); transition: transform .22s var(--rebote, ease); }
 .cat-b:active { transform: scale(.96); }
-html[data-tema="mornye"] .cat-b { background: linear-gradient(135deg, rgba(255,69,58,.28), rgba(var(--w), .05)); }
+html:root .cat-b { background: linear-gradient(135deg, rgba(255,69,58,.28), rgba(var(--w), .05)); }
 
 /* ── Modo conducción: pantalla de reproducción simple, botones grandes ── */
 html.coche #hoja-rep { background: #000 !important; }
@@ -806,7 +797,7 @@ html.coche #hoja-rep .portada-grande { max-width: calc(62 * var(--vw, 1vw)); mar
 .campo.orden-nav-campo { flex-wrap: wrap; }
 .campo.orden-nav-campo > span { flex: 1 1 100%; }
 .campo.orden-nav-campo .orden-nav { flex: 1 1 100%; width: 100%; margin-top: 4px; }
-html[data-tema="mornye"] .aj-pag, html[data-tema="mornye"] .aj-cat {
+html:root .aj-pag, html:root .aj-cat {
   background: rgba(30,30,36,.55); border: 1px solid rgba(var(--w), .12);
   -webkit-backdrop-filter: blur(26px) saturate(170%); backdrop-filter: blur(26px) saturate(170%);
   box-shadow: inset 0 1px 0 rgba(var(--w), .08), 0 12px 32px rgba(0,0,0,.35); }
@@ -838,8 +829,8 @@ body:has(#mini:not([hidden])) .fab { bottom: calc(env(safe-area-inset-bottom, 0p
 #hoja-cola .cq { padding: 10px; gap: 14px; border-radius: 16px; }
 #hoja-cola .cq img { width: 52px; height: 52px; border-radius: 12px; }
 #hoja-cola .cq.ahora { margin: 6px 0; }
-html[data-tema="mornye"] #hoja-cola .cq.ahora { background: linear-gradient(135deg, rgba(255,69,58,.28), rgba(var(--w), .05)); border-color: rgba(255,69,58,.35); }
-html[data-tema="mornye"] #hoja-cola .cq.ahora .info b { color: #fff; }
+html:root #hoja-cola .cq.ahora { background: linear-gradient(135deg, rgba(255,69,58,.28), rgba(var(--w), .05)); border-color: rgba(255,69,58,.35); }
+html:root #hoja-cola .cq.ahora .info b { color: #fff; }
 #hoja-cola .cola-filtros { display: flex; align-items: center; gap: 8px; overflow: visible; min-height: 56px; padding: 6px 16px 12px; }
 #hoja-cola .cola-filtros .chip { min-height: 38px; padding: 8px 16px; flex: 0 0 auto; }
 
@@ -861,7 +852,7 @@ html[data-tema="mornye"] #hoja-cola .cq.ahora .info b { color: #fff; }
 .chips-sel { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .chips-sel button { padding: 9px 16px; border-radius: 999px; font-size: .92rem; font-weight: 600; color: var(--tx); background: rgba(var(--w), .07); border: 1px solid rgba(var(--w), .14); text-align: left; }
 .chips-sel button.activo { background: var(--acento); border-color: var(--ac-1); color: #fff; }
-html[data-tema="mornye"] .chips-sel button.activo { background: var(--acento); border-color: var(--ac-1); color: #fff; }
+html:root .chips-sel button.activo { background: var(--acento); border-color: var(--ac-1); color: #fff; }
 #hoja-aj .aj-pag h3.sub { margin-left: 0; padding-left: 0; }
 
 /* ── Barra de volumen a la derecha (gesto en la mitad derecha) ── */
@@ -912,79 +903,23 @@ html .boton.primario.acento { box-shadow: 0 8px 22px color-mix(in srgb, var(--ac
 .barra-sel { flex-direction: column; align-items: stretch; gap: 0; }
 .barra-sel .sel-fila > span { flex: 1; text-align: center; font-weight: 600; font-size: .9rem; white-space: nowrap; }
 
-/* ── Tema claro (blanco con rojo Mornye): redefine los tokens; el resto de reglas se adapta solo ── */
-html[data-modo="claro"] {
-  --w: 0, 0, 0; --bg: #f2f2f7; --bg2: #ffffff; --tx: #1c1c1e; --tx2: rgba(60, 60, 67, 0.66); --linea: rgba(0, 0, 0, 0.12);
-  --sup: #ffffff; --sup2: rgba(0, 0, 0, 0.06); --ac: #1c1c1e; color-scheme: light;
-  --surf: #ffffff; --surf2: #ffffff; --surf3: #ffffff;
-  --vidrio: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.72));
-  --brillo: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 6px 20px rgba(60, 60, 67, 0.10);
-}
-html[data-modo="claro"], html[data-modo="claro"] body { background: #f2f2f7; color: var(--tx); }
-html[data-modo="claro"] .ambiente, html[data-modo="claro"][data-fondo] .ambiente { background: radial-gradient(120% 50% at 50% -10%, color-mix(in srgb, var(--t) 14%, transparent), transparent 70%), #f2f2f7; }
-html[data-modo="claro"] .ambiente::before, html[data-modo="claro"] .ambiente::after { display: none; }
-html[data-modo="claro"] .hoja, html[data-modo="claro"] .hoja:not(.corta):not(.completa), html[data-modo="claro"] #hoja-aj, html[data-modo="claro"] #hoja-aj.hoja { background: #f2f2f7 !important; color: var(--tx); }
-html[data-modo="claro"] .hoja.completa, html[data-modo="claro"] .hoja.letra { background: linear-gradient(180deg, color-mix(in srgb, var(--t) 22%, #fff) 0%, #f2f2f7 70%) !important; }
-html[data-modo="claro"] .hoja.corta { background: rgba(255, 255, 255, 0.96) !important; }
-html[data-modo="claro"] #hoja-aj .hoja-top { background: #f2f2f7 !important; }
 /* superficies de cristal: blanco con sombra suave en vez de brillo */
-html[data-modo="claro"] :is(.vidrio, .mini, .nav, .aviso, .tile, .boton, .chip, .cabeza .ib, .genero, .buscador input, .seg, .interruptor span) { -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); }
-html[data-modo="claro"] .interruptor span::after { background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
-/* botones principales: oscuros sobre fondo claro (los rojos de Mornye siguen rojos) */
-html[data-modo="claro"] .boton.primario, html[data-modo="claro"] .boton.primario *, html[data-modo="claro"] .fichas .chip.mezcla { background: #1c1c1e !important; color: #fff !important; border-color: #1c1c1e !important; box-shadow: none; }
-html[data-modo="claro"] .boton.primario svg { stroke: #fff; }
-html[data-modo="claro"] .boton.primario.acento, html[data-modo="claro"] .boton.primario.acento *, html[data-modo="claro"] .acc-lista .boton.primario, html[data-modo="claro"] .dlg-b .boton.primario { background: var(--acento) !important; color: #fff !important; border-color: var(--ac-1) !important; }
-html[data-modo="claro"] .controles .play, html[data-tema="mornye"][data-modo="claro"] .controles .play { background: #1c1c1e; color: #fff; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22); }
-html[data-modo="claro"] .seg button[aria-pressed="true"], html[data-modo="claro"] .seg .on { background: #1c1c1e; color: #fff; }
-html[data-modo="claro"] .pill { background: var(--acento); color: #fff; }
-html[data-modo="claro"] .mini-barra i, html[data-modo="claro"] .mini-barra { }
-html[data-modo="claro"] .mini-barra i { background: var(--acento); }
-html[data-modo="claro"] input[type="range"] { accent-color: var(--ac-1); }
-html[data-modo="claro"] #r-barra { background: linear-gradient(to right, var(--ac-1) var(--p, 0%), rgba(0, 0, 0, 0.14) var(--p, 0%)); }
-html[data-modo="claro"] #r-barra::-webkit-slider-thumb { background: #fff; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4); }
-html[data-modo="claro"] .burbuja-t { background: #1c1c1e; color: #fff; }
+
+
 /* textos sobre tarjetas y fichas */
-html[data-modo="claro"] :is(.tarjeta, .tile, .cat) b, html[data-modo="claro"] .tile b { color: var(--tx); }
-html[data-modo="claro"] .cat small, html[data-modo="claro"] .cat span small { color: var(--tx2); }
-html[data-modo="claro"] .cat { background: linear-gradient(160deg, color-mix(in srgb, var(--ci, #888) 20%, #fff), #fff 78%); border-color: rgba(0, 0, 0, 0.07); box-shadow: 0 6px 18px rgba(60, 60, 67, 0.10); }
-html[data-modo="claro"] .cat b { color: var(--tx); }
-html[data-modo="claro"] .cat i { background: color-mix(in srgb, var(--ci, #888) 22%, #fff); }
-html[data-modo="claro"] .mix b, html[data-modo="claro"] .mix i { color: #fff; }
-html[data-modo="claro"] .fila.sonando b, html[data-modo="claro"] .fila.sonando .t { color: var(--ac2); }
-html[data-modo="claro"] .tarjeta img, html[data-modo="claro"] .tarjeta .sinport, html[data-modo="claro"] .tile img { box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18); }
-html[data-modo="claro"] .ajustes select option, html[data-modo="claro"] select option { color: #000; background: #fff; }
-html[data-modo="claro"] .aj-pag { background: #fff; border-color: rgba(0, 0, 0, 0.06); }
-html[data-modo="claro"] .barra-sel { background: rgba(255, 255, 255, 0.96); color: var(--tx); }
-html[data-modo="claro"] .indice { background: rgba(255, 255, 255, 0.7); }
-html[data-modo="claro"] .gesto-vol, html[data-modo="claro"] .gesto-vista { background: rgba(28, 28, 30, 0.86); color: #fff; }
-html[data-modo="claro"] .fab { background: var(--acento); color: #fff; }
-/* Claro: las superficies de cristal de Mornye y las tarjetas con gris fijo pasan a blanco */
-html[data-tema="mornye"][data-modo="claro"] :is(.vidrio, .mini, .nav, .hoja.corta, .aviso, .tile, .boton, .chip) { background: rgba(255, 255, 255, 0.86); border-color: rgba(0, 0, 0, 0.08); box-shadow: 0 4px 16px rgba(60, 60, 67, 0.10); color: var(--tx); }
-html[data-tema="mornye"][data-modo="claro"] .nav { background: rgba(255, 255, 255, 0.9); box-shadow: 0 8px 28px rgba(60, 60, 67, 0.18); }
-html[data-tema="mornye"][data-modo="claro"] .mini { background: rgba(255, 255, 255, 0.94); box-shadow: 0 8px 24px rgba(60, 60, 67, 0.18); }
-html[data-tema="mornye"][data-modo="claro"] .pestanas button[aria-selected="true"], html[data-tema="mornye"][data-modo="claro"] .chip.activo { background: var(--acento); color: #fff; border-color: var(--ac-1); }
-html[data-modo="claro"] .chip.mezcla, html[data-modo="claro"] .fichas .chip.mezcla { background: #1c1c1e !important; color: #fff !important; }
-html[data-modo="claro"] .acc-lista .boton.primario { background: var(--acento) !important; color: #fff !important; border-color: var(--ac-1) !important; }
-html[data-modo="claro"] .acc-pag .tile, html[data-tema="mornye"][data-modo="claro"] .acc-pag .tile { background: #fff; }
-html[data-modo="claro"] .acc-pag .tile b { color: var(--tx); }
-html[data-modo="claro"] .aj-grupo, html[data-modo="claro"] .aj-pag, html[data-modo="claro"] .detalles { background: #fff !important; }
-html[data-modo="claro"] .barra-sel, html[data-modo="claro"] .cq.arrastra { background: #fff; box-shadow: 0 8px 24px rgba(60, 60, 67, 0.2); }
-html[data-modo="claro"] .indice { background: rgba(255, 255, 255, 0.8); }
-html[data-modo="claro"] .aviso { background: rgba(28, 28, 30, 0.92); color: #fff; }
-html[data-modo="claro"] .aviso * { color: inherit; }
-html[data-modo="claro"] .hoja.corta, html[data-modo="claro"] html .hoja.corta { background: rgba(255, 255, 255, 0.97) !important; }
-html[data-modo="claro"] .hoja:not(.corta):not(.completa) { background: #f2f2f7 !important; }
-html[data-tema="mornye"][data-modo="claro"] .extras { background: rgba(0, 0, 0, 0.05); }
-html[data-modo="claro"] .buscador input, html[data-modo="claro"] select, html[data-modo="claro"] #orden { background: #fff; color: var(--tx); border-color: rgba(0, 0, 0, 0.1); }
-html[data-modo="claro"] .barra-orden select { background: #fff; }
-html[data-modo="claro"] .cabeza .ib { background: #fff; }
-html[data-modo="claro"] .fila .t, html[data-modo="claro"] .fila b { color: var(--tx); }
-html[data-modo="claro"] .fila small, html[data-modo="claro"] .fila span { color: var(--tx2); }
-html[data-modo="claro"] .hoja:not(.completa) .hoja-top { background: linear-gradient(#f2f2f7 88%, transparent) !important; color: var(--tx); }
-html[data-modo="claro"] .hoja.corta .hoja-top { background: linear-gradient(rgba(255, 255, 255, .98) 88%, transparent) !important; }
-html[data-modo="claro"] .hoja.completa .hoja-top, html[data-modo="claro"] .hoja.letra .hoja-top { background: transparent !important; }
-html[data-modo="claro"] .hoja svg { color: inherit; }
-html[data-modo="claro"] .hc-acc i { background: rgba(0, 0, 0, .06); }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* Rejillas robustas: las filas no se estiran si faltan elementos; la última tarjeta impar ocupa todo el ancho */
 .acc-pista { align-items: flex-start; transition: height .25s ease; }
@@ -1005,7 +940,7 @@ html[data-modo="claro"] .hc-acc i { background: rgba(0, 0, 0, .06); }
 .aj-hero span { display: grid; gap: 2px; min-width: 0; position: relative; z-index: 1; }
 .aj-hero b { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.01em; }
 .aj-hero small { font-size: 0.82rem; opacity: 0.9; }
-.aj-rapidos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.aj-rapidos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .aj-rap { display: grid; justify-items: center; align-content: center; gap: 6px; padding: 12px 4px 10px; border-radius: 18px; background: var(--surf2, #1c1c1e); color: var(--tx2); font-size: 0.7rem; font-weight: 600; text-align: center; transition: transform 0.28s var(--rebote), background-color 0.2s ease, color 0.2s ease; }
 .aj-rap i { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: rgba(var(--w), 0.09); }
 .aj-rap svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -1015,9 +950,9 @@ html[data-modo="claro"] .hc-acc i { background: rgba(0, 0, 0, .06); }
 .aj-rap.on i { background: var(--acento); color: #fff; }
 .aj-rap[disabled] { opacity: 0.45; }
 .aj-grupo-t { margin: 8px 6px -2px; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tx2); }
-html[data-modo="claro"] .aj-rap { background: #fff; box-shadow: 0 2px 10px rgba(60, 60, 67, 0.08); }
-html[data-modo="claro"] .aj-rap i { background: rgba(0, 0, 0, 0.06); }
-html[data-modo="claro"] .aj-rap.on i { background: var(--acento); color: #fff; }
+
+
+
 
 html, body { touch-action: pan-x pan-y; }   /* sin zoom nativo del navegador: el pellizco lo gestiona Onda y escala toda la interfaz */
 

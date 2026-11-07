@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 
 const css = readFileSync(new URL("../app/styles.css", import.meta.url), "utf8");
 
@@ -52,4 +52,18 @@ test("el pulso de carátula pendiente solo se pone a las imágenes a la vista (c
   const imagenes = js.match(/function imagenes\(raiz\)[^\n]*/)[0];
   assert.ok(!/cargando/.test(imagenes), "imagenes() no debe marcar data-cargando: eso lo hace el IntersectionObserver");
   assert.match(js.match(/const vigia[\s\S]*?\}, \{ rootMargin/)[0], /dataset\.cargando/);
+});
+
+test("Onda tiene un único tema: no quedan Mornye, Nocturno, Onda original ni modo claro en CSS, HTML ni JS", () => {
+  const leer = (r) => readFileSync(new URL("../app/" + r, import.meta.url), "utf8");
+  const todo = [leer("styles.css"), leer("index.html"), leer("js/main.js"), ...["tokens", "navegacion", "reproductor", "inicio", "biblioteca", "esqueleto"].map((f) => leer(`css/${f}.css`))].join("\n");
+  for (const mal of [/data-tema/, /data-fuente/, /dataset\.tema/, /dataset\.fuente/, /\[data-modo="claro"\]/, /mornye/i, /nocturno/, /aj-tema/, /aj-fuente/]) assert.ok(!mal.test(todo), `queda rastro de ${mal}`);
+  const fuentes = readdirSync(new URL("../app/fonts/", import.meta.url)).filter((f) => /\.(ttf|woff2?)$/.test(f)); assert.deepEqual(fuentes, ["Montserrat-VF.ttf"]);
+});
+
+test("deslizar de lado no mueve la página ni pelea con el gesto de sección", () => {
+  const css = readFileSync(new URL("../app/css/navegacion.css", import.meta.url), "utf8");
+  assert.match(css, /overflow-x:\s*clip/);
+  assert.match(css, /overscroll-behavior-x:\s*none/);
+  assert.match(css, /#contenido\s*\{\s*touch-action:\s*pan-y/);
 });
