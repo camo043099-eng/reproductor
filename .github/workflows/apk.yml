@@ -35,7 +35,25 @@ jobs:
             grep -E "error:|AAPT|What went wrong|Execution failed|symbol:|location:|\.java:[0-9]+" ../gradle.log | head -25 | while IFS= read -r l; do echo "::error::${l:0:300}"; done
             exit 1
           }
+      - name: Firmar el APK con la clave fija
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for v in KS_B64 KS_PASS KEY_ALIAS KEY_PASS; do
+            [ -n "${!v}" ] || { echo "::error::Falta el secreto de GitHub para $v (ver el README, sección «Firma del APK»)"; exit 1; }
+          done
+          APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          KS="$RUNNER_TEMP/onda.keystore"
+          echo "$KS_B64" | base64 -d > "$KS"
+          cp android/app/build/outputs/apk/debug/app-debug.apk Onda.apk
+          "$APKSIGNER" sign --ks "$KS" --ks-key-alias "$KEY_ALIAS" --ks-pass env:KS_PASS --key-pass env:KEY_PASS Onda.apk
+          "$APKSIGNER" verify --print-certs Onda.apk | grep -E "SHA-256"
+          rm -f "$KS"
       - uses: actions/upload-artifact@v4
         with:
           name: Onda-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: Onda.apk

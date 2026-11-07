@@ -46,6 +46,24 @@ La forma habitual es GitHub Actions:
 2. El flujo corre las pruebas, empaqueta la app con Capacitor y compila el APK de depuración con Gradle.
 3. Descarga el artefacto **Onda-apk** e instálalo en el teléfono permitiendo la instalación desde orígenes desconocidos.
 
+### Firma del APK
+
+El flujo firma el APK siempre con la misma clave, para que las actualizaciones se instalen encima de la versión anterior. La clave **no está en el repositorio**: vive en los secretos de GitHub (*Settings → Secrets and variables → Actions*), con estos cuatro nombres:
+
+- `ANDROID_KEYSTORE_BASE64`: el archivo `.jks` codificado en base64.
+- `ANDROID_KEYSTORE_PASSWORD`: la contraseña del almacén.
+- `ANDROID_KEY_ALIAS`: el alias de la clave.
+- `ANDROID_KEY_PASSWORD`: la contraseña de la clave.
+
+Crear la clave una sola vez (y guardar una copia fuera del repo, por ejemplo en un gestor de contraseñas; si se pierde, ya no se podrá actualizar la app instalada):
+
+```bash
+keytool -genkeypair -v -keystore onda.jks -alias onda -keyalg RSA -keysize 4096 -validity 10000
+base64 -w0 onda.jks   # el resultado va en ANDROID_KEYSTORE_BASE64
+```
+
+Si falta algún secreto, el flujo falla en el paso de firma en lugar de publicar un APK con otra clave.
+
 También se puede compilar en una computadora, siguiendo los mismos pasos del flujo (Node 20 y JDK 17):
 
 ```bash
