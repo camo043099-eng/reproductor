@@ -8,7 +8,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.11.1";
+const VERSION = "0.12.0";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -301,6 +301,13 @@ function accesos(tiles) {
   const puntos = pags.length > 1 ? `<div class="acc-puntos">${pags.map((_, j) => `<i class="${j ? "" : "on"}"></i>`).join("")}</div>` : "";
   return `<div class="acc" data-acc><div class="acc-pista">${pags.join("")}</div>${puntos}</div>`;
 }
+/** Listas inteligentes con su número de canciones; se recalcula solo si cambia la biblioteca, las carátulas o el historial (agrupar duplicadas cuesta). */
+let _autoC = { k: "", v: [] };
+function listasInteligentes() {
+  const k = [E.version, conPortada.size, conPortadaCargado, HIST.tot || 0].join("|");
+  if (_autoC.k !== k) { _autoC = { k, v: Object.entries(AUTO).map(([id, a]) => [id, a, a.f().length]).filter(([, , n]) => n > 0) }; }
+  return _autoC.v;
+}
 function dibujarInicio() {
   const c = $("#contenido"), rec = [...E.canciones].sort((a, b) => b.fecha - a.fecha), fav = E.canciones.filter((s) => s.fav);
   const ult = ultimasEscuchadas(), mas = masEscuchadas(), nuevas = sinEscuchar();
@@ -331,10 +338,16 @@ function dibujarInicio() {
   const fichas = [`<button class="chip mezcla" data-mezclar type="button">Mezclar todo</button>`, `<button class="chip" data-sorpresa type="button">Sorpresa</button>`, `<button class="chip" data-det="lista" data-k="__fav" type="button">Favoritas</button>`, `<button class="chip" data-estadisticas type="button">Tu actividad</button>`, ...(calidadBaja().length ? [`<button class="chip" data-det="lista" data-k="__baja" type="button">Calidad baja (${calidadBaja().length})</button>`] : []), `<button class="chip" data-personalizar type="button">Personalizar</button>`, `<button class="chip" data-portadas type="button">Descargar carátulas</button>`,
     ...generos.slice(0, 5).map(([g]) => `<button class="chip" data-det="lista" data-k="${esc("__gen:" + g)}" type="button">${esc(g)}</button>`),
     `<button class="chip" data-ir="canciones" type="button">Canciones</button>`, `<button class="chip" data-ir="albumes" type="button">Álbumes</button>`, `<button class="chip" data-ir="artistas" type="button">Artistas</button>`, `<button class="chip" data-ir="listas" type="button">Listas</button>`];
-  c.innerHTML = `<div class="fichas">${fichas.join("")}</div>
+  const hero = (albsUlt.length ? albsUlt : albs).slice(0, 10);
+  const autos = listasInteligentes(), nb = calidadBaja().length;
+  const autoHtml = autos.map(([id, a, n]) => `<button class="auto" type="button" data-det="lista" data-k="${id}" style="--c:${a.color}"><b>${a.t}</b><span>${n} canciones</span></button>`).join("") + (nb ? `<button class="auto" type="button" data-det="lista" data-k="__baja" style="--c:#ffb44d"><b>Calidad baja</b><span>${nb} canciones</span></button>` : "");
+  const recFila = (s, i) => `<button class="tarjeta rec" type="button" data-lista="rec" data-i="${i}">${imgHtml(s)}<b>${esc(nom(s))}</b><span>${esc(s.artista || "")}</span></button>`;
+  c.innerHTML = `<button class="buscar-falso" type="button" data-ir-buscar><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.500-3.500"/></svg><span>Buscar canciones, artistas, álbumes…</span></button>
+  <div class="fichas">${fichas.join("")}</div>
+  ${S("inVuelve") && hero.length ? `<section class="estante hero"><h3>Vuelve a tu música</h3><div class="carril">${hero.map((a) => albumTarjeta(a, true)).join("")}</div></section>` : ""}
   ${S("inTiles") ? accesos(tiles) : ""}
-  ${S("inEscuchadas") && listasInicio.rec.length ? `<section class="estante seleccion"><div class="sec-cab"><h3>Selección rápida</h3><button class="pill" type="button" data-sel-todo>Reproducir todo</button></div><div class="carril">${listasInicio.rec.slice(0, 12).map((s, i) => cancion(s, i, "rec")).join("")}</div></section>` : ""}
-  ${S("inVuelve") ? estante("Vuelve a tu música", albsUlt.slice(0, 10).map((a) => albumTarjeta(a, true)).join("")) : ""}
+  ${S("inEscuchadas") && listasInicio.rec.length ? `<section class="estante seleccion recs"><div class="sec-cab"><h3>Recomendados para ti</h3><button class="pill" type="button" data-sel-todo>Reproducir todo</button></div><div class="lista-rec">${listasInicio.rec.slice(0, 6).map(recFila).join("")}</div></section>` : ""}
+  ${autoHtml ? `<section class="estante"><h3>Listas inteligentes</h3><div class="autos">${autoHtml}</div></section>` : ""}
   ${S("inMixes") ? mh.length ? `<section class="estante"><h3>Hecho para ti</h3>${MIXES.aprendiendo ? `<p class="nota-mix">Escucha más música y aprenderé tus gustos.</p>` : ""}<div class="carril">${paraTi}</div></section>` : "" : ""}
   ${S("inMixes") ? estante("Tus mixes", mixes) : ""}
   ${S("inEscuchadas") ? estante("Escuchadas hace poco", listasInicio.ult.map((s, i) => cancion(s, i, "ult")).join("")) : ""}
@@ -451,7 +464,7 @@ function dibujarBiblioteca() {
     const filas = [`<button class="tarjeta" type="button" data-det="lista" data-k="__fav"><span class="sinport" style="display:grid;place-items:center;color:var(--ac2)">${I.fav.replace("<svg", '<svg width="56" height="56" fill="currentColor"')}</span><b>Favoritas</b><span>${fav.length} canciones</span></button>`];
     { const nb = calidadBaja().length; if (nb) filas.splice(1, 0, `<button class="tarjeta" type="button" data-det="lista" data-k="__baja"><span class="sinport" style="display:grid;place-items:center;color:#ffb44d">${I.eq.replace("<svg", '<svg width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5"')}</span><b>Calidad baja</b><span>${nb} canciones</span></button>`); }
     if (!conPortadaCargado) refrescarConPortada(true);
-    { let pos = 1 + (filas.length > 1 ? filas.length - 1 : 0); const aut = Object.entries(AUTO).map(([k, a]) => [k, a, a.f().length]).filter(([, , n]) => n > 0);
+    { let pos = 1 + (filas.length > 1 ? filas.length - 1 : 0); const aut = listasInteligentes();
       for (const [k, a, n] of aut) filas.splice(pos++, 0, `<button class="tarjeta" type="button" data-det="lista" data-k="${k}"><span class="sinport" style="display:grid;place-items:center;color:${a.color}">${I.lista.replace("<svg", '<svg width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5"')}</span><b>${a.t}</b><span>${n} canciones</span></button>`); }
     for (const l of E.listas) filas.push(`<button class="tarjeta" type="button" data-det="lista" data-k="${esc(l.id)}"><span class="sinport" style="display:grid;place-items:center;color:var(--tx2)">${I.lista.replace("<svg", '<svg width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5"')}</span><b>${esc(l.nombre)}</b><span>${l.ids.length} canciones</span></button>`);
     c.innerHTML = `<div class="acciones-detalle"><button class="boton" type="button" data-nueva-lista>Nueva lista</button><button class="boton" type="button" data-importar-m3u>Importar M3U</button></div><div class="rejilla">${filas.join("")}</div>`;
@@ -1564,6 +1577,7 @@ function enlazar() {
     const ct = e.target.closest(".cat[data-t]"); if (ct) { E.tab = ct.dataset.t; E.bibRaiz = false; E.detalle = null; dibujar(); animarCambio(); window.scrollTo(0, 0); return; }
     if (e.target.closest("[data-agregar]")) return MOTOR ? iniciarNativo(true) : $("#b-agregar").click();
     const ir = e.target.closest("[data-ir]"); if (ir) { E.vista = "biblioteca"; E.bibRaiz = false; E.tab = ir.dataset.ir; E.detalle = null; dibujar(); animarCambio(); return; }
+    if (e.target.closest("[data-ir-buscar]")) { document.querySelector("#nav [data-v=buscar]").click(); setTimeout(() => $("#q").focus(), 60); return; }
     if (e.target.closest("[data-estadisticas]")) return abrirStats();
     if (e.target.closest("[data-personalizar]")) { abrirAjustes("apariencia"); return; }
     if (e.target.closest("[data-renovar-mixes]")) { mixesDeHoy(true).then(() => { avisar("Mixes renovados"); dibujar(); }); return; }

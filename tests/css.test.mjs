@@ -19,7 +19,7 @@ test("el modo selección no cambia la maquetación de las filas (display en .ck/
 
 test("el service worker guarda en caché los CSS y la fuente del rediseño, y index.html los enlaza", () => {
   const sw = readFileSync(new URL("../app/sw.js", import.meta.url), "utf8"), html = readFileSync(new URL("../app/index.html", import.meta.url), "utf8");
-  for (const f of ["css/tokens.css", "css/navegacion.css", "css/reproductor.css", "fonts/Montserrat-VF.ttf"]) {
+  for (const f of ["css/tokens.css", "css/navegacion.css", "css/reproductor.css", "css/inicio.css", "fonts/Montserrat-VF.ttf"]) {
     assert.ok(sw.includes(`"${f}"`), `${f} falta en SHELL de sw.js`);
     assert.ok(existsSync(new URL("../app/" + f, import.meta.url)), `${f} no existe`);
   }
