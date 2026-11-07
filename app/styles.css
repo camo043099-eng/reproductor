@@ -687,11 +687,12 @@ html .aj-pag > .aviso-hires { margin: 0; border-radius: 0; }
 .barra-sel button { padding: 9px 12px; border-radius: 999px; color: var(--ac2); font-weight: 600; font-size: 0.9rem; }
 .barra-sel button:disabled { opacity: 0.4; }
 .barra-sel .peligro { color: var(--rojo); }
-.fila .ck { display: none; }
-#contenido.seleccion .fila .ck { display: grid; place-items: center; width: 24px; height: 24px; flex: 0 0 auto; border-radius: 50%; border: 2px solid rgba(var(--w), 0.4); }
+/* Modo selección sin cambiar la maquetación: la casilla va encima de la portada y «más» solo se oculta (visibility). Con display el WebView recalculaba la maquetación de miles de filas (~250 ms). */
+.fila .ck { position: absolute; left: 22px; top: 50%; margin-top: -12px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.75); background: rgba(0, 0, 0, 0.45); visibility: hidden; pointer-events: none; }
+#contenido.seleccion .fila .ck { visibility: visible; }
 #contenido.seleccion .fila.marcada .ck { background: var(--ac2); border-color: var(--ac2); }
 #contenido.seleccion .fila.marcada .ck::after { content: ""; width: 6px; height: 11px; border: solid #fff; border-width: 0 2.5px 2.5px 0; transform: translate(-1px, -1px) rotate(45deg); }
-#contenido.seleccion .fila .mas { display: none; }
+#contenido.seleccion .fila .mas { visibility: hidden; }
 #contenido.seleccion .fila.marcada { background: rgba(var(--w), 0.08); }
 
 #r-chips .chip { cursor: pointer; }
@@ -1016,7 +1017,6 @@ html[data-modo="claro"] .barra-orden select { background: #fff; }
 html[data-modo="claro"] .cabeza .ib { background: #fff; }
 html[data-modo="claro"] .fila .t, html[data-modo="claro"] .fila b { color: var(--tx); }
 html[data-modo="claro"] .fila small, html[data-modo="claro"] .fila span { color: var(--tx2); }
-html[data-modo="claro"] .ck { border-color: rgba(0, 0, 0, 0.3); }
 html[data-modo="claro"] .hoja:not(.completa) .hoja-top { background: linear-gradient(#f2f2f7 88%, transparent) !important; color: var(--tx); }
 html[data-modo="claro"] .hoja.corta .hoja-top { background: linear-gradient(rgba(255, 255, 255, .98) 88%, transparent) !important; }
 html[data-modo="claro"] .hoja.completa .hoja-top, html[data-modo="claro"] .hoja.letra .hoja-top { background: transparent !important; }

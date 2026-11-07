@@ -8,7 +8,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.9.115";
+const VERSION = "0.9.116";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -80,6 +80,8 @@ const imgsDe = (alb) => document.querySelectorAll(`img[data-alb="${CSS.escape(al
 // pinta listas largas por tandas: lo primero aparece al instante y el resto llega entre cuadros, sin congelar la pantalla
 let tokenPintado = 0, forzarPintado = () => {}, seguirPintado = () => {}, vistaLista = { completa: true };
 // perezoso (n): en vez de pintar todo entre cuadros, dibuja n filas y añade n más solo al acercarse al final con el scroll (listas de búsqueda: miles de filas bloqueaban la pantalla)
+// El pintado de fondo espera a que el navegador esté libre (máx. 250 ms): con la CPU 4x lento hay ~40% menos tareas largas y la mitad de tiempo bloqueado que con requestAnimationFrame
+const ocioso = (f) => (window.requestIdleCallback ? requestIdleCallback(() => f(), { timeout: 250 }) : requestAnimationFrame(f));
 function pintar(c, items, f, envoltura, perezoso = 0) {
   const mi = ++tokenPintado, N = perezoso || 30; forzarPintado = () => {}; seguirPintado = () => {}; let lote = perezoso || 40; const vl = vistaLista = { completa: items.length <= N };
   c.innerHTML = envoltura(items.slice(0, N).map(f).join(""));
@@ -90,10 +92,10 @@ function pintar(c, items, f, envoltura, perezoso = 0) {
     const t0 = performance.now(), fin = Math.min(items.length, i + lote); let h = ""; for (let k = i; k < fin; k++) h += f(items[k], k);
     const t = document.createElement("template"); t.innerHTML = h; imagenes(t.content); cont.appendChild(t.content); i = fin;
     const dt = performance.now() - t0; if (!perezoso) lote = dt > 9 ? Math.max(8, lote >> 1) : dt < 4 ? Math.min(120, lote + 12) : lote;      // cada tanda cabe en ~un cuadro: la pantalla no se congela
-    if (i >= items.length) vl.completa = true; else if (!perezoso) requestAnimationFrame(paso);
+    if (i >= items.length) vl.completa = true; else if (!perezoso) ocioso(paso);
   };
   forzarPintado = () => { if (mi !== tokenPintado || i >= items.length) return; let h = ""; for (let k = i; k < items.length; k++) h += f(items[k], k); const t = document.createElement("template"); t.innerHTML = h; imagenes(t.content); cont.appendChild(t.content); i = items.length; vl.completa = true; };
-  if (items.length > N && !perezoso) requestAnimationFrame(paso);
+  if (items.length > N && !perezoso) ocioso(paso);
   if (items.length > N && perezoso) {                                  // un centinela al final: cuando se acerca a la pantalla llega la siguiente tanda
     const ce = document.createElement("div"); c.append(ce);
     const io = new IntersectionObserver((es) => {
