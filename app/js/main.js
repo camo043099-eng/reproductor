@@ -8,7 +8,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.14.0";
+const VERSION = "0.14.1";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -983,7 +983,7 @@ window.addEventListener("devicemotion", (e) => {
 });
 // ── ajustes avanzados ──
 const TOGGLES = [["aj-wifi", "wifi", true], ["aj-fordef", "fordef", false], ["aj-silencio", "silencio", false], ["aj-ruido", "ruido", true], ["aj-enfoque", "enfoque", true], ["aj-sistema", "sistema", true], ["aj-vib", "vib", true], ["aj-chips", "chips", true], ["aj-eqsalida", "eqSalida", false], ["aj-anim", "anim", false], ["aj-iniciobib", "inicioBib", false], ["aj-coche", "coche", false], ["aj-progreso", "progreso", true], ["aj-saltos", "saltos", true], ["aj-hires", "hires", false], ["aj-detener", "detener", false], ["aj-rgsube", "rgSube", false], ["aj-sineqalt", "sinEqAlt", false], ["aj-sugerir", "sugerir", true], ["aj-navlbl", "navLbl", true], ["aj-usbdir", "usbDir", false], ["aj-sigalbum", "sigAlbum", true], ["aj-agitar", "agitar", false], ["aj-pantalla", "pantalla", false], ["aj-intiles", "inTiles", true], ["aj-invuelve", "inVuelve", true], ["aj-inmixes", "inMixes", true], ["aj-inesc", "inEscuchadas", true], ["aj-innuevas", "inNuevas", true], ["aj-infav", "inFav", true], ["aj-inartistas", "inArtistas", true]];
-const SELECTS = [["aj-icono", "icono", "normal"], ["aj-min", "minSeg", "0"], ["aj-agitarsens", "agitarSens", "20"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-realce", "realce", "0"], ["aj-contar", "contar", "auto"], ["aj-largo", "largoMin", "20"], ["aj-fadeplay", "fadePlay", "250"], ["aj-brecha", "brecha", "0"], ["aj-tfg", "tfg", "120"], ["aj-tqg", "tqg", "0.7"], ["aj-tfa", "tfa", "6000"], ["aj-tqa", "tqa", "0.7"], ["aj-rgpre", "rgPre", "0"], ["aj-rgsin", "rgSin", "0"], ["aj-retrasobt", "retrasoBt", "0"], ["aj-animn", "animN", "1"], ["aj-colchon", "colchon", "400"], ["aj-cruce", "cruce", "0"], ["aj-densidad", "densidad", "comoda"], ["aj-forma", "forma", "redondeada"], ["aj-texto", "texto", "1"], ["aj-volsens", "volSens", "45"]];
+const SELECTS = [["aj-min", "minSeg", "0"], ["aj-agitarsens", "agitarSens", "20"], ["aj-acento", "acento", "auto"], ["aj-fondo", "fondo", "degradado"], ["aj-letra", "letraTam", "1"], ["aj-fundido", "fundido", "0"], ["aj-realce", "realce", "0"], ["aj-contar", "contar", "auto"], ["aj-largo", "largoMin", "20"], ["aj-fadeplay", "fadePlay", "250"], ["aj-brecha", "brecha", "0"], ["aj-tfg", "tfg", "120"], ["aj-tqg", "tqg", "0.7"], ["aj-tfa", "tfa", "6000"], ["aj-tqa", "tqa", "0.7"], ["aj-rgpre", "rgPre", "0"], ["aj-rgsin", "rgSin", "0"], ["aj-retrasobt", "retrasoBt", "0"], ["aj-animn", "animN", "1"], ["aj-colchon", "colchon", "400"], ["aj-cruce", "cruce", "0"], ["aj-densidad", "densidad", "comoda"], ["aj-forma", "forma", "redondeada"], ["aj-texto", "texto", "1"], ["aj-volsens", "volSens", "45"]];
 let tocadoEnfoque = false;
 let _wl = null;
 async function pantallaEncendida() {
@@ -995,20 +995,10 @@ function sincronizarAjustes() {
   { const n = $("#aj-nombre"); if (n) n.value = E.aj.nombre || ""; }
   { const n = $("#aj-excl"); if (n) n.value = E.aj.carpetasExcl || ""; }
   for (const [id, clave, def] of TOGGLES) $("#" + id).checked = E.aj[clave] === undefined ? def : !!E.aj[clave];
-  if (E.aj.icono === "auto") E.aj.icono = "normal";
   for (const [id, clave, def] of SELECTS) $("#" + id).value = E.aj[clave] ?? def;
   $("#aj-fase").checked = !!E.aj.fase; $("#aj-crossfeed").value = +E.aj.crossfeed || 0; $("#aj-crossfeed-v").textContent = (+E.aj.crossfeed || 0).toFixed(2);
   document.querySelectorAll("#hoja-aj select").forEach((x) => x._pintar?.());
   aplicarAvanzados();
-}
-// Temporadas del icono (fecha como mes*100+día). Verano en el hemisferio norte; ajusta las fechas si quieres.
-let iconoAplicado = null;
-function aplicarIcono() {
-  if (!MOTOR) return;
-  const pedido = E.aj.icono && E.aj.icono !== "auto" ? E.aj.icono : "normal";   // "auto" (antiguo) ya no existe: queda el normal
-  if (pedido === iconoAplicado) return;
-  iconoAplicado = pedido;
-  MOTOR.icono({ nombre: pedido }).catch(() => { iconoAplicado = null; });
 }
 // ── tamaño de toda la interfaz: pellizcar con dos dedos o deslizador en Apariencia ──
 const ESC_MIN = 0.8, ESC_MAX = 1.5;
@@ -1050,7 +1040,7 @@ function aplicarAvanzados() {
     if (+(a.colchon || 400) !== (reproductor._colchon ?? 400)) reproductor.ponerColchon?.(+(a.colchon || 400))?.catch?.(() => {});
     if (+(a.cruce || 0) !== (reproductor._cruce ?? 0)) reproductor.ponerCruce?.(+(a.cruce || 0))?.catch?.(() => {});
     reproductor.ponerTonoAjuste?.(+a.tfg || 120, +a.tqg || 0.7, +a.tfa || 6000, +a.tqa || 0.7);
-    reproductor.ponerCrossfeed?.(+a.crossfeed || 0)?.catch?.(() => {}); reproductor.ponerFase?.(!!a.fase)?.catch?.(() => {}); reproductor.ponerMono?.(!!a.mono)?.catch?.(() => {}); aplicarIcono(); reproductor.ponerReverb?.({ mezcla: (+a.rvMezcla || 0) / 100, tam: (a.rvTam ?? 50) / 100, amort: (a.rvAmort ?? 50) / 100, pre: +a.rvPre || 0 })?.catch?.(() => {}); }
+    reproductor.ponerCrossfeed?.(+a.crossfeed || 0)?.catch?.(() => {}); reproductor.ponerFase?.(!!a.fase)?.catch?.(() => {}); reproductor.ponerMono?.(!!a.mono)?.catch?.(() => {}); reproductor.ponerReverb?.({ mezcla: (+a.rvMezcla || 0) / 100, tam: (a.rvTam ?? 50) / 100, amort: (a.rvAmort ?? 50) / 100, pre: +a.rvPre || 0 })?.catch?.(() => {}); }
   if (MOTOR && reproductor) { const o = { silencio: !!a.silencio, ruido: a.ruido !== false }; if (tocadoEnfoque || a.enfoque === false) o.enfoque = a.enfoque !== false; reproductor.ponerAvanzado(o).catch(() => {}); }
   pintarHiRes();
 }
@@ -1871,9 +1861,12 @@ function gestos() {
   // deslizar a los lados en las pantallas principales cambia de sección (Inicio · Buscar · Biblioteca), como en Poweramp
   const SECCIONES = ["inicio", "buscar", "biblioteca"], contenido = $("#contenido");
   deslizar(contenido, {
-    puede: (e) => !E.sel && !E.detalle && !E.q && !pila.length && !e.target.closest(".fila, input, select, textarea, .pestanas, .fichas, .barra-orden, .campo, .seg, .barra-sel, [data-no-deslizar]"),
+    puede: (e) => !E.sel && !E.detalle && !E.q && !pila.length && !e.target.closest(".fila, input, select, textarea, .pestanas, .fichas, .barra-orden, .campo, .seg, .barra-sel, .carril, .acc-pista, .acc-lista, .indice, [data-no-deslizar]"),
     acepta: (eje) => eje === "x",
-    mover: (dx) => { contenido.style.translate = `${dx * 0.25}px 0`; },
+    mover: (dx) => {   // solo se arrastra si hay otra sección en esa dirección; en los extremos la pantalla no se mueve
+      const j = SECCIONES.indexOf(E.vista) + (dx < 0 ? 1 : -1);
+      contenido.style.translate = j >= 0 && j < SECCIONES.length ? `${dx * 0.25}px 0` : "";
+    },
     soltar: (dx, dy, vx) => {
       contenido.style.translate = "";
       const i = SECCIONES.indexOf(E.vista); if (i < 0) return;

@@ -32,4 +32,4 @@ html .mini .mini-barra i { background: var(--acento); }
 /* deslizar de lado con fuerza: la página no se desplaza en horizontal y el gesto de cambio de sección lo recibe solo Onda (si no, el navegador y el gesto se pelean y todo vibra) */
 html, html body { overflow-x: clip; overscroll-behavior-x: none; }
 html #contenido { touch-action: pan-y; }
-html .carril, html .fichas, html .pestanas, html .acc-lista, html .acc-pista { overscroll-behavior-x: contain; }
+html .carril, html .fichas, html .pestanas, html .acc-lista, html .acc-pista { overscroll-behavior-x: none; }

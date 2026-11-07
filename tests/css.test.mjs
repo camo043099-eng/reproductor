@@ -67,3 +67,10 @@ test("deslizar de lado no mueve la página ni pelea con el gesto de sección", (
   assert.match(css, /overscroll-behavior-x:\s*none/);
   assert.match(css, /#contenido\s*\{\s*touch-action:\s*pan-y/);
 });
+
+test("el gesto de cambio de sección no se activa sobre carruseles ni arrastra la pantalla en los extremos", () => {
+  const js = readFileSync(new URL("../app/js/main.js", import.meta.url), "utf8");
+  assert.match(js, /\.carril, \.acc-pista, \.acc-lista, \.indice, \[data-no-deslizar\]/);
+  assert.match(js, /j >= 0 && j < SECCIONES\.length \? `\$\{dx \* 0\.25\}px 0` : ""/);
+  assert.ok(!/id="aj-icono"/.test(readFileSync(new URL("../app/index.html", import.meta.url), "utf8")));
+});
