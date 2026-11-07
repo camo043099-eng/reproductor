@@ -8,7 +8,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.12.0";
+const VERSION = "0.12.1";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -73,8 +73,12 @@ const SIN = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w
 const vigia = "IntersectionObserver" in window ? new IntersectionObserver((es) => {
   for (const e of es) if (e.isIntersecting) { vigia.unobserve(e.target); hidratar(e.target); }
 }, { rootMargin: "200px" }) : null;
-async function hidratar(img) { const u = await portadaUrl(img.dataset.alb); if (u && img.src !== u) img.src = u; }
-function imagenes(raiz) { raiz.querySelectorAll("img[data-alb]:not([data-obs])").forEach((i) => { i.dataset.obs = "1"; if (!i.dataset.alb) return; if (vigia) vigia.observe(i); else hidratar(i); }); }
+async function hidratar(img) {
+  const u = await portadaUrl(img.dataset.alb), fin = () => { delete img.dataset.cargando; };
+  if (u && img.src !== u) { img.addEventListener("load", fin, { once: true }); img.addEventListener("error", fin, { once: true }); img.src = u; } else fin();
+}
+function imagenes(raiz) { raiz.querySelectorAll("img[data-alb]:not([data-obs])").forEach((i) => { i.dataset.obs = "1"; if (!i.dataset.alb) return; if (!urlsPort.has(i.dataset.alb)) i.dataset.cargando = "";   // esqueleto (pulso) hasta que llega la carátula real
+      if (vigia) vigia.observe(i); else hidratar(i); }); }
 const imgsDe = (alb) => document.querySelectorAll(`img[data-alb="${CSS.escape(alb)}"]`);
 
 // pinta listas largas por tandas: lo primero aparece al instante y el resto llega entre cuadros, sin congelar la pantalla

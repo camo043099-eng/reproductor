@@ -19,7 +19,7 @@ test("el modo selección no cambia la maquetación de las filas (display en .ck/
 
 test("el service worker guarda en caché los CSS y la fuente del rediseño, y index.html los enlaza", () => {
   const sw = readFileSync(new URL("../app/sw.js", import.meta.url), "utf8"), html = readFileSync(new URL("../app/index.html", import.meta.url), "utf8");
-  for (const f of ["css/tokens.css", "css/navegacion.css", "css/reproductor.css", "css/inicio.css", "fonts/Montserrat-VF.ttf"]) {
+  for (const f of ["css/tokens.css", "css/navegacion.css", "css/reproductor.css", "css/inicio.css", "css/esqueleto.css", "fonts/Montserrat-VF.ttf"]) {
     assert.ok(sw.includes(`"${f}"`), `${f} falta en SHELL de sw.js`);
     assert.ok(existsSync(new URL("../app/" + f, import.meta.url)), `${f} no existe`);
   }
@@ -38,4 +38,11 @@ test("rediseño Fase 2: sin visualizador ni ondas de frecuencia, y el reproducto
   assert.match(html, /id="r-anillo"/); assert.match(js, /strokeDashoffset/);
   const rep = readFileSync(new URL("../app/css/reproductor.css", import.meta.url), "utf8");
   assert.match(rep, /\.rep-disco/); assert.match(rep, /border-radius:\s*50%/);
+});
+
+test("esqueletos de carga: el Inicio trae uno en el HTML, las carátulas pendientes pulsan y todo respeta «menos movimiento»", () => {
+  const html = readFileSync(new URL("../app/index.html", import.meta.url), "utf8"), esq = readFileSync(new URL("../app/css/esqueleto.css", import.meta.url), "utf8"), js = readFileSync(new URL("../app/js/main.js", import.meta.url), "utf8");
+  assert.match(html, /class="esq-inicio"/); assert.match(js, /dataset\.cargando/); assert.match(esq, /prefers-reduced-motion/);
+  assert.ok(!/(^|\n)[^{}]*\{[^}]*(left|top|width|height)\s*:[^}]*\}\s*@keyframes/.test(esq), "el esqueleto solo debe animar transform y opacity");
+  const anims = [...esq.matchAll(/@keyframes[^{]+\{([^]*?\})\s*\}/g)].map((m) => m[1]).join(" "); assert.ok(!/(left|top|width|height|margin)\s*:/.test(anims), "keyframes con propiedades de maquetación");
 });

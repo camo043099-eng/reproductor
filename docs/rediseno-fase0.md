@@ -77,3 +77,11 @@ No de golpe. En cada fase se extrae **solo la pantalla de esa fase** a su módul
 3. **Funciones extra** (temas, modo coche, ambiente, intro, visualizador, carátula al ritmo, gestos): ¿se mantienen todas con el estilo nuevo, o quieres quitar alguna?
 4. **Fila de accesos del reproductor** (ecualizador, temporizador, letra, agregar a lista): hoy está oculta y se llega por «Más opciones». ¿La nueva interfaz la muestra o se queda en el menú? «Compartir» hoy está en el menú de la canción, no en el reproductor.
 5. **Git:** la rama `rediseno` está creada solo en local. Los archivos `docs/rediseno-interfaz.md`, este plan y `actualizar-onda.ps1` están sin commit. ¿Los incluyo en la rama?
+
+## 7. Pedidos añadidos durante el rediseño (Carlos)
+- **Carrusel «Vuelve a tu música»:** carátulas más pequeñas (hecho en 0.12.1).
+- **Esqueletos de carga** con animación (hecho para el Inicio y las carátulas pendientes en 0.12.1; falta extenderlo a Biblioteca y Buscar en la Fase 4).
+- **Icono de la app nuevo** (generador en `tools/generar_icono.py` y `native/icono/`; tocar el manifiesto/parche nativo requiere permiso expreso). Falta definir cómo lo quieres.
+- **Pantalla de bienvenida (intro) nueva.** Falta definir cómo la quieres.
+- **Menú de Ajustes nuevo** (ya previsto en la Fase 6).
+- **Se conserva** el color que cambia con la carátula de cada canción.

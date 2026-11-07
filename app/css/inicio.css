@@ -14,10 +14,10 @@ html .fichas .chip.mezcla { background: var(--acento) !important; color: #fff !i
 html .estante h3, html .sub { font-size: 1.125rem; font-weight: 800; letter-spacing: -0.01em; }
 
 /* carrusel grande de carátulas */
-.estante.hero .carril { gap: var(--e4); padding: 0 var(--e4) var(--e2); scroll-snap-type: x mandatory; }
-.estante.hero .carril .tarjeta.grande { flex: 0 0 min(64vw, 260px); scroll-snap-align: center; }
-.estante.hero .carril .tarjeta.grande img, .estante.hero .carril .tarjeta.grande .sinport { width: 100%; height: auto; aspect-ratio: 1; border-radius: var(--r-l); box-shadow: var(--sombra-2); }
-.estante.hero .tarjeta.grande b { margin-top: var(--e2); font-size: 1rem; }
+.estante.hero .carril { gap: var(--e4); padding: 0 var(--e4) var(--e2); scroll-snap-type: x proximity; scroll-padding-left: var(--e4); }
+.estante.hero .carril .tarjeta.grande { flex: 0 0 148px; scroll-snap-align: start; }
+.estante.hero .carril .tarjeta.grande img, .estante.hero .carril .tarjeta.grande .sinport { width: 100%; height: auto; aspect-ratio: 1; border-radius: var(--r-m); box-shadow: var(--sombra-1); }
+.estante.hero .tarjeta.grande b { margin-top: var(--e2); font-size: .9375rem; }
 
 /* accesos en cuadrícula */
 html .acc-pag .tile, html .tile { background: var(--c-sup) !important; border: 0 !important; border-radius: var(--r-m); overflow: hidden; }

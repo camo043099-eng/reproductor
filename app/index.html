@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="css/navegacion.css">
 <link rel="stylesheet" href="css/reproductor.css">
 <link rel="stylesheet" href="css/inicio.css">
+<link rel="stylesheet" href="css/esqueleto.css">
 </head>
 <body>
 <div class="ambiente" id="ambiente" aria-hidden="true"></div>
@@ -50,7 +51,11 @@
     <button class="boton" type="button" data-tocar-azar>Aleatorio</button>
     <button class="boton" type="button" data-sel-iniciar>Seleccionar</button>
   </div>
-  <main class="contenido" id="contenido" tabindex="-1"></main>
+  <main class="contenido" id="contenido" tabindex="-1"><div class="esq-inicio" aria-hidden="true">
+    <i class="esq esq-buscador"></i><div class="esq-fila"><i class="esq esq-chip"></i><i class="esq esq-chip"></i><i class="esq esq-chip"></i></div>
+    <i class="esq esq-titulo"></i><div class="esq-fila"><i class="esq esq-tarj"></i><i class="esq esq-tarj"></i><i class="esq esq-tarj"></i></div>
+    <i class="esq esq-titulo"></i><i class="esq esq-rec"></i><i class="esq esq-rec"></i><i class="esq esq-rec"></i>
+  </div></main>
   <nav class="indice" id="indice" hidden aria-label="Ir a la letra"></nav><div class="burbuja" id="burbuja" hidden></div>
   <div class="aviso" id="aviso" role="status" aria-live="polite" hidden></div>
 </div>

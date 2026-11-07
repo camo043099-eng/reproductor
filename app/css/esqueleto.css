@@ -1,0 +1,20 @@
+/* Onda — esqueletos de carga: bloques grises con un brillo que los recorre mientras llega el contenido real.
+   Solo animan transform y opacity (baratos). Sin animación si el sistema pide menos movimiento. */
+.esq { position: relative; display: block; overflow: hidden; background: var(--c-sup); border-radius: var(--r-m); }
+.esq::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(var(--w), .09) 50%, transparent 70%); transform: translateX(-100%); animation: esq-brillo 1.4s ease-in-out infinite; }
+@keyframes esq-brillo { to { transform: translateX(100%); } }
+
+/* esqueleto del Inicio (se ve mientras carga la biblioteca; el primer dibujo lo reemplaza) */
+.esq-inicio { display: grid; gap: var(--e4); padding: var(--e1) var(--e2); }
+.esq-fila { display: flex; gap: var(--e3); }
+.esq-buscador { height: 48px; border-radius: var(--r-l); margin: 0 var(--e2); }
+.esq-chip { width: 96px; height: 40px; flex: 0 0 auto; }
+.esq-titulo { width: 46%; height: 22px; border-radius: var(--r-s); }
+.esq-tarj { flex: 1 1 0; aspect-ratio: 1; }
+.esq-rec { height: 72px; }
+
+/* carátulas que todavía no han llegado: pulsan suavemente */
+img[data-cargando] { animation: esq-pulso 1.3s ease-in-out infinite; }
+@keyframes esq-pulso { 50% { opacity: .55; } }
+
+@media (prefers-reduced-motion: reduce) { .esq::after, img[data-cargando] { animation: none; } }
