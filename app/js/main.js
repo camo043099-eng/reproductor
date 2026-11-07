@@ -7,7 +7,7 @@ import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasG
 import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 
-const VERSION = "0.9.108";
+const VERSION = "0.9.109";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -503,12 +503,10 @@ function pintarDiagnostico() {
 setInterval(pintarDiagnostico, 1000);
 // Hi-Res puro: el modo solo se lee al crear el reproductor, así que el bypass real es el que había al arrancar
 const AVISO_HIRES = "El modo Hi-Res puro hace un bypass interno de Android y desactiva el ecualizador y crossfeed.";
-let hiresArranque = null;
 function pintarHiRes() {
   if (!MOTOR) return;
-  if (hiresArranque === null) hiresArranque = !!E.aj.hires;           // lo que está sonando ahora mismo
-  const activo = hiresArranque, pendiente = !!E.aj.hires !== activo;
-  const texto = E.aj.hires ? AVISO_HIRES + (pendiente ? " Se aplicará al volver a abrir Onda." : "") : "";
+  const activo = !!E.aj.hires;
+  const texto = activo ? AVISO_HIRES : "";
   for (const id of ["eq-aviso-hires", "aj-hires-aviso"]) { const el = $("#" + id); el.textContent = texto; el.hidden = !texto; }
   $("#hoja-eq").classList.toggle("hires-bypass", activo);
   $("#eq-on").disabled = activo; $("#aj-crossfeed").disabled = activo; $("#aj-fase").disabled = activo;
@@ -1720,7 +1718,7 @@ function enlazar() {
   $("#aj-crossfeed").addEventListener("change", (e) => { E.aj.crossfeed = +e.target.value; aplicarAvanzados(); guardarAjustes(); });
   $("#aj-fase").addEventListener("change", (e) => { E.aj.fase = e.target.checked; aplicarAvanzados(); guardarAjustes(); avisar(e.target.checked ? "Fase invertida activada" : "Fase normal", 2000); });
   for (const [id, clave, def] of TOGGLES) $("#" + id).addEventListener("change", async (e) => { E.aj[clave] = e.target.checked; if (clave === "enfoque") tocadoEnfoque = true; if (clave === "usbDir" && MOTOR) { reproductor.ponerUsbDirecto(e.target.checked).then((r) => avisar(!e.target.checked ? "USB directo apagado" : r.ok ? "USB directo activado" : r.motivo === "api" || r.api < 34 ? "Tu Android es anterior a la versión 14: no se puede" : r.motivo === "sin-usb" ? "No detecto un DAC USB conectado" : r.motivo === "rechazado" ? "Android rechazó el modo bit-perfect para este DAC" : r.motivo === "sin-bitperfect" ? "Tu teléfono no ofrece bit-perfect para este DAC" + (r.detalle ? " (ofrece: " + r.detalle + ")" : "") : "No pude activar USB directo" + (r.detalle ? ": " + r.detalle : ""))).catch(() => {}); }
-    if (clave === "hires" && MOTOR) { reproductor.ponerHiRes(e.target.checked).catch(() => {}); avisar("Se aplica al volver a abrir Onda.", 3500); } if (clave === "saltos" || clave === "progreso" || clave === "largoMin") setTimeout(actualizarSaltos, 0); aplicarAvanzados(); guardarAjustes(); if (clave === "sistema") { await cargarTodo(); dibujar(); } });
+    if (clave === "hires" && MOTOR) { reproductor.ponerHiRes(e.target.checked).catch(() => {}); } if (clave === "saltos" || clave === "progreso" || clave === "largoMin") setTimeout(actualizarSaltos, 0); aplicarAvanzados(); guardarAjustes(); if (clave === "sistema") { await cargarTodo(); dibujar(); } });
   for (const [id, clave] of SELECTS) $("#" + id).addEventListener("change", async (e) => { E.aj[clave] = e.target.value; if (clave === "retrasoBt" && reproductor.ruta === "bluetooth" && reproductor.rutaNombre) { (E.aj.retrasoBtDisp ||= {})[reproductor.rutaNombre] = e.target.value; const k = Object.keys(E.aj.retrasoBtDisp); if (k.length > 30) delete E.aj.retrasoBtDisp[k[0]]; } aplicarAvanzados(); guardarAjustes(); if (clave === "colchon") avisar("Se aplica al volver a abrir Onda"); if (clave === "minSeg") { await cargarTodo(); dibujar(); } if (clave === "largoMin") actualizarSaltos(); });
   $("#aj-copia").addEventListener("click", guardarCopia);
   $("#aj-usbinfo")?.addEventListener("click", async () => {

@@ -193,6 +193,20 @@ public final class Motor {
         mezclar();
     }
 
+    /** Rehace el reproductor con los ajustes actuales (p. ej. Hi-Res puro) conservando cola, posición y estado de reproducción. Solo en el hilo principal. */
+    public static void reconstruir() {
+        ExoPlayer a = jugador; if (a == null) return;
+        ExoPlayer b = crearCruce();
+        List<MediaItem> todos = new ArrayList<>(); for (int i = 0; i < a.getMediaItemCount(); i++) todos.add(a.getMediaItemAt(i));
+        if (!todos.isEmpty()) b.setMediaItems(todos, a.getCurrentMediaItemIndex(), a.getCurrentPosition());
+        b.setRepeatMode(a.getRepeatMode()); b.setShuffleModeEnabled(a.getShuffleModeEnabled()); b.setPlaybackParameters(a.getPlaybackParameters()); b.setPauseAtEndOfMediaItems(a.getPauseAtEndOfMediaItems());
+        boolean sonar = a.getPlayWhenReady();
+        a.pause();                                                       // que el viejo calle antes de que empiece el nuevo
+        if (!todos.isEmpty()) b.prepare();
+        b.setPlayWhenReady(sonar);
+        intercambiar();
+    }
+
     public static synchronized void liberar() {
         if (sesion != null) { sesion.release(); sesion = null; }
         if (jugador != null) { jugador.release(); jugador = null; }

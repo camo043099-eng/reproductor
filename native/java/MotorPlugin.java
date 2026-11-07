@@ -292,10 +292,17 @@ public class MotorPlugin extends Plugin {
             call.resolve();
         } catch (Throwable e) { call.resolve(); }
     }
-    /** Hi-Res puro: se guarda y se aplica al volver a abrir la app (el reproductor se crea una sola vez) */
+    /** Hi-Res puro: se guarda y, si cambió y el reproductor ya existe, se rehace en caliente con la misma cola y posición */
     @PluginMethod public void hiResPuro(PluginCall call) {
         boolean on = call.getBoolean("on", false);
-        getContext().getSharedPreferences("onda_motor", Context.MODE_PRIVATE).edit().putBoolean("hires", on).apply(); call.resolve();
+        android.content.SharedPreferences sp = getContext().getSharedPreferences("onda_motor", Context.MODE_PRIVATE);
+        boolean antes = sp.getBoolean("hires", false);
+        sp.edit().putBoolean("hires", on).apply();
+        if (antes == on || Motor.jugador == null) { call.resolve(); return; }
+        ui(call, () -> {
+            cruceCancelar(); Motor.reconstruir(); asegurar(); aplicarGanancia();
+            emitir("estado", estadoActual()); call.resolve();
+        });
     }
     /** diagnóstico en vivo (se consulta cada segundo desde Ajustes → Audio): ¿el DSP recibe audio ahora? */
     @PluginMethod public void diagnostico(PluginCall call) {
