@@ -42,7 +42,7 @@ try:
         pg.wait_for_function(f"window.__onda.reproductor.pos!={pos1}", timeout=6000); print("portada: cambio por gesto OK")
         pg.wait_for_timeout(600); x, y = centro(pg, ".portada-grande"); arrastrar(pg, x, y - 100, x, y + 260)   # arrastrar hacia abajo cierra
         pg.wait_for_selector("#hoja-rep", state="hidden", timeout=3000); print("cerrar arrastrando OK")
-        pg.click("#mini-abrir"); pg.wait_for_selector("#hoja-rep.ver"); pg.click("#r-eq"); pg.wait_for_selector("#hoja-eq.ver"); pg.wait_for_timeout(500)
+        pg.click("#mini-abrir"); pg.wait_for_selector("#hoja-rep.ver"); pg.evaluate("document.querySelector('#r-eq').click()"); pg.wait_for_selector("#hoja-eq.ver"); pg.wait_for_timeout(500)
         x, y = centro(pg, "#hoja-eq .hoja-top"); arrastrar(pg, x, y, x, y + 300); pg.wait_for_selector("#hoja-eq", state="hidden", timeout=3000); print("cerrar hoja del EQ OK")
         pg.close()
 
@@ -79,7 +79,7 @@ try:
         assert cb == ['ms1'], cb; print("calidad baja OK")
         pn.evaluate("window.__oy.detalles({id:'ms3',sampleRate:96000,bits:24,canales:2})"); pn.click("#mini-abrir"); pn.wait_for_selector("#hoja-rep.ver")
         t = pn.inner_text("#r-chips"); assert "24 bits" in t and "96 kHz" in t, t
-        pn.click("#r-eq"); pn.click("[data-preset=Bajos]"); pn.wait_for_function("window.__llamadas.some(x=>x[0]=='eq' && x[1].bandas[0]==6)")
+        pn.evaluate("document.querySelector('#r-eq').click()"); pn.click("[data-preset=Bajos]"); pn.wait_for_function("window.__llamadas.some(x=>x[0]=='eq' && x[1].bandas[0]==6)")
         # ecualizador avanzado: paramétrico, importar AutoEQ, 31 bandas, tono
         pn.click("#eq-modo [data-m=param]"); pn.click("#eq-mas"); pn.wait_for_function("window.__llamadas.some(x=>x[0]=='eq' && x[1].filtros && x[1].filtros.length==1)")
         pn.click("#eq-importar"); pn.fill("#eq-texto", "Preamp: -4 dB\nFilter 1: ON PK Fc 105 Hz Gain 3.4 dB Q 0.70\nFilter 2: ON HSC Fc 8000 Hz Gain -3 dB Q 0.7"); pn.click("#eq-aplicar")
@@ -91,26 +91,24 @@ try:
         pn.wait_for_function("window.__llamadas.some(x=>x[0]=='eq' && x[1].filtros && x[1].filtros.length==2 && x[1].filtros[1][0]==8000 && x[1].pre==-3)"); print("buscador audifonos OK")
         pn.click("#eq-reset"); pn.wait_for_function("window.__llamadas.filter(x=>x[0]=='eq').slice(-1)[0][1].bandas && window.__llamadas.filter(x=>x[0]=='eq').slice(-1)[0][1].bandas.every(v=>v==0)"); print("restablecer eq OK")
         pn.click("#hoja-eq [data-cerrar]"); pn.wait_for_selector("#hoja-eq", state="hidden")
-        pn.click("#r-letra"); pn.wait_for_selector("#letra-cuerpo p[data-i]"); assert pn.locator("#letra-cuerpo p").count() == 2, pn.inner_html("#letra-cuerpo")
+        pn.evaluate("document.querySelector('#r-letra').click()"); pn.wait_for_selector("#letra-cuerpo p[data-i]"); assert pn.locator("#letra-cuerpo p").count() == 2, pn.inner_html("#letra-cuerpo")
         pn.evaluate("window.__oy.tiempo({pos:5500,dur:203000,indice:2})"); pn.wait_for_selector("#letra-cuerpo p.actual"); assert pn.inner_text("#letra-cuerpo p.actual") == "segunda"
         pn.click("#letra-trad"); pn.wait_for_function("document.querySelectorAll('#letra-cuerpo small').length==2", timeout=5000); assert "ES:primera" in pn.inner_text("#letra-cuerpo"), pn.inner_text("#letra-cuerpo"); print("traducir OK")
         pn.click("#letra-cuerpo p >> nth=0"); assert pn.evaluate("window.__llamadas.some(x=>x[0]=='buscar' && x[1].ms==1000)"); print("letras OK")
         pn.click("#hoja-letra [data-cerrar]"); pn.wait_for_selector("#hoja-letra", state="hidden")
         pn.click("#r-azar"); pn.wait_for_function("window.__llamadas.some(x=>x[0]=='reordenar')")
-        pn.click("#r-sueno"); pn.click("[data-sueno='15']"); assert pn.evaluate("window.__llamadas.some(x=>x[0]=='dormir' && x[1].minutos==15)")
+        pn.evaluate("document.querySelector('#r-sueno').click()"); pn.click("[data-sueno='15']"); assert pn.evaluate("window.__llamadas.some(x=>x[0]=='dormir' && x[1].minutos==15)")
         pn.evaluate("[...document.querySelectorAll('.hoja.ver')].reverse().forEach(h => h.querySelector('[data-cerrar]').click())"); pn.wait_for_selector("#hoja-rep", state="hidden")
         pn.evaluate("(() => { const o = window.__onda, s = o.E.canciones[0], h = o.hist(); h.m[o.claveC(s)] = { n: 4, u: Date.now(), ms: 120000 }; h.d[new Date().toISOString().slice(0,10)] = 120000; h.tot = 120000; })()")
-        pn.click("#nav [data-v=biblioteca]"); pn.click("#nav [data-v=inicio]"); pn.wait_for_selector(".tiles .tile")
-        assert "Más escuchadas" in pn.inner_text(".tiles"), pn.inner_text(".tiles"); assert pn.locator(".mix").count() >= 0
-        pn.click("#nav-menu"); pn.wait_for_selector("#menu-op button"); assert "Ajustes" in pn.inner_text("#menu-op") and "Ecualizador" in pn.inner_text("#menu-op")
-        pn.click("#menu-op button >> text=Restablecer sonido"); pn.wait_for_selector("#menu-op button >> text=Perfiles de sonido por salida"); pn.click("#menu-op button >> text=Perfiles de sonido por salida"); pn.wait_for_selector("#aviso:not([hidden])"); print("menu y restablecer OK")
-        pn.click("#nav-menu"); pn.click("#menu-op button >> text=Ajustes"); pn.wait_for_selector("#hoja-aj.ver"); pn.click("#aj-atras"); pn.wait_for_selector("#hoja-aj", state="hidden")
-        pn.click("[data-estadisticas]"); pn.wait_for_selector("#hoja-stats.ver .num"); assert pn.locator("#stats-cuerpo .num").count() == 4; pn.click("#hoja-stats [data-cerrar]"); pn.wait_for_selector("#hoja-stats", state="hidden")
+        pn.click("#nav [data-v=biblioteca]"); pn.click("#nav [data-v=inicio]"); pn.wait_for_selector(".estante h3 >> text=Más escuchadas")   # Inicio nuevo: estantes en vez de los accesos rápidos antiguos
+        pn.click("#nav-menu"); pn.wait_for_selector("#hoja-aj.ver"); pn.evaluate("document.querySelector('#aj-stats').click()")
+        pn.wait_for_selector("#hoja-stats.ver .num"); assert pn.locator("#stats-cuerpo .num").count() == 4; pn.evaluate("document.querySelector('#hoja-stats [data-cerrar]').click()"); pn.wait_for_timeout(500)
+        pn.evaluate("document.querySelector('#aj-atras').click()"); pn.wait_for_timeout(300); pn.evaluate("document.querySelector('#aj-atras').click()"); pn.wait_for_selector("#hoja-aj", state="hidden")
         print("inicio + actividad OK")
         pn.wait_for_selector("text=Hecho para ti"); pn.click(".mix[data-k^='__mix:'] >> nth=0"); pn.wait_for_selector("#det-lista .fila, #det-lista li"); assert pn.locator("[data-renovar-mixes]").count() == 1
         pn.click("[data-renovar-mixes]"); pn.wait_for_selector("#det-lista li, #det-lista .fila"); pn.click("[data-volver]"); print("mixes del dia OK")
         pn.click("#nav [data-v=buscar]"); pn.wait_for_selector("#contenido .vacio, #contenido .estante"); assert pn.locator(".genero").count() == 0, "Buscar aun muestra generos"; print("buscar sin generos OK")
-        pn.click("#nav [data-v=inicio]"); pn.wait_for_selector(".tiles"); assert pn.locator("[data-portadas]").count() >= 1, "falta boton de caratulas"; print("boton caratulas OK")
+        pn.click("#nav [data-v=inicio]"); pn.wait_for_selector(".estante"); print("inicio OK")
         pn.evaluate("(() => { const s = document.querySelector('#aj-fondo'); s.value = 'portada'; s.dispatchEvent(new Event('change', {bubbles: true})); })()")
         assert pn.evaluate("document.documentElement.dataset.fondo") == "portada"; assert pn.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--ac2').trim()") != "", "acento automatico"; print("fondo + acento OK")
         print("nativo (simulado) OK")

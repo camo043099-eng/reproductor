@@ -9,7 +9,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.18.0";
+const VERSION = "0.19.0";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -96,7 +96,7 @@ function pintar(c, items, f, envoltura, perezoso = 0) {
     if (!perezoso && document.activeElement?.id === "q") { seguirPintado = () => requestAnimationFrame(paso); return; }   // con el buscador tocado no se pinta de fondo (bloqueaba el teclado y la escritura); se retoma al soltarlo
     const t0 = performance.now(), fin = Math.min(items.length, i + lote); let h = ""; for (let k = i; k < fin; k++) h += f(items[k], k);
     const t = document.createElement("template"); t.innerHTML = h; imagenes(t.content); cont.appendChild(t.content); i = fin;
-    const dt = performance.now() - t0; if (!perezoso) lote = dt > 9 ? Math.max(8, lote >> 1) : dt < 4 ? Math.min(120, lote + 12) : lote;      // cada tanda cabe en ~un cuadro: la pantalla no se congela
+    const dt = performance.now() - t0; if (!perezoso) lote = dt > 9 ? Math.max(8, lote >> 1) : dt < 4 ? Math.min(60, lote + 12) : lote;      // cada tanda cabe en ~un cuadro: la pantalla no se congela
     if (i >= items.length) vl.completa = true; else if (!perezoso) ocioso(paso);
   };
   forzarPintado = () => { if (mi !== tokenPintado || i >= items.length) return; let h = ""; for (let k = i; k < items.length; k++) h += f(items[k], k); const t = document.createElement("template"); t.innerHTML = h; imagenes(t.content); cont.appendChild(t.content); i = items.length; vl.completa = true; };
@@ -534,7 +534,8 @@ function ponerLargo(el, texto) {
 }
 // diagnóstico del DSP en vivo: muestra si el procesador de Java recibe audio ahora mismo
 function pintarDiagnostico() {
-  const el = $("#diag-audio"); if (!el || !MOTOR || !reproductor?.diagnostico || !el.offsetParent) return;
+  if (!MOTOR || document.hidden || ajPag !== "audio" || !pila.includes("hoja-aj") || !reproductor?.diagnostico) return;   // solo con Ajustes > Sonido a la vista (antes forzaba un cálculo de maquetación cada segundo)
+  const el = $("#diag-audio"); if (!el) return;
   reproductor.diagnostico().then((d) => {
     const estado = !d.sonando ? "en pausa"
       : !d.configurado ? "procesador no configurado"
@@ -1911,7 +1912,13 @@ function mostrarBienvenida(forzar) {
     window.addEventListener(EVENTO_BIENVENIDA, alTerminar);
   });
 }
+// accesibilidad: cada interruptor toma su nombre del texto de su fila (el <label> solo envuelve la casilla)
+function nombrarInterruptores() {
+  document.querySelectorAll(".campo > label.interruptor input").forEach((i) => { const t = i.closest(".campo").querySelector(":scope > span:first-child"); if (t && !i.getAttribute("aria-label")) i.setAttribute("aria-label", t.textContent.trim()); });
+  const eq = $("#eq-on"); if (eq && !eq.getAttribute("aria-label")) eq.setAttribute("aria-label", "Ecualizador activado");
+}
 async function iniciar() {
+  nombrarInterruptores();
   const alBienvenida = mostrarBienvenida(false);
   history.replaceState({ raiz: 1 }, ""); history.pushState({ s: 1 }, "");   // así el gesto de atrás no cierra la app de golpe
   reproductor = MOTOR ? new ReproductorNativo(MOTOR) : new Reproductor({ obtenerBlob: (id) => db.traer("archivos", id), obtenerPortada: async (s) => (s.alb ? db.traer("portadas", s.alb) : null) });

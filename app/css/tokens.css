@@ -29,3 +29,11 @@ html, html body, button, input, select, textarea { font-family: var(--fuente); }
 html:root .ambiente { background: radial-gradient(120% 42% at 50% -10%, color-mix(in srgb, var(--ac-1) 20%, transparent), transparent 72%), var(--c-fondo); }
 html:root[data-fondo="negro"] .ambiente { background: #000; }
 html:root[data-fondo="portada"] .ambiente, html:root[data-fondo="imagen"] .ambiente { background: var(--c-fondo); }
+
+/* objetivos táctiles de al menos 44 px (lo pide el rediseño) en los controles que se quedaban en 30–39 px */
+html #hoja-aj .campo button, html #hoja-aj .campo input[type="text"], html #hoja-aj .ajustes select, html #hoja-aj .sel-btn,
+html .hoja .chip, html .hoja .pill, html .hoja .seg button, html #orden, html #r-buscar-port, html .fila .mas { min-height: var(--toque); }
+html .fila .mas { min-width: var(--toque); }
+html #hoja-cola .fichas .chip, html .fichas .chip { min-height: var(--toque); }
+html .cq button { min-width: var(--toque); min-height: var(--toque); }
+html #hoja-aj summary { min-height: var(--toque); display: flex; align-items: center; }

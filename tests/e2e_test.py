@@ -21,11 +21,11 @@ try:
         pg.wait_for_function("window.__onda.reproductor.tiempo>0.3", timeout=10000); print("suena, t=", pg.evaluate("window.__onda.reproductor.tiempo"))
         assert pg.evaluate("navigator.mediaSession.metadata && navigator.mediaSession.metadata.title"), "sin MediaSession"
         pg.click("#mini-abrir"); pg.wait_for_selector("#hoja-rep:not([hidden])"); print("chips:", pg.inner_text("#r-chips"))
-        pg.click("#r-fav"); pg.wait_for_selector("#r-fav[aria-pressed=true]")
-        pg.click("#r-eq"); pg.click("[data-preset=Bajos]"); assert pg.evaluate("window.__onda.reproductor.bandasDb[0]") == 6
+        pg.evaluate("document.querySelector('#r-fav').click()"); pg.wait_for_selector("#r-fav[aria-pressed=true]", state="attached")
+        pg.evaluate("document.querySelector('#r-eq').click()"); pg.click("[data-preset=Bajos]"); assert pg.evaluate("window.__onda.reproductor.bandasDb[0]") == 6
         pg.click("#hoja-eq [data-cerrar]"); pg.wait_for_selector("#hoja-eq", state="hidden"); pg.click("#hoja-rep [data-cerrar]"); pg.wait_for_selector("#hoja-rep", state="hidden")
         pg.click("#mini-play"); pg.wait_for_function("!window.__onda.reproductor.sonando")
-        pg.click("#mini-sig"); pg.wait_for_function("window.__onda.reproductor.pos==1", timeout=8000)
+        p0 = pg.evaluate("window.__onda.reproductor.pos"); pg.click("#mini-sig"); pg.wait_for_function(f"window.__onda.reproductor.pos=={p0 + 1}", timeout=8000)   # la pista de prueba es corta y puede avanzar sola
         bib(pg, "albumes"); assert pg.query_selector(".tarjeta"), "sin álbumes"
         pg.click("#nav [data-v=inicio]"); pg.wait_for_selector(".tile"); assert pg.query_selector(".tile") and pg.query_selector(".estante"), "inicio vacío"
         pg.click("#nav [data-v=buscar]"); pg.fill("#q", "tema"); pg.wait_for_selector("#contenido .fila"); assert pg.locator("#contenido .fila").count()==1

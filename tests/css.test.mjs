@@ -94,3 +94,16 @@ test("Fase 5: hojas.css enlazado y en SHELL; la carátula de relleno va en la pa
   assert.match(placa, /n % 60/);
   assert.ok(!/rgba\(255, ?69, ?58/.test(readFileSync(new URL("../app/styles.css", import.meta.url), "utf8").split("\n").filter((l) => /\.cq\.ahora|\.cat-b/.test(l)).join("\n")), "sin rojo fijo en la cola ni en las categorías");
 });
+
+test("sin internet: todo archivo local que carga index.html, sus módulos JS y los CSS está en SHELL del service worker", () => {
+  const app = (r) => readFileSync(new URL("../app/" + r, import.meta.url), "utf8");
+  const sw = app("sw.js"), shell = [...sw.slice(sw.indexOf("const SHELL"), sw.indexOf("];", sw.indexOf("const SHELL"))).matchAll(/"([^"]+)"/g)].map((m) => m[1]).filter((x) => x !== "SHELL");
+  const norm = (p) => p.replace(/^\.\//, "");
+  const necesarios = new Set(["index.html"]);
+  for (const m of app("index.html").matchAll(/(?:href|src)="([^"#?:]+\.[a-z0-9]+)"/g)) necesarios.add(norm(m[1]));
+  for (const f of [...necesarios].filter((x) => x.endsWith(".css"))) for (const m of app(f).matchAll(/url\("?([^")]+\.(?:ttf|woff2?|png|svg))"?\)/g)) { const base = f.split("/").slice(0, -1); for (const seg of m[1].split("/")) { if (seg === "..") base.pop(); else if (seg !== ".") base.push(seg); } necesarios.add(base.join("/")); }
+  const vistos = new Set(); const cola = ["js/main.js"];
+  while (cola.length) { const f = cola.pop(); if (vistos.has(f)) continue; vistos.add(f); necesarios.add(f); for (const m of app(f).matchAll(/from\s+"(\.[^"]+\.js)"/g)) cola.push("js/" + norm(m[1])); }
+  const faltan = [...necesarios].filter((x) => !shell.map(norm).includes(x) && x !== "index.html" && !x.startsWith("http"));
+  assert.deepEqual(faltan, [], "faltan en SHELL: " + faltan.join(", "));
+});
