@@ -8,7 +8,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.9.110";
+const VERSION = "0.9.111";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -360,8 +360,8 @@ function dibujarBuscar() {
   listaBase = ordenadas(); listaActual = listaBase.filter((s) => coincide(s, q));   // ya viene ordenada y en caché: no se reordena la biblioteca en cada letra
   const albs = albumesReales([...gruposAlbum()]).filter(([, v]) => v.some((s) => coincide(s, q))).slice(0, 10);
   const cabeza = (albs.length ? `<section class="estante"><h3>Álbumes</h3><div class="carril">${albs.map(([k, v]) => `<button class="tarjeta" type="button" data-det="album" data-k="${esc(k)}">${imgHtml(v[0])}<b>${esc(v[0].album || "Sin álbum")}</b><span>${esc(v[0].albumArtista || v[0].artista || "")}</span></button>`).join("")}</div></section>` : "") +
-    (listaActual.length ? `<h3 class="sub">Canciones</h3>` : `<div class="vacio">Nada coincide con “${esc(E.q)}”.</div>`);
-  pintar(c, listaActual, (s, i) => filaCancion(s, i), (h) => cabeza + `<ul class="lista" data-tandas>${h}</ul>`);
+    (listaActual.length ? `<h3 class="sub">Canciones</h3>${listaActual.length > 50 ? `<p class="suave pequeno">Mostrando 50 de ${listaActual.length}</p>` : ""}` :`<div class="vacio">Nada coincide con “${esc(E.q)}”.</div>`);
+  pintar(c, listaActual.slice(0, 50), (s, i) => filaCancion(s, i), (h) => cabeza + `<ul class="lista" data-tandas>${h}</ul>`);   // solo se dibujan las 50 primeras; listaActual sigue entera para la cola
 }
 // barra de letras A–Z para saltar rápido en listas largas
 let indiceUlt = null;
@@ -1606,7 +1606,7 @@ function enlazar() {
   $("#nav-menu").addEventListener("click", () => abrirAjustes());
   $("#aj-stats").addEventListener("click", () => abrirStats());
   $("#b-bib-atras").addEventListener("click", () => { E.bibRaiz = true; E.detalle = null; if (E.q) { E.q = ""; $("#q").value = ""; } dibujar(); animarCambio(); window.scrollTo(0, 0); });
-  { let tq = 0; $("#q").addEventListener("input", (e) => { E.q = e.target.value; clearTimeout(tq); tq = setTimeout(dibujar, E.canciones.length > 3000 ? 240 : 140); }); }
+  { let tq = 0; $("#q").addEventListener("input", (e) => { E.q = e.target.value; clearTimeout(tq); tq = setTimeout(dibujar, 200); }); }
   $("#b-agregar").addEventListener("click", () => (MOTOR ? iniciarNativo(true) : menu("Agregar música", [
     { t: "Elegir canciones", f: () => $("#f-audio").click() }, { t: "Elegir una carpeta completa", f: elegirCarpeta }])));
   $("#b-ajustes").addEventListener("click", () => abrirAjustes());
