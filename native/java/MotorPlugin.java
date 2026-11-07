@@ -495,14 +495,14 @@ public class MotorPlugin extends Plugin {
             boolean deAudio = cod == PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED || cod == PlaybackException.ERROR_CODE_AUDIO_TRACK_WRITE_FAILED
                     || cod == PlaybackException.ERROR_CODE_AUDIO_TRACK_OFFLOAD_INIT_FAILED || cod == PlaybackException.ERROR_CODE_AUDIO_TRACK_OFFLOAD_WRITE_FAILED;
             if (deAudio && fallosAudio < 2) {                              // el teléfono no aceptó el formato de salida: se reintenta de forma más sencilla
-                fallosAudio++; ExoPlayer q = Motor.jugador;
+                fallosAudio++; ExoPlayer q = Motor.jugador; boolean sonaba = q.getPlayWhenReady();   // el reintento no debe arrancar la música si estaba en pausa (al abrir la app sonaba sola un instante)
                 if (fallosAudio == 1) { EqProcesador.salida16 = true; }   // solo en esta sesión: no se guarda
                 else { sinEfectos = true; try { if (virt != null) virt.release(); } catch (Exception x) { } try { if (bass != null) bass.release(); } catch (Exception x) { } virt = null; bass = null; }
                 if (fallosAudio > 1) { JSObject o = new JSObject(); o.put("mensaje", "Desactivé los efectos de sonido del sistema para poder reproducir."); emitir("error", o); }
-                long pos = q.getCurrentPosition(); int idx = q.getCurrentMediaItemIndex(); q.prepare(); q.seekTo(idx, pos); q.play(); return;
+                long pos = q.getCurrentPosition(); int idx = q.getCurrentMediaItemIndex(); q.prepare(); q.seekTo(idx, pos); if (sonaba) q.play(); return;
             }
             JSObject o = new JSObject(); o.put("mensaje", "No pude reproducir esta canción (" + e.getErrorCodeName() + ")."); emitir("error", o);
-            ExoPlayer p = Motor.jugador; if (p.hasNextMediaItem()) { p.seekToNextMediaItem(); p.prepare(); p.play(); }
+            ExoPlayer p = Motor.jugador; if (p.hasNextMediaItem()) { boolean sonaba = p.getPlayWhenReady(); p.seekToNextMediaItem(); p.prepare(); if (sonaba) p.play(); }
         }
     }
 
