@@ -77,4 +77,4 @@ cd android && ./gradlew assembleDebug
 
 ## Estado
 
-Proyecto personal en desarrollo activo. La versión actual en la rama `develop` es la **0.11.0**.
+Proyecto personal en desarrollo activo. La versión actual en la rama `develop` es la **0.11.1**.

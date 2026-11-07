@@ -29,3 +29,6 @@ html[data-modo="claro"] #r-barra { background: linear-gradient(to right, var(--a
 .hoja.completa .controles .ib[aria-pressed="true"], .hoja.completa .controles #r-rep:not([data-modo="no"]) { color: var(--ac2); }
 html .hoja.completa .controles .play { background: var(--acento); color: #fff; box-shadow: var(--sombra-2); }
 html[data-modo="claro"] .hoja.completa .controles .play { background: var(--acento); color: #fff; }
+
+/* en pausa la carátula se encoge solo un poco (antes 84 %: quedaba pequeña dentro del anillo) */
+.hoja.completa .rep-disco .portada-grande.pausada { transform: scale(.94); }
