@@ -8,7 +8,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.9.116";
+const VERSION = "0.10.0";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -598,14 +598,15 @@ function aplicarColores() {
   const claro = a.tema === "claro", mor = (a.tema || "mornye") === "mornye" || claro;                       // Mornye: acento rojo fijo, no depende de la portada
   r.classList.toggle("coche", !!a.coche);
   r.dataset.tema = a.tema === "nocturno" ? "nocturno" : mor ? "mornye" : "onda";
-  r.dataset.modo = claro ? "claro" : "oscuro"; { const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = claro ? "#f2f2f7" : "#000000"; const cs = document.querySelector('meta[name="color-scheme"]'); if (cs) cs.content = claro ? "light" : "dark"; }
+  r.dataset.modo = claro ? "claro" : "oscuro"; { const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = claro ? "#f2f2f7" : "#1c2129"; const cs = document.querySelector('meta[name="color-scheme"]'); if (cs) cs.content = claro ? "light" : "dark"; }
   r.dataset.fuente = mor ? (a.fuente === "gsf" ? "gsf" : "inter") : "sistema";
   if (mor) { r.style.setProperty("--rebote", RESORTE_ESPACIAL); r.style.setProperty("--muelle", RESORTE_EFECTO); }
   else { r.style.removeProperty("--rebote"); r.style.removeProperty("--muelle"); }
-  if (ac === "auto" && t && !mor) { r.style.setProperty("--ac2", t.ac); r.style.setProperty("--sw", t.ac); }
-  else if (ac && ac !== "auto") { r.style.setProperty("--ac2", ac); r.style.setProperty("--sw", ac); }
-  else if (mor && ac === "auto") { r.style.setProperty("--ac2", "#ff453a"); r.style.setProperty("--sw", "#ff453a"); }
-  else { r.style.removeProperty("--ac2"); r.style.removeProperty("--sw"); }
+  // Acento en degradado (--ac-1 → --ac-2) y color de texto/iconos (--ac2): toman el tono de la carátula que suena; sin carátula, el degradado de respaldo violeta → azul (css/tokens.css)
+  const tono = ac !== "auto" ? null : Number(/hsl\((\d+)/.exec(t?.ac || "")?.[1]);
+  if (ac !== "auto") { r.style.setProperty("--ac-1", ac); r.style.setProperty("--ac-2", ac); r.style.setProperty("--ac2", ac); r.style.setProperty("--sw", ac); }
+  else if (tono >= 0) { r.style.setProperty("--ac-1", `hsl(${tono} 70% 46%)`); r.style.setProperty("--ac-2", `hsl(${(tono + 38) % 360} 72% 38%)`); r.style.setProperty("--ac2", t.ac); r.style.setProperty("--sw", t.ac); }
+  else for (const k of ["--ac-1", "--ac-2", "--ac2", "--sw"]) r.style.removeProperty(k);
   const f = a.fondo || "degradado"; r.dataset.fondo = f;
   const u = f === "portada" ? ultimaPortada : f === "imagen" ? fondoUsuario?.url : null;
   r.style.setProperty("--fondo-img", u ? `url("${u}")` : "none");

@@ -1,0 +1,23 @@
+/* Onda — cabecera, pestañas y barra inferior (Fase 1). Reglas en `html …` para ganar a las antiguas de styles.css. */
+
+/* cabecera */
+html .cabeza h1 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; }
+html .cabeza .ib { width: var(--toque); height: var(--toque); background: var(--c-sup) !important; border: 0 !important; border-radius: 50%; box-shadow: var(--sombra-1) !important; }
+html .cabeza-izq .ib { margin-left: -4px; }
+
+/* buscador */
+html .buscador input { height: 48px; border-radius: var(--r-l); background: var(--c-sup) !important; border: 0 !important; padding: 0 var(--e5); font-weight: 500; }
+
+/* pestañas de la biblioteca: cápsulas redondeadas; la activa lleva el degradado */
+html .pestanas { gap: var(--e2); padding: var(--e2) var(--e4) var(--e3); }
+html .pestanas button { min-height: 40px; padding: 0 var(--e4); border-radius: var(--r-m); background: var(--c-sup); color: var(--c-suave); font-weight: 600; font-size: .875rem; border: 0; }
+html .pestanas button[aria-selected="true"], html .chip.activo { background: var(--acento); color: #fff; border: 0; }
+
+/* barra inferior: píldora flotante sobre la superficie, sin desenfoque; el destino activo lleva el degradado */
+html .nav { background: var(--c-sup) !important; border: 1px solid rgba(var(--w), .06) !important; border-radius: var(--r-l); padding: 6px; gap: 4px; box-shadow: var(--sombra-2) !important; }
+html .nav button { min-height: var(--toque); border-radius: var(--r-m); color: var(--c-suave); font-size: .6875rem; font-weight: 600; gap: 2px; }
+html .nav button[aria-current="page"] { background: var(--acento); color: #fff; box-shadow: none; }
+html .nav button[aria-current="page"] span { font-weight: 700; }
+html[data-modo="claro"] .nav { background: #fff !important; }
+html[data-modo="claro"] .nav button { color: rgba(0, 0, 0, .55); }
+html[data-modo="claro"] .nav button[aria-current="page"] { color: #fff; }

@@ -464,7 +464,7 @@ html.sinanim *, html.sinanim *::before, html.sinanim *::after { animation-durati
 /* sin vidrio: superficies lisas y baratas de dibujar; el fondo (degradado, carátula o tu imagen) se ve a través y los colores se adaptan a él */
 html { --sup: color-mix(in srgb, var(--t) 16%, rgb(20, 20, 26)); --sup-borde: color-mix(in srgb, var(--t) 30%, rgba(var(--w), .10)); }
 html *, html *::before, html *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; box-shadow: none !important; text-shadow: none !important; }
-html .mini, html .nav, html .hoja.corta, html .aviso, html .tile, html .boton, html .chip, html .cabeza .ib, html .extras, html .genero, html .sel-btn, html .aj-cat, html .pp, html .buscador input, html .seg, html .interruptor span, html .vidrio { background: var(--sup) !important; border: 1px solid var(--sup-borde) !important; color: var(--tx); }
+html .mini, html .hoja.corta, html .aviso, html .tile, html .boton, html .chip, html .cabeza .ib, html .extras, html .genero, html .sel-btn, html .aj-cat, html .pp, html .buscador input, html .seg, html .interruptor span, html .vidrio { background: var(--sup) !important; border: 1px solid var(--sup-borde) !important; color: var(--tx); }
 html .boton.primario, html .boton.primario * { background: #fff !important; color: #000 !important; border-color: #fff !important; }
 html .boton.primario svg { fill: none; stroke: #000; }
 html .interruptor input:checked + span { background: var(--ac2) !important; }
@@ -707,14 +707,13 @@ html .aj-pag > .aviso-hires { margin: 0; border-radius: 0; }
 .barra-sel #sel-rango.activo { background: var(--ac2); color: #000; }
 .barra-sel .sel-fila > span { min-width: 0; }
 
-/* Estilo Mornye (por defecto): acento rojo fijo (#FF453A en oscuro), selección y pestañas en ese color, bordes más redondeados y encabezados algo más ajustados. Con "Onda original" nada de esto se aplica. */
-html[data-tema="mornye"] { --ac2: #ff453a; --sw: #ff453a; --linea: rgba(var(--w), 0.12); }
+/* Estilo Mornye (por defecto): acento del degradado de la carátula (css/tokens.css), selección y pestañas en ese color, bordes más redondeados y encabezados algo más ajustados. Con "Onda original" nada de esto se aplica. */
+html[data-tema="mornye"] { --linea: rgba(var(--w), 0.12); }
 html[data-tema="mornye"] h1, html[data-tema="mornye"] .sub, html[data-tema="mornye"] .estante h3 { letter-spacing: -0.02em; }
-html[data-tema="mornye"] .pestanas button[aria-selected="true"], html[data-tema="mornye"] .chip.activo { background: #ff453a; color: #fff; border-color: #ff453a; }
-html[data-tema="mornye"] .nav button[aria-current="page"] { color: #ff453a; background: rgba(var(--w), 0.10); }
+html[data-tema="mornye"] .pestanas button[aria-selected="true"], html[data-tema="mornye"] .chip.activo { background: var(--acento); color: #fff; border-color: var(--ac-1); }
 html[data-tema="mornye"] .fila { border-radius: 12px; }
 html[data-tema="mornye"] .tile { border-radius: 12px; }
-html[data-tema="mornye"] .fila:active { background: rgba(255, 69, 58, 0.14); }
+html[data-tema="mornye"] .fila:active { background: color-mix(in srgb, var(--ac-1) 14%, transparent); }
 
 /* Tipografías de Mornye (incluidas en app/fonts). Con "Onda original" se usa la del sistema. */
 @font-face { font-family: "Inter Mornye"; src: url("fonts/InterVariable.ttf") format("truetype"); font-weight: 100 900; font-display: swap; }
@@ -735,9 +734,6 @@ body.rep-abierto #hoja-rep { padding-bottom: calc(var(--nav) + 26px + env(safe-a
 /* ── Rediseño por fases (Mornye). Fase 1: reproductor, mini reproductor y barra inferior. Con "Onda original" nada de esto aplica. */
 html[data-tema="mornye"] { --mini: 60px; }
 html[data-tema="mornye"] .nav { height: 64px; border-radius: 26px; background: linear-gradient(135deg, rgba(58, 58, 60, 0.62), rgba(28, 28, 30, 0.7)); }
-html[data-tema="mornye"] .nav button { font-weight: 500; font-size: 0.6875rem; }
-html[data-tema="mornye"] .nav button[aria-current="page"] { color: #ff453a; background: rgba(255, 69, 58, 0.16); box-shadow: none; }
-html[data-tema="mornye"] .nav button[aria-current="page"] span { font-weight: 600; }
 html[data-tema="mornye"] .mini { height: 60px; border-radius: 18px; padding: 0 10px 0 8px; gap: 4px; background: linear-gradient(135deg, rgba(58, 58, 60, 0.7), rgba(28, 28, 30, 0.66)); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(var(--w), 0.12); }
 html[data-tema="mornye"] .mini-info { gap: 10px; }
 html[data-tema="mornye"] .mini-info img { width: 44px; height: 44px; border-radius: 10px; }
@@ -745,13 +741,13 @@ html[data-tema="mornye"] .mini-texto b { font-size: 0.95rem; font-weight: 600; l
 html[data-tema="mornye"] .mini-texto span { font-size: 0.8125rem; }
 html[data-tema="mornye"] .mini .ib { width: 44px; height: 44px; }
 html[data-tema="mornye"] .mini-barra { left: 14px; right: 14px; bottom: 0; height: 2px; }
-html[data-tema="mornye"] .mini-barra i { background: var(--ac2, #ff453a); }
+html[data-tema="mornye"] .mini-barra i { background: var(--ac2); }
 html[data-tema="mornye"] .hoja.completa { background: linear-gradient(180deg, color-mix(in srgb, var(--t) 55%, var(--bg)) 0%, var(--bg2, #0b0b0d) 62%, var(--bg) 100%); }
 html[data-tema="mornye"] .datos h2 { font-size: 1.6rem; letter-spacing: -0.02em; }
 html[data-tema="mornye"] .datos p { font-size: 1rem; }
 html[data-tema="mornye"] .controles .play { background: #fff; color: #000; }
 html[data-tema="mornye"] .extras { background: rgba(28, 28, 30, 0.55); }
-html[data-tema="mornye"] #r-barra { accent-color: #ff453a; }
+html[data-tema="mornye"] #r-barra { accent-color: var(--ac-1); }
 
 
 /* ── Fase 2 (Inicio): accesos directos 3×3 deslizables, selección rápida ── */
@@ -764,11 +760,11 @@ html[data-tema="mornye"] #r-barra { accent-color: #ff453a; }
 .acc-pag .tile b { padding: 0 8px; font-size: 0.78rem; text-align: left; }
 .acc-puntos { display: flex; justify-content: center; gap: 6px; padding-top: 6px; }
 .acc-puntos i { width: 6px; height: 6px; border-radius: 99px; background: var(--tx2); opacity: .35; transition: width .35s var(--muelle, ease), opacity .25s ease, background-color .25s ease; }
-.acc-puntos i.on { width: 18px; opacity: 1; background: #ff453a; }
+.acc-puntos i.on { width: 18px; opacity: 1; background: var(--acento); }
 .seleccion .sec-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 16px; }
 .seleccion .sec-cab h3 { margin: 0; }
 .pill { flex: 0 0 auto; padding: 8px 14px; border-radius: 999px; font-weight: 700; font-size: 0.85rem; background: #fff; color: #000; }
-html[data-tema="mornye"] .pill { background: #ff453a; color: #fff; }
+html[data-tema="mornye"] .pill { background: var(--acento); color: #fff; }
 html[data-tema="mornye"] .acc-pag .tile { background: rgba(var(--w), .06); }
 
 /* ── Sueño del audiófilo: negro absoluto y letras rojo tenue (para no despertar a nadie) ── */
@@ -791,7 +787,7 @@ html[data-tema="nocturno"] .mix b, html[data-tema="nocturno"] .tarjeta b, html[d
 html[data-tema="nocturno"] .pill, html[data-tema="nocturno"] .fila-nav { border: 1px solid #5a1a1a !important; }
 
 /* ── Fase 3 (Biblioteca): botón flotante "Nueva" y filas con miniatura más grande ── */
-.fab { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); z-index: 40; height: 52px; padding: 0 20px; border-radius: 999px; font-weight: 700; font-size: 0.95rem; color: #fff; background: #ff453a; box-shadow: 0 10px 26px rgba(255, 69, 58, .38); transition: transform .3s var(--rebote, ease), opacity .2s ease; }
+.fab { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); z-index: 40; height: 52px; padding: 0 20px; border-radius: 999px; font-weight: 700; font-size: 0.95rem; color: #fff; background: var(--acento); box-shadow: 0 10px 26px color-mix(in srgb, var(--ac-1) 38%, transparent); transition: transform .3s var(--rebote, ease), opacity .2s ease; }
 .fab:active { transform: scale(.94); }
 .fab[hidden] { display: none; }
 @starting-style { .fab { transform: translateY(24px) scale(.8); opacity: 0; } }
@@ -891,11 +887,11 @@ html[data-tema="mornye"] #hoja-cola .cq.ahora .info b { color: #fff; }
 #hoja-aj .aj-pag > .campo + .campo { border-top: 1px solid rgba(var(--w), .06); }
 #hoja-aj .aj-pag > .campo > span:first-child { flex: 1 1 0; font-size: 1.02rem; font-weight: 600; line-height: 1.3; }
 #hoja-aj .aj-pag > .campo:has(.chips-sel) > span:first-child { flex: 1 1 100%; }
-#hoja-aj .aj-pag h3.sub { margin: 26px 0 6px; font-size: 1.02rem; font-weight: 800; text-transform: none; letter-spacing: 0; color: var(--ac2, #ff453a); }
+#hoja-aj .aj-pag h3.sub { margin: 26px 0 6px; font-size: 1.02rem; font-weight: 800; text-transform: none; letter-spacing: 0; color: var(--ac2); }
 .chips-sel { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .chips-sel button { padding: 9px 16px; border-radius: 999px; font-size: .92rem; font-weight: 600; color: var(--tx); background: rgba(var(--w), .07); border: 1px solid rgba(var(--w), .14); text-align: left; }
-.chips-sel button.activo { background: var(--ac2, #ff453a); border-color: var(--ac2, #ff453a); color: #fff; }
-html[data-tema="mornye"] .chips-sel button.activo { background: #ff453a; border-color: #ff453a; color: #fff; }
+.chips-sel button.activo { background: var(--acento); border-color: var(--ac-1); color: #fff; }
+html[data-tema="mornye"] .chips-sel button.activo { background: var(--acento); border-color: var(--ac-1); color: #fff; }
 #hoja-aj .aj-pag h3.sub { margin-left: 0; padding-left: 0; }
 
 /* ── Barra de volumen a la derecha (gesto en la mitad derecha) ── */
@@ -920,7 +916,7 @@ html[data-tema="mornye"] .chips-sel button.activo { background: #ff453a; border-
 .acc-lista { display: flex; gap: 8px; padding: 2px 16px 10px; overflow-x: auto; scrollbar-width: none; }
 .acc-lista::-webkit-scrollbar { display: none; }
 .acc-lista .boton { min-height: 40px; padding: 0 16px; font-size: .9rem; flex: 0 0 auto; }
-.acc-lista .boton.primario { background: #ff453a; border-color: #ff453a; color: #fff; box-shadow: 0 8px 22px rgba(255, 69, 58, .32); }
+.acc-lista .boton.primario { background: var(--acento); border-color: var(--ac-1); color: #fff; box-shadow: 0 8px 22px color-mix(in srgb, var(--ac-1) 32%, transparent); }
 .acciones-detalle { flex-wrap: wrap; }
 .acciones-detalle .boton { min-height: 40px; padding: 0 16px; font-size: .9rem; }
 .tarjeta .meta { opacity: .8; font-size: .75rem; }
@@ -935,21 +931,21 @@ html[data-tema="mornye"] .chips-sel button.activo { background: #ff453a; border-
 .dlg h3 { margin: 6px 0 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; }
 .dlg p { margin: 0; font-size: .9rem; line-height: 1.4; }
 .dlg input { width: 100%; height: 50px; padding: 0 18px; border-radius: 16px; color: var(--tx); font-size: 1rem; background: rgba(var(--w), .08); border: 1px solid var(--linea); outline: none; }
-.dlg input:focus { border-color: #ff453a; box-shadow: 0 0 0 3px rgba(255, 69, 58, .22); }
+.dlg input:focus { border-color: var(--ac-1); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac-1) 22%, transparent); }
 .dlg-b { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 4px; }
 .dlg-b .boton { width: 100%; justify-content: center; min-height: 48px; }
-.dlg-b .boton.primario { background: #ff453a; border-color: #ff453a; color: #fff; box-shadow: 0 8px 22px rgba(255, 69, 58, .3); }
+.dlg-b .boton.primario { background: var(--acento); border-color: var(--ac-1); color: #fff; box-shadow: 0 8px 22px color-mix(in srgb, var(--ac-1) 30%, transparent); }
 .dlg-b .boton.peligro { background: rgba(255, 69, 58, .16); border-color: rgba(255, 69, 58, .5); color: #ff6b6b; }
 
-html .boton.primario.acento, html .boton.primario.acento * { background: #ff453a !important; color: #fff !important; border-color: #ff453a !important; }
-html .boton.primario.acento { box-shadow: 0 8px 22px rgba(255, 69, 58, .32); }
+html .boton.primario.acento, html .boton.primario.acento * { background: var(--acento) !important; color: #fff !important; border-color: var(--ac-1) !important; }
+html .boton.primario.acento { box-shadow: 0 8px 22px color-mix(in srgb, var(--ac-1) 32%, transparent); }
 .barra-sel { flex-direction: column; align-items: stretch; gap: 0; }
 .barra-sel .sel-fila > span { flex: 1; text-align: center; font-weight: 600; font-size: .9rem; white-space: nowrap; }
 
 /* ── Tema claro (blanco con rojo Mornye): redefine los tokens; el resto de reglas se adapta solo ── */
 html[data-modo="claro"] {
   --w: 0, 0, 0; --bg: #f2f2f7; --bg2: #ffffff; --tx: #1c1c1e; --tx2: rgba(60, 60, 67, 0.66); --linea: rgba(0, 0, 0, 0.12);
-  --sup: #ffffff; --sup2: rgba(0, 0, 0, 0.06); --ac: #1c1c1e; --ac2: #ff453a; color-scheme: light;
+  --sup: #ffffff; --sup2: rgba(0, 0, 0, 0.06); --ac: #1c1c1e; color-scheme: light;
   --surf: #ffffff; --surf2: #ffffff; --surf3: #ffffff;
   --vidrio: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.72));
   --brillo: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 6px 20px rgba(60, 60, 67, 0.10);
@@ -964,18 +960,17 @@ html[data-modo="claro"] #hoja-aj .hoja-top { background: #f2f2f7 !important; }
 /* superficies de cristal: blanco con sombra suave en vez de brillo */
 html[data-modo="claro"] :is(.vidrio, .mini, .nav, .aviso, .tile, .boton, .chip, .cabeza .ib, .genero, .buscador input, .seg, .interruptor span) { -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); }
 html[data-modo="claro"] .interruptor span::after { background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
-html[data-modo="claro"] .nav button[aria-current="page"] { color: #ff453a; background: rgba(255, 69, 58, 0.12); box-shadow: none; }
 /* botones principales: oscuros sobre fondo claro (los rojos de Mornye siguen rojos) */
 html[data-modo="claro"] .boton.primario, html[data-modo="claro"] .boton.primario *, html[data-modo="claro"] .fichas .chip.mezcla { background: #1c1c1e !important; color: #fff !important; border-color: #1c1c1e !important; box-shadow: none; }
 html[data-modo="claro"] .boton.primario svg { stroke: #fff; }
-html[data-modo="claro"] .boton.primario.acento, html[data-modo="claro"] .boton.primario.acento *, html[data-modo="claro"] .acc-lista .boton.primario, html[data-modo="claro"] .dlg-b .boton.primario { background: #ff453a !important; color: #fff !important; border-color: #ff453a !important; }
+html[data-modo="claro"] .boton.primario.acento, html[data-modo="claro"] .boton.primario.acento *, html[data-modo="claro"] .acc-lista .boton.primario, html[data-modo="claro"] .dlg-b .boton.primario { background: var(--acento) !important; color: #fff !important; border-color: var(--ac-1) !important; }
 html[data-modo="claro"] .controles .play, html[data-tema="mornye"][data-modo="claro"] .controles .play { background: #1c1c1e; color: #fff; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22); }
 html[data-modo="claro"] .seg button[aria-pressed="true"], html[data-modo="claro"] .seg .on { background: #1c1c1e; color: #fff; }
-html[data-modo="claro"] .pill { background: #ff453a; color: #fff; }
+html[data-modo="claro"] .pill { background: var(--acento); color: #fff; }
 html[data-modo="claro"] .mini-barra i, html[data-modo="claro"] .mini-barra { }
-html[data-modo="claro"] .mini-barra i { background: #ff453a; }
-html[data-modo="claro"] input[type="range"] { accent-color: #ff453a; }
-html[data-modo="claro"] #r-barra { background: linear-gradient(to right, #ff453a var(--p, 0%), rgba(0, 0, 0, 0.14) var(--p, 0%)); }
+html[data-modo="claro"] .mini-barra i { background: var(--acento); }
+html[data-modo="claro"] input[type="range"] { accent-color: var(--ac-1); }
+html[data-modo="claro"] #r-barra { background: linear-gradient(to right, var(--ac-1) var(--p, 0%), rgba(0, 0, 0, 0.14) var(--p, 0%)); }
 html[data-modo="claro"] #r-barra::-webkit-slider-thumb { background: #fff; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4); }
 html[data-modo="claro"] .burbuja-t { background: #1c1c1e; color: #fff; }
 /* textos sobre tarjetas y fichas */
@@ -985,23 +980,21 @@ html[data-modo="claro"] .cat { background: linear-gradient(160deg, color-mix(in 
 html[data-modo="claro"] .cat b { color: var(--tx); }
 html[data-modo="claro"] .cat i { background: color-mix(in srgb, var(--ci, #888) 22%, #fff); }
 html[data-modo="claro"] .mix b, html[data-modo="claro"] .mix i { color: #fff; }
-html[data-modo="claro"] .fila.sonando b, html[data-modo="claro"] .fila.sonando .t { color: #ff453a; }
+html[data-modo="claro"] .fila.sonando b, html[data-modo="claro"] .fila.sonando .t { color: var(--ac2); }
 html[data-modo="claro"] .tarjeta img, html[data-modo="claro"] .tarjeta .sinport, html[data-modo="claro"] .tile img { box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18); }
 html[data-modo="claro"] .ajustes select option, html[data-modo="claro"] select option { color: #000; background: #fff; }
 html[data-modo="claro"] .aj-pag { background: #fff; border-color: rgba(0, 0, 0, 0.06); }
 html[data-modo="claro"] .barra-sel { background: rgba(255, 255, 255, 0.96); color: var(--tx); }
 html[data-modo="claro"] .indice { background: rgba(255, 255, 255, 0.7); }
 html[data-modo="claro"] .gesto-vol, html[data-modo="claro"] .gesto-vista { background: rgba(28, 28, 30, 0.86); color: #fff; }
-html[data-modo="claro"] .fab { background: #ff453a; color: #fff; }
+html[data-modo="claro"] .fab { background: var(--acento); color: #fff; }
 /* Claro: las superficies de cristal de Mornye y las tarjetas con gris fijo pasan a blanco */
 html[data-tema="mornye"][data-modo="claro"] :is(.vidrio, .mini, .nav, .hoja.corta, .aviso, .tile, .boton, .chip) { background: rgba(255, 255, 255, 0.86); border-color: rgba(0, 0, 0, 0.08); box-shadow: 0 4px 16px rgba(60, 60, 67, 0.10); color: var(--tx); }
 html[data-tema="mornye"][data-modo="claro"] .nav { background: rgba(255, 255, 255, 0.9); box-shadow: 0 8px 28px rgba(60, 60, 67, 0.18); }
 html[data-tema="mornye"][data-modo="claro"] .mini { background: rgba(255, 255, 255, 0.94); box-shadow: 0 8px 24px rgba(60, 60, 67, 0.18); }
-html[data-tema="mornye"][data-modo="claro"] .nav button { color: var(--tx2); }
-html[data-tema="mornye"][data-modo="claro"] .nav button[aria-current="page"] { color: #ff453a; }
-html[data-tema="mornye"][data-modo="claro"] .pestanas button[aria-selected="true"], html[data-tema="mornye"][data-modo="claro"] .chip.activo { background: #ff453a; color: #fff; border-color: #ff453a; }
+html[data-tema="mornye"][data-modo="claro"] .pestanas button[aria-selected="true"], html[data-tema="mornye"][data-modo="claro"] .chip.activo { background: var(--acento); color: #fff; border-color: var(--ac-1); }
 html[data-modo="claro"] .chip.mezcla, html[data-modo="claro"] .fichas .chip.mezcla { background: #1c1c1e !important; color: #fff !important; }
-html[data-modo="claro"] .acc-lista .boton.primario { background: #ff453a !important; color: #fff !important; border-color: #ff453a !important; }
+html[data-modo="claro"] .acc-lista .boton.primario { background: var(--acento) !important; color: #fff !important; border-color: var(--ac-1) !important; }
 html[data-modo="claro"] .acc-pag .tile, html[data-tema="mornye"][data-modo="claro"] .acc-pag .tile { background: #fff; }
 html[data-modo="claro"] .acc-pag .tile b { color: var(--tx); }
 html[data-modo="claro"] .aj-grupo, html[data-modo="claro"] .aj-pag, html[data-modo="claro"] .detalles { background: #fff !important; }
@@ -1036,7 +1029,7 @@ html[data-modo="claro"] .hc-acc i { background: rgba(0, 0, 0, .06); }
 
 /* ── Menú de Ajustes: cabecera, accesos rápidos y categorías en grupos con título ── */
 .aj-hero { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 22px; color: #fff;
-  background: radial-gradient(120% 140% at 0% 0%, #ff6a5e 0%, #ff453a 38%, #7a4bd6 100%); position: relative; overflow: hidden; }
+  background: radial-gradient(120% 140% at 0% 0%, var(--ac-1) 0%, var(--ac-2) 100%); position: relative; overflow: hidden; }
 .aj-hero::after { content: ""; position: absolute; right: -30px; top: -40px; width: 140px; height: 140px; border-radius: 50%; background: rgba(255, 255, 255, 0.14); }
 .aj-hero img { width: 54px; height: 54px; flex: 0 0 auto; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.25)); }
 .aj-hero span { display: grid; gap: 2px; min-width: 0; position: relative; z-index: 1; }
@@ -1049,12 +1042,12 @@ html[data-modo="claro"] .hc-acc i { background: rgba(0, 0, 0, .06); }
 .aj-rap span { line-height: 1.15; }
 .aj-rap:active { transform: scale(0.94); }
 .aj-rap.on { color: var(--tx); }
-.aj-rap.on i { background: #ff453a; color: #fff; }
+.aj-rap.on i { background: var(--acento); color: #fff; }
 .aj-rap[disabled] { opacity: 0.45; }
 .aj-grupo-t { margin: 8px 6px -2px; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tx2); }
 html[data-modo="claro"] .aj-rap { background: #fff; box-shadow: 0 2px 10px rgba(60, 60, 67, 0.08); }
 html[data-modo="claro"] .aj-rap i { background: rgba(0, 0, 0, 0.06); }
-html[data-modo="claro"] .aj-rap.on i { background: #ff453a; color: #fff; }
+html[data-modo="claro"] .aj-rap.on i { background: var(--acento); color: #fff; }
 
 html, body { touch-action: pan-x pan-y; }   /* sin zoom nativo del navegador: el pellizco lo gestiona Onda y escala toda la interfaz */
 

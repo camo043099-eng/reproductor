@@ -1,4 +1,4 @@
-﻿# Actualiza Onda en el teléfono con el último commit de main:
+﻿﻿# Actualiza Onda en el teléfono con el último commit de main:
 #   1) espera a que termine la compilación (flujo APK) de GitHub Actions para ese commit,
 #   2) baja el artefacto Onda-apk (Onda.apk) a una carpeta temporal nueva,
 #   3) lo instala con `adb install -r` (conserva los datos de la app).
@@ -6,7 +6,7 @@
 # Requisitos: git, gh (GitHub CLI, ya autenticado con `gh auth login`) y adb, con el teléfono conectado y la depuración USB activada.
 # Uso:  .\actualizar-onda.ps1            (no hace commit ni push: eso se hace antes)
 
-param([string]$Repo = "camo043099-eng/reproductor", [int]$MinutosMax = 25)
+param([string]$Repo = "camo043099-eng/reproductor", [int]$MinutosMax = 25, [string]$Rama = "main")
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
@@ -18,16 +18,16 @@ if (Get-Command gh -ErrorAction SilentlyContinue) { $ghExe = (Get-Command gh).So
 function gh { & $ghExe @args }
 
 # 1) commit de main que hay que instalar
-git fetch -q origin main
-$sha = (git rev-parse origin/main).Trim()
+git fetch -q origin $Rama
+$sha = (git rev-parse origin/$Rama).Trim()
 $corto = $sha.Substring(0, 7)
-Write-Host "Commit de main en GitHub: $corto"
+Write-Host "Commit de $Rama en GitHub: $corto"
 if ((git rev-parse HEAD).Trim() -ne $sha) { Write-Host "AVISO: tu rama local no está en ese commit (hay algo sin subir o sin traer). Se instalará lo que hay en GitHub." -ForegroundColor Yellow }
 
 # 2) esperar la compilación de ese commit
 $limite = (Get-Date).AddMinutes($MinutosMax); $run = $null
 while ((Get-Date) -lt $limite) {
-    $lista = gh run list --repo $Repo --branch main --commit $sha --limit 1 --json "databaseId,status,conclusion" | ConvertFrom-Json
+    $lista = gh run list --repo $Repo --branch $Rama --commit $sha --limit 1 --json "databaseId,status,conclusion" | ConvertFrom-Json
     if ($LASTEXITCODE -ne 0) { Fallar "gh no pudo consultar las compilaciones (¿sesión iniciada con gh auth login?)." }
     if ($lista) { $run = $lista[0]; if ($run.status -eq "completed") { break } }
     Write-Host ("  esperando la compilación... " + $(if ($run) { $run.status } else { "aún no empieza" }))
