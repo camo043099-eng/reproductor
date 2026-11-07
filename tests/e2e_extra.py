@@ -58,6 +58,7 @@ try:
             permisos: async () => ({ audio: true }), escanear: async () => ({ canciones: lista }), portada: async () => ({}),
             estado: async () => ({ ids: [], indice: -1, pos: 0, sonando: false }),
           }, { get: (t, k) => (k in t ? t[k] : reg(k)) });
+          try { localStorage.setItem('onda_bienvenida_vista', '1'); } catch (e) {}
           window.Capacitor = { isNativePlatform: () => true, convertFileSrc: (p) => p, Plugins: { Motor: M } };
         })();"""
         ctx = b.new_context(viewport={"width": 390, "height": 800}); ctx.add_init_script(init); pn = ctx.new_page()

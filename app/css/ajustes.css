@@ -1,0 +1,59 @@
+/* Onda — Ajustes (Fase 6): cabecera, buscador, tarjeta de la app, accesos rápidos, categorías en tarjetas y cada ajuste como tarjeta propia.
+   Solo aspecto: los ids y la lógica de main.js no cambian. Reglas con #hoja-aj para ganar a las de styles.css. */
+
+#hoja-aj { padding-left: var(--e4); padding-right: var(--e4); }
+html #hoja-aj .hoja-top { background: var(--c-fondo) !important; padding-bottom: var(--e2); margin: 0 calc(-1 * var(--e4)) var(--e2); padding-left: var(--e4); padding-right: var(--e4); border-radius: 0; }
+html #hoja-aj .hoja-top .ib { width: var(--toque); height: var(--toque); border-radius: 50%; background: var(--c-sup) !important; border: 0 !important; box-shadow: var(--sombra-1) !important; }
+html #hoja-aj #aj-titulo { font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; }
+html #hoja-aj .ajustes { gap: var(--e3); }
+
+/* buscador */
+html #hoja-aj .aj-buscar { padding: 0; }
+html #hoja-aj .aj-buscar input { height: 48px; border: 0 !important; border-radius: var(--r-l); background: var(--c-sup) !important; padding: 0 var(--e5); font-weight: 500; }
+
+/* tarjeta de la app */
+html #hoja-aj .aj-hero { border-radius: var(--r-l); padding: var(--e5); gap: var(--e4); background: var(--acento); box-shadow: var(--sombra-2); }
+html #hoja-aj .aj-hero img { width: 64px; height: 64px; border-radius: 18px; }
+html #hoja-aj .aj-hero b { font-size: 1.5rem; font-weight: 800; }
+
+/* accesos rápidos */
+html #hoja-aj .aj-rapidos { gap: var(--e2); }
+html #hoja-aj .aj-rap { border-radius: var(--r-m); background: var(--c-sup) !important; padding: var(--e4) var(--e1) var(--e3); font-weight: 600; }
+html #hoja-aj .aj-rap i { background: var(--c-sup-alta); }
+html #hoja-aj .aj-rap.on i { background: var(--acento); }
+
+/* categorías: rejilla de tarjetas, icono con el degradado de la carátula */
+html #hoja-aj .aj-menu { gap: var(--e2); }
+html #hoja-aj .aj-grupo-t { margin: var(--e4) 0 0; padding: 0 var(--e1); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--c-suave); }
+html #hoja-aj .aj-grupo { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e2); background: transparent; border-radius: 0; overflow: visible; }
+html #hoja-aj .aj-grupo > .aj-cat { display: grid; grid-template-columns: 1fr; align-content: start; gap: var(--e3); min-height: 132px; padding: var(--e4); border-radius: var(--r-m); background: var(--c-sup) !important; }
+html #hoja-aj .aj-grupo > .aj-cat:only-child { grid-column: 1 / -1; min-height: 0; grid-template-columns: auto 1fr auto; align-items: center; }
+html #hoja-aj .aj-grupo > .aj-cat + .aj-cat::before { content: none; }
+html #hoja-aj .aj-grupo > .aj-cat:active { background: var(--c-sup-alta) !important; }
+html #hoja-aj .aj-grupo > .aj-cat i { width: 44px; height: 44px; border-radius: var(--r-s); background: var(--acento); color: #fff; }
+html #hoja-aj .aj-grupo > .aj-cat i svg { width: 22px; height: 22px; }
+html #hoja-aj .aj-grupo > .aj-cat b { font-size: 1rem; font-weight: 700; }
+html #hoja-aj .aj-grupo > .aj-cat small { color: var(--c-suave); font-size: .78rem; line-height: 1.3; }
+html #hoja-aj .aj-grupo > .aj-cat em { display: none; }
+html #hoja-aj .aj-grupo > .aj-cat:only-child em { display: block; }
+
+/* páginas: cada ajuste es una tarjeta; los títulos de sección, etiquetas pequeñas */
+html #hoja-aj .aj-pag { gap: var(--e2); background: transparent; border-radius: 0; overflow: visible; }
+html #hoja-aj .aj-pag > .sub { padding: var(--e5) var(--e1) 0; font-size: .75rem; letter-spacing: .08em; color: var(--c-suave); }
+html #hoja-aj .aj-pag > .campo { min-height: 56px; padding: var(--e3) var(--e4); border: 0 !important; border-radius: var(--r-m); background: var(--c-sup); }
+html #hoja-aj .aj-pag > .campo > span:first-child { font-weight: 500; }
+html #hoja-aj .aj-pag > .boton { min-height: 52px; padding: 0 var(--e4); border: 0; border-radius: var(--r-m); background: var(--c-sup) !important; color: var(--ac2); font-weight: 600; }
+html #hoja-aj .aj-pag > .boton:active { background: var(--c-sup-alta) !important; }
+html #hoja-aj .aj-pag > .suave { padding: 0 var(--e2) var(--e1); color: var(--c-suave); }
+html #hoja-aj .aj-pag > details { padding: var(--e3) var(--e4); border-radius: var(--r-m); background: var(--c-sup); }
+html #hoja-aj .aj-pag > .aviso-hires { border-radius: var(--r-m); }
+
+/* controles */
+html #hoja-aj .interruptor { width: 52px; height: 30px; }
+html #hoja-aj .interruptor span { background: var(--c-sup-alta) !important; border: 0 !important; }
+html #hoja-aj .interruptor input:checked + span { background: var(--acento) !important; }
+html #hoja-aj .sel-btn, html #hoja-aj .ajustes select { border-radius: var(--r-s); background: var(--c-sup-alta) !important; border: 0 !important; font-weight: 600; }
+html #hoja-aj .seg { border-radius: var(--r-s); background: var(--c-sup-alta) !important; border: 0 !important; }
+html #hoja-aj .seg button { border-radius: 10px; }
+html #hoja-aj .seg button[aria-pressed="true"], html #hoja-aj .seg .on { background: var(--acento); color: #fff; }
+html #hoja-aj input[type="range"] { accent-color: var(--ac-1); }

@@ -15,6 +15,7 @@ init="""
     permisos: async () => ({ audio: true }), escanear: async () => ({ canciones: lista }), portada: async () => ({}),
     estado: async () => ({ ids: [], indice: -1, pos: 0, sonando: false }),
   }, { get: (t, k) => (k in t ? t[k] : reg(k)) });
+  try { localStorage.setItem('onda_bienvenida_vista', '1'); } catch (e) {}
   window.Capacitor = { isNativePlatform: () => true, convertFileSrc: (p) => p, Plugins: { Motor: M } };
   window.__lt=[]; try{ new PerformanceObserver(l=>{for(const e of l.getEntries()) window.__lt.push([Math.round(e.startTime),Math.round(e.duration)]);}).observe({entryTypes:['longtask']}); }catch(e){}
 })();"""

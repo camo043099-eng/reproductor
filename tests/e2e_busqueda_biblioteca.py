@@ -9,6 +9,7 @@ R = os.path.dirname(os.path.abspath(__file__)); APP = os.environ.get("ONDA_APP")
 srv = subprocess.Popen([sys.executable, "-m", "http.server", "8766", "-d", APP], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1)
 INIT = """
 (() => {
+  try { localStorage.setItem('onda_bienvenida_vista', '1'); } catch (e) {}   // sin la bienvenida de primera apertura, que espera al usuario
   const oy = {};
   const lista = Array.from({length:%d},(_,k)=>{const i=k+1; return { id:'ms'+i, uri:'content://m/'+i, titulo:'Tema '+i+' '+(i%%7?'Alpha':'Beta'), artista:'Artista '+(i%%180), albumArtista:'Artista '+(i%%180), album:'Disco '+(i%%300), albumId:''+(i%%300), genero:'Rock', pista:i%%12, disco:1, anio:2000+(i%%25), duracion:150+(i%%200), tam:9e6, fecha:i, mime:'audio/mpeg', nombre:'t'+i+'.mp3', carpeta:'Music/C'+(i%%40)+'/', bitrate:192, sampleRate:44100 };});
   const M = new Proxy({
