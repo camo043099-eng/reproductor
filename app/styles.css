@@ -288,27 +288,6 @@ html[data-fondo="portada"] .ambiente::after, html[data-fondo="imagen"] .ambiente
 .burbuja-t.ver { transform: translateX(-50%) scale(1); opacity: 1; }
 .mini-barra i { width: 100%; transform-origin: left center; transform: scaleX(0); background: var(--ac2, #fff); }
 
-/* animación de bienvenida: solo la primera vez que se abre la app (y cuando la pides en Ajustes); no se repite en bucle */
-.intro { position: fixed; inset: 0; z-index: 300; display: grid; place-content: center; justify-items: center; gap: 6px; pointer-events: none; background: radial-gradient(120% 90% at 50% 40%, #3b1d94 0%, #14092f 62%, #07030f 100%); transition: opacity .6s ease, transform .6s var(--muelle), filter .6s ease; }
-.intro.sale { opacity: 0; transform: scale(1.06); filter: blur(6px); }
-.intro-logo { width: min(calc(46 * var(--vw, 1vw)), 210px); aspect-ratio: 1; }
-.intro-logo svg { width: 100%; height: 100%; overflow: visible; }
-.intro-logo rect { transform-box: fill-box; transform-origin: center; transform: scaleY(0); }
-.intro.va .intro-logo rect { animation: ib-sube .75s var(--rebote) both; }
-.intro.va .ib1 { animation-delay: .05s; } .intro.va .ib2 { animation-delay: .13s; } .intro.va .ib3 { animation-delay: .21s; } .intro.va .ib4 { animation-delay: .29s; } .intro.va .ib5 { animation-delay: .37s; }
-@keyframes ib-sube { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-.intro-aro { transform-box: fill-box; transform-origin: center; opacity: 0; }
-.intro.va .intro-aro { animation: ib-aro 1s .55s ease-out both; }
-@keyframes ib-aro { 0% { transform: scale(.7); opacity: .7; } 100% { transform: scale(1.9); opacity: 0; } }
-.intro-nombre { margin: 8px 0 0; display: flex; font-size: 2.6rem; font-weight: 800; letter-spacing: .04em; }
-.intro-nombre span { display: inline-block; opacity: 0; transform: translateY(18px); }
-.intro.va .intro-nombre span { animation: ib-letra .6s var(--muelle) both; }
-.intro.va .intro-nombre span:nth-child(1) { animation-delay: .75s; } .intro.va .intro-nombre span:nth-child(2) { animation-delay: .83s; } .intro.va .intro-nombre span:nth-child(3) { animation-delay: .91s; } .intro.va .intro-nombre span:nth-child(4) { animation-delay: .99s; }
-@keyframes ib-letra { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-.intro-lema { margin: 0; color: rgba(var(--w), .7); font-size: 1rem; opacity: 0; }
-.intro.va .intro-lema { animation: ib-lema .7s 1.25s ease-out both; }
-@keyframes ib-lema { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .intro { display: none !important; } }
 
 /* avisos nuevos: tarjeta de vidrio arriba, con icono, que baja con resorte y no tapa los controles */
 .aviso { top: calc(env(safe-area-inset-top, 0px) + 10px); bottom: auto; display: flex; align-items: center; gap: 10px; padding: 9px 16px 9px 10px; border-radius: 18px; z-index: 400; background: rgba(24,24,28,.84); border: 1px solid rgba(var(--w), .14); box-shadow: 0 14px 36px rgba(0,0,0,.5); -webkit-backdrop-filter: blur(24px) saturate(1.6); backdrop-filter: blur(24px) saturate(1.6); animation: baja .5s var(--rebote); max-width: calc(100% - 24px); pointer-events: none; }
@@ -838,9 +817,6 @@ html:root #hoja-cola .cq.ahora .info b { color: #fff; }
 #hoja-rep .extras, #hoja-rep #r-mas { display: none !important; }
 
 /* ── Bienvenida con el icono de la app ── */
-.intro-logo img { width: 100%; height: 100%; display: block; border-radius: 22%; box-shadow: 0 18px 50px rgba(0,0,0,.45); transform: scale(.6); opacity: 0; }
-.intro.va .intro-logo img { animation: intro-icono .8s var(--rebote, cubic-bezier(.2,.9,.3,1.2)) both; }
-@keyframes intro-icono { to { transform: scale(1); opacity: 1; } }
 
 /* ── Ajustes estilo Poweramp: lista plana, encabezados de color, opciones en píldoras ── */
 #hoja-aj .aj-pag { background: none; border: 0; border-radius: 0; padding: 0 2px 40px; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
@@ -862,7 +838,6 @@ html:root .chips-sel button.activo { background: var(--acento); border-color: va
 .gesto-vol i { width: 10px; height: 230px; border-radius: 99px; background: rgba(var(--w), .22); overflow: hidden; display: flex; align-items: flex-end; }
 .gesto-vol u { display: block; width: 100%; height: 0; border-radius: 99px; background: #fff; transition: height .12s linear; }
 /* la bienvenida muestra solo el anillo, sin cuadro negro detrás */
-.intro-logo img { border-radius: 0; box-shadow: none; background: none; }
 /* carátulas relacionadas en las tarjetas de Biblioteca */
 .cat i.con-img { width: 66px; height: 66px; border-radius: 16px; background: none; overflow: hidden; padding: 0; }
 .cat i.con-img img, .cat i.con-img .sinport { width: 100%; height: 100%; object-fit: cover; display: block; }

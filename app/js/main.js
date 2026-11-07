@@ -4,11 +4,12 @@ import { leerEtiquetas } from "./tags.js";
 import * as db from "./db.js";
 import { ReproductorNativo } from "./nativo.js";
 import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasGlobal, traducir, parsearLRC, lineaActual, albumGenerico } from "./internet.js";
+import { yaVista, montar as montarBienvenida, EVENTO as EVENTO_BIENVENIDA } from "./bienvenida.js";
 import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.14.1";
+const VERSION = "0.15.0";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -1665,7 +1666,7 @@ function enlazar() {
   $("#pp-form").addEventListener("submit", (e) => { e.preventDefault(); buscarCandidatas(); });
   $("#aj-fondo-img").addEventListener("click", () => $("#f-fondo").click());
   $("#f-fondo").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) elegirFondo(f); });
-  $("#aj-intro").addEventListener("click", () => { cerrar("hoja-aj"); setTimeout(() => mostrarIntro(true), 350); });
+  $("#aj-intro").addEventListener("click", () => { cerrar("hoja-aj"); setTimeout(() => mostrarBienvenida(true).then((a) => { if (a === "empezar") iniciarNativo(false); }), 350); });
   const verRegistro = async () => { $("#reg-texto").textContent = (await REG.leer()) || "No hay errores registrados."; };
   $("#aj-registro").addEventListener("click", async () => { await verRegistro(); abrir("hoja-registro"); });
   $("#reg-copiar").addEventListener("click", async () => {
@@ -1892,14 +1893,25 @@ function gestos() {
 }
 
 // ── arranque ──
-function mostrarIntro(forzar) {
-  try { if (!forzar) { if (localStorage.getItem("onda-intro")) return; localStorage.setItem("onda-intro", "1"); } } catch (_) { if (!forzar) return; }
-  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-  const el = $("#intro"); el.hidden = false; el.classList.remove("va", "sale"); void el.offsetWidth; el.classList.add("va");
-  setTimeout(() => el.classList.add("sale"), 2400); setTimeout(() => { el.hidden = true; el.classList.remove("va", "sale"); }, 3100);
+// Bienvenida: solo la primera vez (o desde Ajustes). «Empezar» pide el permiso de audio; «Omitir» entra directo.
+let bienvenida = null;
+function mostrarBienvenida(forzar) {
+  if (!forzar && (yaVista(localStorage) || !(MOTOR || /[?&]bienvenida(&|$)/.test(location.search)))) return Promise.resolve("vista");
+  const raiz = $("#bienvenida");
+  bienvenida ||= montarBienvenida({ raiz, diapos: [...raiz.querySelectorAll(".diapositiva")], puntos: [...raiz.querySelectorAll("#puntos i")], boton: $("#siguiente"), omitir: $("#omitir"), pistas: $("#pistas") }, window, localStorage);
+  bienvenida.reiniciar(); raiz.hidden = false;
+  return new Promise((listo) => {
+    const alTerminar = async (e) => {
+      window.removeEventListener(EVENTO_BIENVENIDA, alTerminar);
+      const accion = e.detail?.accion; raiz.hidden = true;
+      if (accion === "empezar" && MOTOR) await MOTOR.permisos().catch(() => {});
+      listo(accion);
+    };
+    window.addEventListener(EVENTO_BIENVENIDA, alTerminar);
+  });
 }
 async function iniciar() {
-  mostrarIntro(false);
+  const alBienvenida = mostrarBienvenida(false);
   history.replaceState({ raiz: 1 }, ""); history.pushState({ s: 1 }, "");   // así el gesto de atrás no cierra la app de golpe
   reproductor = MOTOR ? new ReproductorNativo(MOTOR) : new Reproductor({ obtenerBlob: (id) => db.traer("archivos", id), obtenerPortada: async (s) => (s.alb ? db.traer("portadas", s.alb) : null) });
   window.__onda = { reproductor, E, db, continuarAlbum, calidadBaja, hist: () => HIST, claveC };                                    // para pruebas
@@ -1920,6 +1932,7 @@ async function iniciar() {
   dibujar(); mostrarEspacio();
   if (MOTOR) {
     reproductor.ponerHiRes(!!E.aj.hires).catch(() => {});
+    await alBienvenida;   // el permiso de audio lo pide la bienvenida (si se muestra); no antes
     await iniciarNativo(false);
     try { const e = await MOTOR.estado(); if (e.ids?.length) { const l = e.ids.map((id) => porId.get(id)).filter(Boolean); if (l.length === e.ids.length) { await reproductor.sincronizar(l, e); actualizarMini(); actualizarEstado(); finArranque(); return; } } } catch (_) { /* se restaura la sesión guardada */ }
   }

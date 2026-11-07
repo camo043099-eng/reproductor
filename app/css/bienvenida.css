@@ -1,0 +1,45 @@
+/* Onda — pantalla de bienvenida (primera apertura). Viene de docs/recursos/onda-bienvenida.html; todo va dentro de #bienvenida para no tocar el resto de la app. */
+#bienvenida { --fondo: #12151d; --superficie: #1c2129; --texto: #f2f4f7; --texto-suave: #9aa3af; --acento-1: #ff7ab8; --acento-2: #8a5cf6; --acento-3: #3fa2f6; --degradado: linear-gradient(135deg, var(--acento-1), var(--acento-2) 55%, var(--acento-3)); }
+#bienvenida, #bienvenida * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+#bienvenida[hidden] { display: none !important; }
+#bienvenida { position: fixed; inset: 0; z-index: 300; height: auto; background: var(--fondo); color: var(--texto); font-family: var(--fuente, "Montserrat", system-ui, sans-serif); }
+#bienvenida { display: flex; flex-direction: column; padding: max(24px, env(safe-area-inset-top)) 28px max(24px, env(safe-area-inset-bottom)); overflow: hidden; isolation: isolate; }
+#bienvenida::before, #bienvenida::after { content: ""; position: absolute; z-index: -1; border-radius: 50%; filter: blur(70px); opacity: .55; }
+#bienvenida::before { width: 380px; height: 380px; left: -120px; top: -80px; background: var(--acento-2); animation: bien-flotar 14s ease-in-out infinite alternate; }
+#bienvenida::after { width: 340px; height: 340px; right: -140px; bottom: 80px; background: var(--acento-3); opacity: .38; animation: bien-flotar 17s ease-in-out infinite alternate-reverse; }
+@keyframes bien-flotar { to { transform: translate(40px, 50px) scale(1.12); } }
+#bienvenida .omitir { align-self: flex-end; background: none; border: 0; color: var(--texto-suave); font-family: inherit; font-weight: 600; font-size: 15px; line-height: 1; padding: 12px 4px; cursor: pointer; }
+#bienvenida .omitir[hidden] { visibility: hidden; display: block; }
+#bienvenida .pistas { flex: 1; position: relative; touch-action: pan-y; }
+#bienvenida .diapositiva { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; opacity: 0; transform: translateX(40px); pointer-events: none; transition: opacity .45s ease, transform .45s ease; }
+#bienvenida .diapositiva.activa { opacity: 1; transform: none; pointer-events: auto; }
+#bienvenida .diapositiva.salida { transform: translateX(-40px); }
+#bienvenida .logo { position: relative; width: 240px; height: 240px; margin-bottom: 40px; display: grid; place-items: center; }
+#bienvenida .logo .onda-anillo { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(138, 92, 246, .5); animation: bien-pulso 3.6s ease-out infinite; }
+#bienvenida .logo .onda-anillo:nth-child(2) { animation-delay: 1.2s; }
+#bienvenida .logo .onda-anillo:nth-child(3) { animation-delay: 2.4s; }
+@keyframes bien-pulso { from { transform: scale(.55); opacity: .9; } to { transform: scale(1.35); opacity: 0; } }
+#bienvenida .logo img { position: relative; width: 250px; height: 250px; filter: drop-shadow(0 18px 40px rgba(138, 92, 246, .45)); }
+#bienvenida .formatos { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 300px; margin-bottom: 40px; }
+#bienvenida .formatos span { padding: 12px 18px; border-radius: 16px; background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .1); font-weight: 700; font-size: 15px; letter-spacing: .04em; }
+#bienvenida .formatos span:first-child { background: var(--degradado); border-color: transparent; font-size: 18px; padding: 14px 24px; box-shadow: 0 10px 30px rgba(138, 92, 246, .4); }
+#bienvenida .candado { width: 150px; height: 150px; border-radius: 40px; margin-bottom: 40px; display: grid; place-items: center; background: var(--degradado); box-shadow: 0 18px 50px rgba(138, 92, 246, .45); }
+#bienvenida .candado svg { width: 76px; height: 76px; }
+#bienvenida h1 { font-size: 32px; line-height: 1.15; font-weight: 800; letter-spacing: -.01em; margin-bottom: 14px; }
+#bienvenida h1 em { font-style: normal; background: var(--degradado); -webkit-background-clip: text; background-clip: text; color: transparent; }
+#bienvenida p { font-size: 16px; line-height: 1.55; color: var(--texto-suave); max-width: 310px; }
+#bienvenida .pie { display: flex; flex-direction: column; align-items: center; gap: 22px; padding-top: 12px; }
+#bienvenida .puntos { display: flex; gap: 8px; }
+#bienvenida .puntos i { width: 8px; height: 8px; border-radius: 8px; background: rgba(255, 255, 255, .22); transition: width .3s ease, background .3s ease; }
+#bienvenida .puntos i.activo { width: 26px; background: var(--degradado); }
+#bienvenida .bien-boton { width: 100%; max-width: 360px; height: 56px; border: 0; border-radius: 20px; background: var(--degradado); color: #fff; font-family: inherit; font-weight: 700; font-size: 17px; line-height: 1; cursor: pointer; box-shadow: 0 14px 34px rgba(138, 92, 246, .4); transition: transform .15s ease, box-shadow .15s ease; }
+#bienvenida .bien-boton:active { transform: scale(.97); box-shadow: 0 8px 20px rgba(138, 92, 246, .35); }
+#bienvenida .bien-boton:focus-visible, #bienvenida .omitir:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+#bienvenida *, #bienvenida *::before, #bienvenida *::after { animation: none !important; transition-duration: .01ms !important; }
+}
+@media (max-height: 640px) {
+#bienvenida .logo { width: 170px; height: 170px; margin-bottom: 20px; }
+#bienvenida .logo img { width: 170px; height: 170px; }
+#bienvenida h1 { font-size: 26px; }
+}

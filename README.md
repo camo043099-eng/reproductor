@@ -25,7 +25,7 @@ La interfaz es una aplicación web (carpeta `app/`, sin dependencias) que tambi�
 - `app/` — la interfaz web y PWA: reproductor, ecualizador, letras, carátulas y ajustes.
 - `native/java/` — el motor de audio nativo y los plugins de Android (ecualizador, carpetas, widget y servicio de reproducción).
 - `native/prototipo_oboe/` — prototipo del motor en C++ con Oboe.
-- `native/icono/` y `tools/` — generación de los iconos de la app, incluidos los de temporada.
+- `native/icono/` y `tools/` — iconos de la app (importados de `docs/recursos/iconos`) y los de temporada.
 - `docs/` — notas e ideas de diseño (por ejemplo, `ideas-poweramp.md`).
 - `tests/` — las pruebas automáticas.
 
@@ -77,4 +77,4 @@ cd android && ./gradlew assembleDebug
 
 ## Estado
 
-Proyecto personal en desarrollo activo. La versión actual en la rama `develop` es la **0.14.1**.
+Proyecto personal en desarrollo activo. La versión actual en la rama `develop` es la **0.15.0**.
