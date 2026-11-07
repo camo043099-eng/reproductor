@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 2751
 CPU = float(sys.argv[2]) if len(sys.argv) > 2 else 4
-R = os.path.dirname(os.path.abspath(__file__)); APP = os.path.join(R, "..", "app")
+R = os.path.dirname(os.path.abspath(__file__)); APP = os.environ.get("ONDA_APP") or os.path.join(R, "..", "app")
 srv = subprocess.Popen([sys.executable, "-m", "http.server", "8766", "-d", APP], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1)
 INIT = """
 (() => {
@@ -46,6 +46,20 @@ try:
         assert 0 < filas() <= 100 and filas() <= esperadas, f"«alpha 12» ({esperadas} coincidencias) debe mostrar solo la primera tanda (hay {filas()})"
         pg.click("#contenido .fila >> nth=0"); pg.wait_for_selector("#mini:not([hidden])", timeout=8000)    # tocar un resultado sigue funcionando
         print("tocar un resultado OK")
+
+        # Tocar «Canciones» y enseguida la barra de búsqueda: mientras la lista completa se sigue pintando de fondo, el teclado y la escritura se trababan.
+        # Con la barra tocada el pintado de fondo se detiene, y al soltarla se retoma hasta completar la lista.
+        pg2 = ctx.new_page(); cdp2 = ctx.new_cdp_session(pg2)
+        pg2.goto("http://localhost:8766/"); pg2.wait_for_function(f"window.__onda && window.__onda.E.canciones.length>={N-50}", timeout=120000); pg2.wait_for_timeout(6500)
+        cdp2.send("Emulation.setCPUThrottlingRate", {"rate": CPU})
+        pg2.click("#nav [data-v=biblioteca]"); pg2.wait_for_timeout(300); pg2.click(".cat[data-t=canciones]"); pg2.wait_for_selector("#contenido .fila")
+        pg2.evaluate("document.querySelector('#q').focus()"); pg2.wait_for_timeout(300)
+        a = pg2.locator("#contenido .fila").count(); pg2.wait_for_timeout(2500); c = pg2.locator("#contenido .fila").count()
+        print(f"con la barra tocada: {a} filas a los 0,3 s y {c} a los 2,8 s (el pintado de fondo debe estar detenido)")
+        assert c - a <= 130, f"el pintado de fondo siguió con la barra tocada ({a} -> {c} filas)"
+        pg2.evaluate("document.querySelector('#q').blur()")
+        pg2.wait_for_function(f"document.querySelectorAll('#contenido .fila').length >= {N}", timeout=90000)
+        print(f"al soltar la barra se completó la lista: {N} filas")
         b.close()
 finally:
     srv.terminate()

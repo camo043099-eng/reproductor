@@ -8,7 +8,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.9.112";
+const VERSION = "0.9.113";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -78,14 +78,15 @@ function imagenes(raiz) { raiz.querySelectorAll("img[data-alb]:not([data-obs])")
 const imgsDe = (alb) => document.querySelectorAll(`img[data-alb="${CSS.escape(alb)}"]`);
 
 // pinta listas largas por tandas: lo primero aparece al instante y el resto llega entre cuadros, sin congelar la pantalla
-let tokenPintado = 0, forzarPintado = () => {}, vistaLista = { completa: true };
+let tokenPintado = 0, forzarPintado = () => {}, seguirPintado = () => {}, vistaLista = { completa: true };
 // perezoso (n): en vez de pintar todo entre cuadros, dibuja n filas y añade n más solo al acercarse al final con el scroll (listas de búsqueda: miles de filas bloqueaban la pantalla)
 function pintar(c, items, f, envoltura, perezoso = 0) {
-  const mi = ++tokenPintado, N = perezoso || 30; forzarPintado = () => {}; let lote = perezoso || 40; const vl = vistaLista = { completa: items.length <= N };
+  const mi = ++tokenPintado, N = perezoso || 30; forzarPintado = () => {}; seguirPintado = () => {}; let lote = perezoso || 40; const vl = vistaLista = { completa: items.length <= N };
   c.innerHTML = envoltura(items.slice(0, N).map(f).join(""));
   const cont = c.querySelector("[data-tandas]"); let i = N;
   const paso = () => {
     if (mi !== tokenPintado || !cont.isConnected || i >= items.length) return;
+    if (!perezoso && document.activeElement?.id === "q") { seguirPintado = () => requestAnimationFrame(paso); return; }   // con el buscador tocado no se pinta de fondo (bloqueaba el teclado y la escritura); se retoma al soltarlo
     const t0 = performance.now(), fin = Math.min(items.length, i + lote); let h = ""; for (let k = i; k < fin; k++) h += f(items[k], k);
     const t = document.createElement("template"); t.innerHTML = h; imagenes(t.content); cont.appendChild(t.content); i = fin;
     const dt = performance.now() - t0; if (!perezoso) lote = dt > 9 ? Math.max(8, lote >> 1) : dt < 4 ? Math.min(120, lote + 12) : lote;      // cada tanda cabe en ~un cuadro: la pantalla no se congela
@@ -1616,6 +1617,7 @@ function enlazar() {
   $("#nav-menu").addEventListener("click", () => abrirAjustes());
   $("#aj-stats").addEventListener("click", () => abrirStats());
   $("#b-bib-atras").addEventListener("click", () => { E.bibRaiz = true; E.detalle = null; if (E.q) { E.q = ""; $("#q").value = ""; } dibujar(); animarCambio(); window.scrollTo(0, 0); });
+  $("#q").addEventListener("blur", () => { const f = seguirPintado; seguirPintado = () => {}; f(); });
   { let tq = 0; $("#q").addEventListener("input", (e) => { E.q = e.target.value; clearTimeout(tq); tq = setTimeout(dibujar, 200); }); }
   $("#b-agregar").addEventListener("click", () => (MOTOR ? iniciarNativo(true) : menu("Agregar música", [
     { t: "Elegir canciones", f: () => $("#f-audio").click() }, { t: "Elegir una carpeta completa", f: elegirCarpeta }])));
