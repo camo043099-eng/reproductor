@@ -127,7 +127,6 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .completa .portada-grande { position: relative; width: min(calc(84 * var(--vw, 1vw)), calc(50 * var(--vh, 1vh)), 430px); aspect-ratio: 1; margin: 8px auto 18px; border-radius: 22px; overflow: hidden; background: var(--sup2); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); transform: scale(1); transition: transform 0.6s var(--rebote); }
 .completa .portada-grande.pausada { transform: scale(0.84); }
 .portada-grande img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.portada-grande canvas { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 30%; }
 .datos { text-align: left; padding: 0 4px; } .datos h2 { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.01em; } .datos p { margin: 2px 0 0; color: var(--tx2); font-size: 1.0625rem; } .datos p.suave { font-size: 0.875rem; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 6px; }
 .chips .chip { padding: 4px 12px; font-size: 0.75rem; font-weight: 500; color: var(--tx2); }
@@ -357,13 +356,6 @@ html[data-fondo="portada"] .ambiente::after, html[data-fondo="imagen"] .ambiente
 .opciones button:last-child { border-bottom: 0; }
 .opciones button.activo::after { content: "✓"; float: right; }
 
-/* carátula redonda que late con los graves */
-.completa .portada-grande.circulo { border-radius: 50%; transition: border-radius .5s var(--rebote), translate .45s var(--rebote), rotate .45s var(--rebote), transform .6s var(--rebote); will-change: scale;
-  box-shadow: 0 0 0 calc(var(--aro, 0) * 16px) color-mix(in srgb, var(--ac2, #fff) calc(var(--aro, 0) * 45%), transparent), 0 0 calc(30px + var(--aro, 0) * 50px) color-mix(in srgb, var(--ac2, #fff) calc(var(--aro, 0) * 55%), transparent), 0 30px 60px rgba(0,0,0,.5); }
-.completa .portada-grande.circulo::after { border-radius: 50%; }
-.completa .portada-grande.circulo canvas { display: none; }
-@media (prefers-reduced-motion: reduce) { .completa .portada-grande.circulo { border-radius: 22px; } }
-
 /* con fondo de carátula o imagen propia, las hojas dejan ver el fondo (antes eran negras y lo tapaban) */
 html[data-fondo="portada"] .hoja:not(.corta), html[data-fondo="imagen"] .hoja:not(.corta) {
   background: linear-gradient(color-mix(in srgb, var(--t) 38%, rgba(0,0,0,.5)), rgba(0,0,0,.72)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
@@ -372,7 +364,6 @@ html[data-fondo="portada"] .hoja.completa, html[data-fondo="imagen"] .hoja.compl
 
 .campo:has(> .seg) { flex-wrap: wrap; } .campo > .seg { flex: 1 0 100%; max-width: none; }
 
-#r-ondas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
 .pp-buscar { display: flex; gap: 8px; margin: 4px 0 12px; } .pp-buscar input { flex: 1; min-width: 0; padding: 12px 14px; border-radius: 14px; color: var(--tx); background: rgba(var(--w), .1); font-size: 1rem; }
 .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 .pp { text-align: left; display: flex; flex-direction: column; gap: 2px; padding: 8px; border-radius: 16px; background: rgba(var(--w), .07); }
@@ -380,7 +371,6 @@ html[data-fondo="portada"] .hoja.completa, html[data-fondo="imagen"] .hoja.compl
 .pp img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; background: #222; }
 .pp span { font-weight: 600; font-size: .86rem; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .pp small { color: var(--tx2); font-size: .76rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pp-grid .vacio { grid-column: 1 / -1; }
-.completa .portada-grande.circulo { width: min(calc(58 * var(--vw, 1vw)), calc(36 * var(--vh, 1vh)), 300px); margin-top: 34px; margin-bottom: 38px; }
 
 /* nombres largos en el reproductor: una sola línea, se deslizan una vez */
 .datos h2, .datos p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -389,25 +379,6 @@ html[data-fondo="portada"] .hoja.completa, html[data-fondo="imagen"] .hoja.compl
 @media (prefers-reduced-motion: reduce) { .desl.va { animation: none; display: inline; } }
 .mix b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .letra-cuerpo, #letra-titulo { overflow-wrap: anywhere; }
-
-/* carátula como un CD: disco con agujero en el centro, reflejos y giro solo mientras suena */
-.cd-brillo { display: none; }
-.completa .portada-grande.cd { box-shadow: none; border-radius: 50%; -webkit-mask-image: radial-gradient(circle closest-side, transparent 0 6.4%, #000 6.9%); mask-image: radial-gradient(circle closest-side, transparent 0 6.4%, #000 6.9%); }
-.completa .portada-grande.cd .cd-brillo { display: block; position: absolute; inset: 0; pointer-events: none; border-radius: 50%;
-  background:
-    radial-gradient(circle closest-side, transparent 6.4%, rgba(var(--w), .55) 6.9%, rgba(var(--w), .22) 8.4%, rgba(0,0,0,.30) 14%, rgba(var(--w), .20) 15%, transparent 22%),
-    repeating-radial-gradient(circle closest-side, rgba(var(--w), .00) 0 3px, rgba(var(--w), .06) 3px 4px),
-    conic-gradient(from 20deg, transparent 0 8%, rgba(var(--w), .34) 14%, transparent 22%, rgba(110,200,255,.26) 38%, transparent 48%, rgba(255,150,255,.30) 62%, transparent 72%, rgba(var(--w), .34) 86%, transparent 94%); }
-.completa .portada-grande.cd::after { display: none; }
-.completa .portada-grande.cd > img, .completa .portada-grande.cd > .cd-brillo { animation: giro-cd 9s linear infinite; animation-play-state: paused; }
-.completa .portada-grande.cd.gira > img, .completa .portada-grande.cd.gira > .cd-brillo { animation-play-state: running; }
-@keyframes giro-cd { to { transform: rotate(360deg); } }
-.completa .portada-grande.pausada.cd { transform: none; }
-@media (prefers-reduced-motion: reduce) { .completa .portada-grande.cd > img, .completa .portada-grande.cd > .cd-brillo { animation: none; } }
-
-/* rendimiento: capas propias para lo que se anima y nada de desenfoques en pantallas completas */
-.completa .portada-grande.cd > img, .completa .portada-grande.cd > .cd-brillo { will-change: transform; }
-#r-ondas { contain: strict; }
 
 html.sinblur *, html.sinblur *::before, html.sinblur *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 
@@ -469,7 +440,6 @@ html .boton.primario, html .boton.primario * { background: #fff !important; colo
 html .boton.primario svg { fill: none; stroke: #000; }
 html .interruptor input:checked + span { background: var(--ac2) !important; }
 html .seg button[aria-pressed="true"], html .seg .on { color: #000; }
-html .cd-brillo { display: none !important; }
 html .hoja:not(.corta):not(.completa) { background: color-mix(in srgb, var(--t) 12%, #0c0c10) !important; }
 html .hoja.completa, html .hoja.letra { background: linear-gradient(color-mix(in srgb, var(--t) 60%, var(--bg)), color-mix(in srgb, var(--t) 22%, var(--bg))) !important; }
 html[data-fondo="portada"] .hoja:not(.corta):not(.completa), html[data-fondo="imagen"] .hoja:not(.corta):not(.completa) { background: color-mix(in srgb, var(--t) 20%, #0a0a0e) !important; }

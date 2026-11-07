@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/navegacion.css">
+<link rel="stylesheet" href="css/reproductor.css">
 </head>
 <body>
 <div class="ambiente" id="ambiente" aria-hidden="true"></div>
@@ -90,9 +91,11 @@
 
 <!-- reproductor completo -->
 <section class="hoja completa" id="hoja-rep" hidden aria-label="Reproduciendo" role="dialog">
-  <canvas id="r-ondas" aria-hidden="true"></canvas>
   <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span class="suave">Reproduciendo</span><span class="acc-top"><button class="ib" id="r-cola" aria-label="Cola"></button><button class="ib" id="r-mas-top" aria-label="Más opciones"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button></span></div>
-  <div class="portada-grande"><img id="r-port" alt=""><i class="cd-brillo" aria-hidden="true"></i><canvas id="r-viz" width="320" height="80" hidden></canvas></div>
+  <div class="rep-disco">
+    <svg class="rep-anillo" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="gr-anillo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--ac-1)"/><stop offset="1" style="stop-color:var(--ac-2)"/></linearGradient></defs><circle class="pista" cx="50" cy="50" r="47" pathLength="1"/><circle class="prog" id="r-anillo" cx="50" cy="50" r="47" pathLength="1"/></svg>
+    <div class="portada-grande"><img id="r-port" alt=""></div>
+  </div>
   <button class="chip" id="r-buscar-port" type="button" hidden style="align-self:center;margin:-6px 0 8px">Buscar carátula en internet</button>
   <button class="chip" id="r-mas" type="button" style="align-self:center;margin:0 0 8px">Más opciones</button>
   <div class="datos"><h2 id="r-titulo"></h2><p id="r-artista"></p><p class="suave" id="r-album"></p></div>
@@ -275,7 +278,7 @@
 <div class="campo solo-nativo" hidden><span>Hi-Res puro (24 bits sin procesar)</span><label class="interruptor"><input type="checkbox" id="aj-hires"><span></span></label></div>
 <p class="aviso-hires suave pequeno solo-nativo" id="aj-hires-aviso" hidden></p>
 <details class="solo-nativo" hidden><summary class="suave pequeno">Diagnóstico del audio (técnico)</summary><p class="suave pequeno" id="diag-audio">Diagnóstico del DSP: —</p></details>
-<p class="suave pequeno solo-nativo" hidden id="aj-hires-nota">Los FLAC de 24 bits salen tal cual, sin ecualizador, sin ondas y sin ajuste de volumen.</p>
+<p class="suave pequeno solo-nativo" hidden id="aj-hires-nota">Los FLAC de 24 bits salen tal cual, sin ecualizador y sin ajuste de volumen.</p>
     <div class="campo solo-nativo" hidden><span>USB directo sin mezcla (bit-perfect)</span><label class="interruptor"><input type="checkbox" id="aj-usbdir"><span></span></label></div>
     <div class="campo solo-nativo" hidden><span>Analizar mi DAC USB (técnico)</span><button class="boton" id="aj-usbinfo" type="button">Analizar</button></div>
     <pre class="suave pequeno" id="aj-usbinfo-res" hidden style="white-space:pre-wrap;word-break:break-all;user-select:text"></pre>
@@ -330,12 +333,6 @@
     </div>
     <div class="aj-pag" data-pag="efectos" hidden>
       <h3 class="sub aj-tit-pag">Carátula y efectos</h3>
-    <div class="campo"><span>Carátula al ritmo de la música</span><select id="aj-ritmo"><option value="cd">CD que gira y late</option><option value="circulo">Círculo que salta</option><option value="off">Apagado</option></select></div>
-    <div class="campo"><span>Estilo de las ondas</span><select id="aj-ritmoest"><option value="onda">Onda suave</option><option value="barras">Barras finas</option></select></div>
-    <div class="campo solo-nativo" hidden><span>Sincronía del efecto (si va adelantado, súbelo; si va atrasado, bájalo)</span><select id="aj-ritmolat"><option value="60">60 ms</option><option value="120">120 ms</option><option value="180">180 ms</option><option value="260">260 ms</option><option value="340">340 ms</option><option value="420">420 ms</option><option value="520">520 ms</option><option value="650">650 ms</option></select></div>
-<div class="campo"><span>Fluidez del efecto</span><select id="aj-ritmofps"><option value="60">Máxima (60 cuadros)</option><option value="30">Ahorrar batería (30 cuadros)</option></select></div>
-    <div class="campo"><span>Visualizador de espectro</span><label class="interruptor"><input type="checkbox" id="aj-viz"><span></span></label></div>
-    <p class="suave pequeno">Un dibujo de barras que se mueve con la música, solo mientras suena y el reproductor está abierto. Apagado por defecto.</p>
     <div class="campo"><span>Mostrar calidad (FLAC, kHz, bits)</span><label class="interruptor"><input type="checkbox" id="aj-chips" checked><span></span></label></div>
     </div>
     <div class="aj-pag" data-pag="apariencia" hidden>

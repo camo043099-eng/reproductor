@@ -19,7 +19,7 @@ test("el modo selección no cambia la maquetación de las filas (display en .ck/
 
 test("el service worker guarda en caché los CSS y la fuente del rediseño, y index.html los enlaza", () => {
   const sw = readFileSync(new URL("../app/sw.js", import.meta.url), "utf8"), html = readFileSync(new URL("../app/index.html", import.meta.url), "utf8");
-  for (const f of ["css/tokens.css", "css/navegacion.css", "fonts/Montserrat-VF.ttf"]) {
+  for (const f of ["css/tokens.css", "css/navegacion.css", "css/reproductor.css", "fonts/Montserrat-VF.ttf"]) {
     assert.ok(sw.includes(`"${f}"`), `${f} falta en SHELL de sw.js`);
     assert.ok(existsSync(new URL("../app/" + f, import.meta.url)), `${f} no existe`);
   }
@@ -29,4 +29,13 @@ test("el service worker guarda en caché los CSS y la fuente del rediseño, y in
 test("el acento rojo fijo ya no está escrito a mano: sale de --ac-1/--ac-2 (color de la carátula)", () => {
   const sin = css.split("\n").filter((l) => !/peligro/.test(l)).join("\n");
   assert.ok(!/#ff453a|255, 69, 58/i.test(sin.replace(/var\(--ac2, #ff453a\)/g, "")), "queda el rojo #ff453a escrito a mano");
+});
+
+test("rediseño Fase 2: sin visualizador ni ondas de frecuencia, y el reproductor tiene carátula circular con anillo de progreso", () => {
+  const html = readFileSync(new URL("../app/index.html", import.meta.url), "utf8"), js = readFileSync(new URL("../app/js/main.js", import.meta.url), "utf8");
+  for (const x of ["r-ondas", "r-viz", "aj-viz", "aj-ritmo", "cd-brillo"]) assert.ok(!html.includes(x), `index.html aún tiene ${x}`);
+  for (const x of ["ritmoEncender", "vizEncender", "nivelRitmo", "espectro("]) assert.ok(!js.includes(x), `main.js aún tiene ${x}`);
+  assert.match(html, /id="r-anillo"/); assert.match(js, /strokeDashoffset/);
+  const rep = readFileSync(new URL("../app/css/reproductor.css", import.meta.url), "utf8");
+  assert.match(rep, /\.rep-disco/); assert.match(rep, /border-radius:\s*50%/);
 });
