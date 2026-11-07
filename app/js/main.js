@@ -9,7 +9,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.19.0";
+const VERSION = "0.19.1";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -87,6 +87,7 @@ let tokenPintado = 0, forzarPintado = () => {}, seguirPintado = () => {}, vistaL
 // perezoso (n): en vez de pintar todo entre cuadros, dibuja n filas y añade n más solo al acercarse al final con el scroll (listas de búsqueda: miles de filas bloqueaban la pantalla)
 // El pintado de fondo espera a que el navegador esté libre (máx. 250 ms): con la CPU 4x lento hay ~40% menos tareas largas y la mitad de tiempo bloqueado que con requestAnimationFrame
 const ocioso = (f) => (window.requestIdleCallback ? requestIdleCallback(() => f(), { timeout: 250 }) : requestAnimationFrame(f));
+let ultimoScroll = 0; addEventListener("scroll", () => { ultimoScroll = performance.now(); }, { passive: true, capture: true });
 function pintar(c, items, f, envoltura, perezoso = 0) {
   const mi = ++tokenPintado, N = perezoso || 30; forzarPintado = () => {}; seguirPintado = () => {}; let lote = perezoso || 40; const vl = vistaLista = { completa: items.length <= N };
   c.innerHTML = envoltura(items.slice(0, N).map(f).join(""));
@@ -94,6 +95,7 @@ function pintar(c, items, f, envoltura, perezoso = 0) {
   const paso = () => {
     if (mi !== tokenPintado || !cont.isConnected || i >= items.length) return;
     if (!perezoso && document.activeElement?.id === "q") { seguirPintado = () => requestAnimationFrame(paso); return; }   // con el buscador tocado no se pinta de fondo (bloqueaba el teclado y la escritura); se retoma al soltarlo
+    if (!perezoso && performance.now() - ultimoScroll < 150 && cont.getBoundingClientRect().bottom > innerHeight * 3) { setTimeout(() => ocioso(paso), 120); return; }   // mientras se desliza y ya hay 3 pantallas pintadas por delante, la tanda espera (si no, compite con el scroll)
     const t0 = performance.now(), fin = Math.min(items.length, i + lote); let h = ""; for (let k = i; k < fin; k++) h += f(items[k], k);
     const t = document.createElement("template"); t.innerHTML = h; imagenes(t.content); cont.appendChild(t.content); i = fin;
     const dt = performance.now() - t0; if (!perezoso) lote = dt > 9 ? Math.max(8, lote >> 1) : dt < 4 ? Math.min(60, lote + 12) : lote;      // cada tanda cabe en ~un cuadro: la pantalla no se congela
