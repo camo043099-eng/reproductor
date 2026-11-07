@@ -304,6 +304,15 @@ public class MotorPlugin extends Plugin {
             emitir("estado", estadoActual()); call.resolve();
         });
     }
+    // ── registro local de errores (ver RegistroErrores) ──
+    @PluginMethod public void registroIniciar(PluginCall call) {
+        getContext().getSharedPreferences("onda_motor", Context.MODE_PRIVATE).edit().putString("version", String.valueOf(call.getString("version", "?"))).apply(); call.resolve();
+    }
+    @PluginMethod public void registroAnotar(PluginCall call) {
+        RegistroErrores.anotar(getContext(), call.getString("origen", "JS"), call.getString("cancion", ""), call.getString("mensaje", "")); call.resolve();
+    }
+    @PluginMethod public void registroLeer(PluginCall call) { JSObject o = new JSObject(); o.put("texto", RegistroErrores.leer(getContext())); call.resolve(o); }
+    @PluginMethod public void registroBorrar(PluginCall call) { RegistroErrores.borrar(getContext()); call.resolve(); }
     /** diagnóstico en vivo (se consulta cada segundo desde Ajustes → Audio): ¿el DSP recibe audio ahora? */
     @PluginMethod public void diagnostico(PluginCall call) {
         ui(call, () -> {
@@ -481,6 +490,7 @@ public class MotorPlugin extends Plugin {
             else emitir("estado", estadoActual());
         }
         @Override public void onPlayerError(PlaybackException e) {
+            { ExoPlayer q0 = Motor.jugador; RegistroErrores.anotar(getContext(), "Motor", RegistroErrores.cancionDe(q0 == null ? null : q0.getCurrentMediaItem()), e.getErrorCodeName() + ": " + e.getMessage()); }
             int cod = e.errorCode;
             boolean deAudio = cod == PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED || cod == PlaybackException.ERROR_CODE_AUDIO_TRACK_WRITE_FAILED
                     || cod == PlaybackException.ERROR_CODE_AUDIO_TRACK_OFFLOAD_INIT_FAILED || cod == PlaybackException.ERROR_CODE_AUDIO_TRACK_OFFLOAD_WRITE_FAILED;

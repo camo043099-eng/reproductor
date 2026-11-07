@@ -6,8 +6,9 @@ import { ReproductorNativo } from "./nativo.js";
 import { candidatasPortada, buscarPortadaUrl, buscarLetraCompleta, buscarLetrasGlobal, traducir, parsearLRC, lineaActual, albumGenerico } from "./internet.js";
 import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
+import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.9.109";
+const VERSION = "0.9.110";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -48,6 +49,11 @@ const urlsPort = new Map();                                              // clav
 let reproductor;
 const plug = (n) => { const C = window.Capacitor; if (!C?.isNativePlatform?.()) return null; return C.Plugins?.[n] || C.registerPlugin?.(n) || null; };
 const MOTOR = plug("Motor");                                              // existe solo dentro de la app Android
+// registro local de errores (Ajustes → Acerca de): errores de JavaScript aquí; los del motor Java los anota el propio motor
+const REG = crearRegistro({ N: MOTOR, version: VERSION, cancion: () => { const s = reproductor?.actual; return s ? [s.titulo || s.nombre, s.artista].filter(Boolean).join(" — ") : ""; } });
+MOTOR?.registroIniciar?.({ version: VERSION })?.catch?.(() => {});
+window.addEventListener("error", (e) => REG.anotar("JS", `${e.message || "error"} (${String(e.filename || "").split("/").pop()}:${e.lineno}:${e.colno})`));
+window.addEventListener("unhandledrejection", (e) => REG.anotar("JS", `${e.reason?.message || e.reason || "promesa rechazada"} ${donde(e.reason?.stack)}`));
 
 async function portadaUrl(alb) {
   if (!alb) return null;
@@ -1738,6 +1744,13 @@ function enlazar() {
   $("#aj-fondo-img").addEventListener("click", () => $("#f-fondo").click());
   $("#f-fondo").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) elegirFondo(f); });
   $("#aj-intro").addEventListener("click", () => { cerrar("hoja-aj"); setTimeout(() => mostrarIntro(true), 350); });
+  const verRegistro = async () => { $("#reg-texto").textContent = (await REG.leer()) || "No hay errores registrados."; };
+  $("#aj-registro").addEventListener("click", async () => { await verRegistro(); abrir("hoja-registro"); });
+  $("#reg-copiar").addEventListener("click", async () => {
+    const t = (await REG.leer()); if (!t) { avisar("No hay nada que copiar."); return; }
+    try { await navigator.clipboard.writeText(t); avisar("Registro copiado."); } catch (_) { avisar("No pude copiar. Mantén pulsado el texto para seleccionarlo.", 3500); }
+  });
+  $("#reg-borrar").addEventListener("click", async () => { if (!(await confirmar("¿Borrar el registro de errores?"))) return; await REG.borrar(); await verRegistro(); avisar("Registro borrado."); });
   $("#aj-reescanear").addEventListener("click", () => { cerrar("hoja-aj"); $("#b-agregar").click(); });
   $("#aj-auto").addEventListener("change", (e) => { E.aj.auto = e.target.checked; guardarAjustes(); });
   $("#aj-fordef").addEventListener("change", () => dibujar());

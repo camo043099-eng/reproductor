@@ -409,6 +409,7 @@
       <h3 class="sub aj-tit-pag">Acerca de Onda</h3>
 <div class="campo"><span>Versión</span><b id="aj-version">…</b></div>
     <button class="boton" id="aj-intro" type="button">Ver la animación de bienvenida</button>
+    <button class="boton" id="aj-registro" type="button">Registro de errores</button>
 <p class="suave pequeno">Onda es tu reproductor de música propio, hecho para escuchar sin límites y sin anuncios.</p>
     </div>
   </div>
@@ -418,6 +419,13 @@
 <section class="hoja corta" id="hoja-info" hidden role="dialog" aria-label="Información de audio">
   <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span>Información de audio</span><span></span></div>
   <div class="info-audio" id="info-audio"></div>
+</section>
+
+<section class="hoja" id="hoja-registro" hidden role="dialog" aria-label="Registro de errores">
+  <div class="hoja-top"><button class="ib" data-cerrar aria-label="Cerrar"></button><span>Registro de errores</span><span></span></div>
+  <p class="suave pequeno">Se guarda solo en este teléfono, sin rutas ni correos, y nunca se envía a internet.</p>
+  <pre class="registro" id="reg-texto"></pre>
+  <div class="acciones-detalle"><button class="boton" id="reg-copiar" type="button">Copiar</button><button class="boton peligro" id="reg-borrar" type="button">Borrar</button></div>
 </section>
 
 <input type="file" id="f-fondo" accept="image/*" hidden>
