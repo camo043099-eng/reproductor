@@ -52,7 +52,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .contenido { padding: 0 8px; outline: none; }
 .sub, .estante h3 { margin: 14px 8px 8px; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.01em; }
 .lista { list-style: none; margin: 0; padding: 0; }
-.fila { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 16px; content-visibility: auto; contain-intrinsic-size: auto 64px; cursor: pointer; transition: transform 0.25s var(--rebote), background-color 0.2s ease; }
+.fila { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 16px; cursor: pointer; transition: transform 0.25s var(--rebote), background-color 0.2s ease; }   /* sin content-visibility: con la lista larga, al abrirse el teclado (la pantalla se encoge) el WebView hacía una maquetación por fila y se trababa ~5 s */
 .fila:active { background: rgba(var(--w), 0.10); transform: scale(0.985); transition-duration: 0.08s; }
 .fila.sonando .info b { color: var(--ac2); }
 .fila img, .portada-mini { width: 52px; height: 52px; border-radius: 10px; object-fit: cover; background: var(--sup2); flex: 0 0 auto; }
