@@ -9,7 +9,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.17.0";
+const VERSION = "0.18.0";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -62,12 +62,13 @@ async function portadaUrl(alb) {
   const b = await db.traer("portadas", alb).catch(() => null);
   const u = b ? URL.createObjectURL(b) : null; urlsPort.set(alb, u); return u;
 }
-// carátula "de relleno" generada para cada álbum o canción sin imagen: degradado de colores propio, olas y su inicial
+// carátula "de relleno" generada para cada álbum o canción sin imagen. Va en la paleta de la app (gris azulado con tono violeta-azul, como el acento);
+// cada título cambia un poco el tono para distinguirlos, y lleva una nota musical en vez de letra (no depende de ninguna fuente).
 const _placas = new Map();
 function placa(t) {
   t = String(t || "Onda").trim() || "Onda"; let p = _placas.get(t); if (p) return p;
-  let h = 0; for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) % 360; const h2 = (h + 55) % 360, ini = esc((t.match(/[\p{L}\p{N}]/u) || ["♪"])[0].toUpperCase());
-  p = "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${h} 62% 40%)"/><stop offset="1" stop-color="hsl(${h2} 66% 20%)"/></linearGradient></defs><rect width="100" height="100" fill="url(#g)"/><circle cx="76" cy="24" r="22" fill="hsl(${h2} 80% 60% / .22)"/><path d="M0 64 C20 50 32 80 52 64 S82 48 100 62 V100 H0Z" fill="hsl(${h2} 70% 55% / .38)"/><path d="M0 77 C22 65 36 90 56 77 S86 65 100 75 V100 H0Z" fill="hsl(${h} 75% 62% / .30)"/><text x="50" y="47" text-anchor="middle" font-size="36" font-weight="800" fill="rgba(255,255,255,.88)" font-family="sans-serif">${ini}</text></svg>`);
+  let n = 0; for (const ch of t) n = (n * 31 + ch.charCodeAt(0)) % 360; const h = 220 + (n % 60), h2 = h + 16;   // tonos 220–280 (+16): azul, índigo, violeta
+  p = "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${h} 30% 31%)"/><stop offset="1" stop-color="hsl(${h2} 34% 19%)"/></linearGradient></defs><rect width="100" height="100" fill="url(#g)"/><circle cx="78" cy="22" r="26" fill="hsl(${h2} 60% 62% / .10)"/><path d="M0 68 C20 56 34 82 54 68 S84 54 100 66 V100 H0Z" fill="hsl(${h} 60% 62% / .10)"/><path d="M0 82 C22 72 38 94 58 82 S88 72 100 80 V100 H0Z" fill="hsl(${h2} 60% 62% / .09)"/><g transform="translate(10 9) scale(.8)" fill="none" stroke="rgba(242,244,247,.78)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"><path d="M42 63V34l22-5v28"/><circle cx="36" cy="63" r="6.5" fill="rgba(242,244,247,.78)" stroke="none"/><circle cx="58" cy="58" r="6.5" fill="rgba(242,244,247,.78)" stroke="none"/></g></svg>`);
   _placas.set(t, p); return p;
 }
 const SIN = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" fill="#17171d"/><path d="M19 32V15l14-3v17" fill="none" stroke="#6b6b7a" stroke-width="2.500"/><circle cx="16" cy="32" r="3.500" fill="#6b6b7a"/><circle cx="30" cy="29" r="3.500" fill="#6b6b7a"/></svg>');
@@ -472,10 +473,10 @@ function dibujarBiblioteca() {
   } else {
     const fav = E.canciones.filter((s) => s.fav);
     const filas = [`<button class="tarjeta" type="button" data-det="lista" data-k="__fav"><span class="sinport" style="display:grid;place-items:center;color:var(--ac2)">${I.fav.replace("<svg", '<svg width="56" height="56" fill="currentColor"')}</span><b>Favoritas</b><span>${fav.length} canciones</span></button>`];
-    { const nb = calidadBaja().length; if (nb) filas.splice(1, 0, `<button class="tarjeta" type="button" data-det="lista" data-k="__baja"><span class="sinport" style="display:grid;place-items:center;color:#ffb44d">${I.eq.replace("<svg", '<svg width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5"')}</span><b>Calidad baja</b><span>${nb} canciones</span></button>`); }
+    { const nb = calidadBaja().length; if (nb) filas.splice(1, 0, `<button class="tarjeta" type="button" data-det="lista" data-k="__baja"><span class="sinport" style="display:grid;place-items:center;color:var(--ac2)">${I.eq.replace("<svg", '<svg width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5"')}</span><b>Calidad baja</b><span>${nb} canciones</span></button>`); }
     if (!conPortadaCargado) refrescarConPortada(true);
     { let pos = 1 + (filas.length > 1 ? filas.length - 1 : 0); const aut = listasInteligentes();
-      for (const [k, a, n] of aut) filas.splice(pos++, 0, `<button class="tarjeta" type="button" data-det="lista" data-k="${k}"><span class="sinport" style="display:grid;place-items:center;color:${a.color}">${I.lista.replace("<svg", '<svg width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5"')}</span><b>${a.t}</b><span>${n} canciones</span></button>`); }
+      for (const [k, a, n] of aut) filas.splice(pos++, 0, `<button class="tarjeta" type="button" data-det="lista" data-k="${k}"><span class="sinport" style="display:grid;place-items:center;color:var(--ac2)">${I.lista.replace("<svg", '<svg width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5"')}</span><b>${a.t}</b><span>${n} canciones</span></button>`); }
     for (const l of E.listas) filas.push(`<button class="tarjeta" type="button" data-det="lista" data-k="${esc(l.id)}"><span class="sinport" style="display:grid;place-items:center;color:var(--tx2)">${I.lista.replace("<svg", '<svg width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5"')}</span><b>${esc(l.nombre)}</b><span>${l.ids.length} canciones</span></button>`);
     c.innerHTML = `<div class="acciones-detalle"><button class="boton" type="button" data-nueva-lista>Nueva lista</button><button class="boton" type="button" data-importar-m3u>Importar M3U</button></div><div class="rejilla">${filas.join("")}</div>`;
     $("#resumen").textContent = "";

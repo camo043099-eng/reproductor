@@ -739,7 +739,7 @@ html:root .fila .info b { font-size: 1rem; }
 .cats-b { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 4px 16px 14px; }
 .cat-b { min-height: 72px; border-radius: 18px; padding: 14px; text-align: left; font-weight: 700; font-size: 1rem; color: var(--tx); background: rgba(var(--w), .08); transition: transform .22s var(--rebote, ease); }
 .cat-b:active { transform: scale(.96); }
-html:root .cat-b { background: linear-gradient(135deg, rgba(255,69,58,.28), rgba(var(--w), .05)); }
+html:root .cat-b { background: linear-gradient(135deg, color-mix(in srgb, var(--ac-1) 26%, transparent), rgba(var(--w), .05)); }
 
 /* ── Modo conducción: pantalla de reproducción simple, botones grandes ── */
 html.coche #hoja-rep { background: #000 !important; }
@@ -808,7 +808,7 @@ body:has(#mini:not([hidden])) .fab { bottom: calc(env(safe-area-inset-bottom, 0p
 #hoja-cola .cq { padding: 10px; gap: 14px; border-radius: 16px; }
 #hoja-cola .cq img { width: 52px; height: 52px; border-radius: 12px; }
 #hoja-cola .cq.ahora { margin: 6px 0; }
-html:root #hoja-cola .cq.ahora { background: linear-gradient(135deg, rgba(255,69,58,.28), rgba(var(--w), .05)); border-color: rgba(255,69,58,.35); }
+html:root #hoja-cola .cq.ahora { background: color-mix(in srgb, var(--ac-1) 26%, var(--c-sup)); border-color: transparent; }
 html:root #hoja-cola .cq.ahora .info b { color: #fff; }
 #hoja-cola .cola-filtros { display: flex; align-items: center; gap: 8px; overflow: visible; min-height: 56px; padding: 6px 16px 12px; }
 #hoja-cola .cola-filtros .chip { min-height: 38px; padding: 8px 16px; flex: 0 0 auto; }

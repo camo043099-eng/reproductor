@@ -85,3 +85,12 @@ test("Ajustes: cada categoría del menú tiene su página y su título, y no hay
   const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]);
   assert.equal(new Set(ids).size, ids.length, "ids duplicados en index.html");
 });
+
+test("Fase 5: hojas.css enlazado y en SHELL; la carátula de relleno va en la paleta de la app (sin letra ni tonos arcoíris)", () => {
+  const html = readFileSync(new URL("../app/index.html", import.meta.url), "utf8"), sw = readFileSync(new URL("../app/sw.js", import.meta.url), "utf8"), js = readFileSync(new URL("../app/js/main.js", import.meta.url), "utf8");
+  assert.match(html, /css\/hojas\.css/); assert.ok(sw.includes('"css/hojas.css"'));
+  const placa = js.slice(js.indexOf("function placa("), js.indexOf("const SIN = "));
+  assert.ok(!/<text/.test(placa), "la carátula de relleno no lleva letra");
+  assert.match(placa, /n % 60/);
+  assert.ok(!/rgba\(255, ?69, ?58/.test(readFileSync(new URL("../app/styles.css", import.meta.url), "utf8").split("\n").filter((l) => /\.cq\.ahora|\.cat-b/.test(l)).join("\n")), "sin rojo fijo en la cola ni en las categorías");
+});

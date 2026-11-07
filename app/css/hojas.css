@@ -1,0 +1,39 @@
+/* Onda — hojas (Fase 5): listas, cola, letras y ecualizador en el mismo lenguaje que el resto (paleta, radios, degradado de acento). Solo aspecto. */
+
+/* hojas: mismo fondo que la app y cabecera sin degradado de color */
+html .hoja:not(.corta):not(.completa) { background: var(--c-fondo) !important; }
+html .hoja:not(.completa):not(.corta) .hoja-top { background: var(--c-fondo) !important; margin-bottom: 0; padding-bottom: var(--e2); }
+html .hoja .hoja-top > span:nth-child(2) { font-weight: 800; letter-spacing: -.01em; }
+html .hoja:not(.completa):not(.corta) .hoja-top .ib { width: var(--toque); height: var(--toque); border-radius: 50%; background: var(--c-sup) !important; border: 0 !important; }
+
+/* controles comunes de las hojas */
+html .hoja input[type="range"] { accent-color: var(--ac-1); }
+html .hoja .seg { border-radius: var(--r-s); background: var(--c-sup) !important; border: 0 !important; }
+html .hoja .seg button { border-radius: 10px; font-weight: 600; }
+html .hoja .seg button[aria-pressed="true"], html .hoja .seg .on, html .hoja .seg .activo { background: var(--acento); color: #fff; }
+html .hoja .boton, html .hoja .pill { border-radius: var(--r-m); background: var(--c-sup) !important; border: 0 !important; font-weight: 600; }
+html .hoja .boton.primario, html .hoja .pill { background: var(--acento) !important; color: #fff; }
+html .hoja .chip { background: var(--c-sup) !important; border: 0 !important; color: var(--c-texto); font-weight: 600; }
+html .hoja .chip.activo, html .hoja .chip[aria-pressed="true"] { background: var(--acento) !important; color: #fff; }
+
+/* cola de reproducción */
+html #hoja-cola .cola-origen small { color: var(--c-suave); }
+html #hoja-cola .cola-origen b { font-size: 1.15rem; font-weight: 800; }
+html .cq { border-radius: var(--r-m); }
+html .cq img { border-radius: var(--r-s); }
+html .cq.ahora { background: color-mix(in srgb, var(--ac-1) 26%, var(--c-sup)); border: 0; box-shadow: var(--sombra-1); }
+html .cq.ahora .info b { color: var(--c-texto); }
+html .cq-agarre, html .cq .quitar { background: var(--c-sup); }
+
+/* letras: la línea actual en degradado, el resto apagado */
+html .letra-cuerpo p.actual { background: var(--acento); -webkit-background-clip: text; background-clip: text; color: transparent; opacity: 1; }
+html .letra-cuerpo .vacio { color: var(--c-suave); }
+
+/* ecualizador */
+html #hoja-eq #eq-curva { border-radius: var(--r-m); background: var(--c-sup); }
+html #hoja-eq .campo { padding: var(--e3) var(--e4); border-radius: var(--r-m); background: var(--c-sup); margin-top: var(--e2); }
+html #hoja-eq .banda input { accent-color: var(--ac-1); }
+html #hoja-eq .presets { gap: var(--e2); }
+html #hoja-eq .interruptor span { background: var(--c-sup-alta) !important; border: 0 !important; }
+html #hoja-eq .interruptor input:checked + span { background: var(--acento) !important; }
+html #hoja-eq #eq-bus { background: var(--c-sup) !important; border-radius: var(--r-m) !important; border: 0; }
