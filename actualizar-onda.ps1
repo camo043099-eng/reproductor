@@ -1,4 +1,4 @@
-﻿﻿# Actualiza Onda en el teléfono con el último commit de main:
+﻿# Actualiza Onda en el teléfono con el último commit de main:
 #   1) espera a que termine la compilación (flujo APK) de GitHub Actions para ese commit,
 #   2) baja el artefacto Onda-apk (Onda.apk) a una carpeta temporal nueva,
 #   3) lo instala con `adb install -r` (conserva los datos de la app).
