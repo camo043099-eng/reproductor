@@ -35,3 +35,7 @@ html .hoja.completa .controles .play { background: var(--acento); color: #fff; b
 
 /* chips de calidad (MP3, kbps, kHz): el texto centrado en su píldora */
 html #r-chips .chip { min-height: 32px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+
+/* el reproductor completo está siempre maquetado fuera de pantalla (sin display:none): al tocar el mini se abre sin recalcular estilos y maquetación en ese momento */
+html #hoja-rep:not(.ver):not(.arr) { visibility: hidden; transition: transform .45s var(--muelle), visibility 0s .45s; }
+html #hoja-rep.ver, html #hoja-rep.arr { visibility: visible; }

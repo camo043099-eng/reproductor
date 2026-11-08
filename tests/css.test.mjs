@@ -114,3 +114,11 @@ test("abrir el reproductor sin tirones: la medida de títulos espera dos cuadros
   assert.match(js, /!perezoso && pila\.length\) \{ setTimeout\(\(\) => ocioso\(paso\), 400\)/);
   assert.match(readFileSync(new URL("../app/css/reproductor.css", import.meta.url), "utf8"), /#r-chips \.chip \{[^}]*justify-content: center/);
 });
+
+test("el reproductor completo está siempre renderizado fuera de pantalla (sin primer layout al abrirlo)", () => {
+  const html = readFileSync(new URL("../app/index.html", import.meta.url), "utf8");
+  assert.doesNotMatch(html.match(/<section[^>]*id="hoja-rep"[^>]*>/)[0], /hidden/);
+  assert.match(readFileSync(new URL("../app/css/reproductor.css", import.meta.url), "utf8"), /#hoja-rep:not\(\.ver\):not\(\.arr\) \{ visibility: hidden/);
+  const js = readFileSync(new URL("../app/js/main.js", import.meta.url), "utf8");
+  assert.match(js, /if \(id !== "hoja-rep"\) h\._t = setTimeout/);
+});

@@ -9,7 +9,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.21.1";
+const VERSION = "0.21.2";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -1068,7 +1068,7 @@ function abrir(id) {
   if (h.classList.contains("corta")) $("#fondo").hidden = false; history.pushState({ hoja: id }, ""); h.focus?.(); if (id === "hoja-rep") { pantallaEncendida(); document.body.classList.add("rep-abierto"); }
 }
 function cerrar(id, desdeHistorial) {
-  const k = pila.lastIndexOf(id); if (k < 0) return; if (id === "hoja-dialogo" && dlgPend) dlgPend(null); pila.splice(k, 1); if (id === "hoja-rep") pantallaEncendida(); { const h = $("#" + id); h.classList.remove("ver"); clearTimeout(h._t); h._t = setTimeout(() => { h.hidden = true; }, 420); }
+  const k = pila.lastIndexOf(id); if (k < 0) return; if (id === "hoja-dialogo" && dlgPend) dlgPend(null); pila.splice(k, 1); if (id === "hoja-rep") pantallaEncendida(); { const h = $("#" + id); h.classList.remove("ver"); clearTimeout(h._t); if (id !== "hoja-rep") h._t = setTimeout(() => { h.hidden = true; }, 420); }
   if (!pila.some((x) => $("#" + x).classList.contains("corta"))) $("#fondo").hidden = true;
   if (!desdeHistorial) { ignorarPop++; history.back(); }
   if (id === "hoja-rep") document.body.classList.remove("rep-abierto");
@@ -1830,23 +1830,23 @@ function gestos() {
       else if (dy < 0) {
         mini.style.translate = `0 ${dy * 0.5}px`;
         const h = $("#hoja-rep"), H = innerHeight; if (h.hidden && !pila.includes("hoja-rep")) h.hidden = false;
-        h.style.transition = "none"; h.style.transform = `translateY(${Math.max(0, H + dy)}px)`;
+        h.classList.add("arr"); h.style.transition = "none"; h.style.transform = `translateY(${Math.max(0, H + dy)}px)`;
       }
     },
     soltar: (dx, dy, vx, vy, eje) => {
       mini.style.transition = ""; info.style.transition = ""; info.style.translate = ""; mini.style.translate = "";
       const h = $("#hoja-rep");
-      if (eje === "x") { h.style.transform = ""; h.style.transition = ""; if (dx < -70 || vx < -0.6) { vibra(); R.siguiente(); } else if (dx > 70 || vx > 0.6) { vibra(); R.anterior(); } }
+      if (eje === "x") { h.classList.remove("arr"); h.style.transform = ""; h.style.transition = ""; if (dx < -70 || vx < -0.6) { vibra(); R.siguiente(); } else if (dx > 70 || vx > 0.6) { vibra(); R.anterior(); } }
       else if (dy < -40 || vy < -0.5) {
         const y = Math.max(0, innerHeight + Math.min(0, dy));
         if (!pila.includes("hoja-rep")) { h.style.transition = "none"; h.style.transform = `translateY(${y}px)`; abrirReproductor(); }
-        requestAnimationFrame(() => requestAnimationFrame(() => { h.style.transition = ""; h.style.transform = ""; }));
+        requestAnimationFrame(() => requestAnimationFrame(() => { h.classList.remove("arr"); h.style.transition = ""; h.style.transform = ""; }));
       } else if (!pila.includes("hoja-rep")) {
         h.style.transition = "transform .3s ease-out"; h.style.transform = "translateY(100%)";
-        setTimeout(() => { h.hidden = true; h.style.transition = ""; h.style.transform = ""; }, 300);
+        setTimeout(() => { h.classList.remove("arr"); h.style.transition = ""; h.style.transform = ""; }, 300);   // el reproductor no vuelve a "hidden": se queda maquetado fuera de pantalla para abrir al instante
       }
     },
-    cancelar: () => { mini.style.transition = ""; info.style.transition = ""; info.style.translate = ""; mini.style.translate = ""; },
+    cancelar: () => { $("#hoja-rep").classList.remove("arr"); mini.style.transition = ""; info.style.transition = ""; info.style.translate = ""; mini.style.translate = ""; },
   });
   // filas de canciones: derecha = suena a continuación, izquierda = favorita
   const filas = (cont, selector, alIzq, alDer) => deslizar(cont, {
