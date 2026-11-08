@@ -127,3 +127,8 @@ test("aplicarColores no reescribe data-fondo si no cambia (invalidaba los estilo
   const js = readFileSync(new URL("../app/js/main.js", import.meta.url), "utf8");
   assert.match(js, /if \(r\.dataset\.fondo !== f\) r\.dataset\.fondo = f/);
 });
+
+test("no se anima --t en :root (variable heredada: recalculaba todo el DOM en cada cuadro)", () => {
+  const css = readFileSync(new URL("../app/styles.css", import.meta.url), "utf8");
+  assert.doesNotMatch(css, /transition:\s*--t\b/);
+});
