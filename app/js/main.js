@@ -9,7 +9,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.21.2";
+const VERSION = "0.21.3";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -533,7 +533,7 @@ function animar(el, clase, ms = 1000) { el.classList.remove(clase); void el.offs
 function ponerLargo(el, texto) {
   if (el.dataset.txt === texto && el.firstChild) return; el.dataset.txt = texto;
   el.textContent = ""; const sp = document.createElement("span"); sp.className = "desl"; sp.textContent = texto; el.append(sp);
-  requestAnimationFrame(() => requestAnimationFrame(() => { const d = sp.scrollWidth - el.clientWidth; if (d > 4) { sp.style.setProperty("--dx", -d - 6 + "px"); sp.style.setProperty("--dur", Math.max(3, d / 32).toFixed(1) + "s"); sp.classList.add("va"); } }));
+  setTimeout(() => { const d = sp.scrollWidth - el.clientWidth; if (d > 4) { sp.style.setProperty("--dx", -d - 6 + "px"); sp.style.setProperty("--dur", Math.max(3, d / 32).toFixed(1) + "s"); sp.classList.add("va"); } }, 700);   // tras la animación de apertura: medir antes forzaba el layout justo al abrir el reproductor
 }
 // diagnóstico del DSP en vivo: muestra si el procesador de Java recibe audio ahora mismo
 function pintarDiagnostico() {
