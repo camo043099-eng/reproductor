@@ -32,3 +32,6 @@ html .hoja.completa .controles .play { background: var(--acento); color: #fff; b
 
 /* en pausa la carátula se encoge solo un poco (antes 84 %: quedaba pequeña dentro del anillo) */
 .hoja.completa .rep-disco .portada-grande.pausada { transform: scale(.94); }
+
+/* chips de calidad (MP3, kbps, kHz): el texto centrado en su píldora */
+html #r-chips .chip { min-height: 32px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }

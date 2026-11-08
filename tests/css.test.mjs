@@ -107,3 +107,10 @@ test("sin internet: todo archivo local que carga index.html, sus módulos JS y l
   const faltan = [...necesarios].filter((x) => !shell.map(norm).includes(x) && x !== "index.html" && !x.startsWith("http"));
   assert.deepEqual(faltan, [], "faltan en SHELL: " + faltan.join(", "));
 });
+
+test("abrir el reproductor sin tirones: la medida de títulos espera dos cuadros y el pintado de fondo se detiene con una hoja abierta", () => {
+  const js = readFileSync(new URL("../app/js/main.js", import.meta.url), "utf8");
+  assert.match(js.slice(js.indexOf("function ponerLargo")), /requestAnimationFrame\(\(\) => requestAnimationFrame\(\(\) => \{ const d = sp\.scrollWidth/);
+  assert.match(js, /!perezoso && pila\.length\) \{ setTimeout\(\(\) => ocioso\(paso\), 400\)/);
+  assert.match(readFileSync(new URL("../app/css/reproductor.css", import.meta.url), "utf8"), /#r-chips \.chip \{[^}]*justify-content: center/);
+});

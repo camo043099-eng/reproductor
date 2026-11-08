@@ -9,7 +9,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.21.0";
+const VERSION = "0.21.1";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -95,6 +95,7 @@ function pintar(c, items, f, envoltura, perezoso = 0) {
   const paso = () => {
     if (mi !== tokenPintado || !cont.isConnected || i >= items.length) return;
     if (!perezoso && document.activeElement?.id === "q") { seguirPintado = () => requestAnimationFrame(paso); return; }   // con el buscador tocado no se pinta de fondo (bloqueaba el teclado y la escritura); se retoma al soltarlo
+    if (!perezoso && pila.length) { setTimeout(() => ocioso(paso), 400); return; }   // con una hoja abierta (reproductor, ajustes…) la lista de debajo no se sigue pintando: competía con la animación de apertura
     if (!perezoso && performance.now() - ultimoScroll < 150 && cont.getBoundingClientRect().bottom > innerHeight * 3) { setTimeout(() => ocioso(paso), 120); return; }   // mientras se desliza y ya hay 3 pantallas pintadas por delante, la tanda espera (si no, compite con el scroll)
     const t0 = performance.now(), fin = Math.min(items.length, i + lote); let h = ""; for (let k = i; k < fin; k++) h += f(items[k], k);
     const t = document.createElement("template"); t.innerHTML = h; imagenes(t.content); cont.appendChild(t.content); i = fin;
@@ -532,7 +533,7 @@ function animar(el, clase, ms = 1000) { el.classList.remove(clase); void el.offs
 function ponerLargo(el, texto) {
   if (el.dataset.txt === texto && el.firstChild) return; el.dataset.txt = texto;
   el.textContent = ""; const sp = document.createElement("span"); sp.className = "desl"; sp.textContent = texto; el.append(sp);
-  requestAnimationFrame(() => { const d = sp.scrollWidth - el.clientWidth; if (d > 4) { sp.style.setProperty("--dx", -d - 6 + "px"); sp.style.setProperty("--dur", Math.max(3, d / 32).toFixed(1) + "s"); sp.classList.add("va"); } });
+  requestAnimationFrame(() => requestAnimationFrame(() => { const d = sp.scrollWidth - el.clientWidth; if (d > 4) { sp.style.setProperty("--dx", -d - 6 + "px"); sp.style.setProperty("--dur", Math.max(3, d / 32).toFixed(1) + "s"); sp.classList.add("va"); } }));
 }
 // diagnóstico del DSP en vivo: muestra si el procesador de Java recibe audio ahora mismo
 function pintarDiagnostico() {
