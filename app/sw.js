@@ -1,4 +1,4 @@
-const V = "onda-v0.19.1";
+const V = "onda-v0.20.0";
 const SHELL = ["./", "index.html", "styles.css", "manifest.webmanifest", "js/main.js", "js/player.js", "js/tags.js", "js/db.js", "js/nativo.js", "js/bienvenida.js", "js/gestos.js", "js/internet.js", "js/recomendador.js", "js/eqpro.js", "js/registro.js", "css/tokens.css", "css/navegacion.css", "css/reproductor.css", "css/inicio.css", "css/biblioteca.css", "css/esqueleto.css", "css/ajustes.css", "css/hojas.css", "css/bienvenida.css", "fonts/Montserrat-VF.ttf", "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png", "icons/onda-logo-animado.svg", "icons/icono-onda.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(V).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => { e.waitUntil(caches.keys().then((k) => Promise.all(k.filter((n) => n !== V).map((n) => caches.delete(n)))).then(() => self.clients.claim())); });

@@ -60,3 +60,22 @@ html #hoja-aj input[type="range"] { accent-color: var(--ac-1); }
 
 /* si queda una categoría sola en la última fila, ocupa todo el ancho */
 html #hoja-aj .aj-grupo > .aj-cat:last-child:nth-child(odd):not(:only-child) { grid-column: 1 / -1; min-height: 0; grid-template-columns: auto 1fr; align-items: center; }
+
+/* Acerca de: tarjeta de presentación */
+html #hoja-aj .acerca-hero { display: grid; justify-items: center; gap: var(--e2); padding: var(--e6) var(--e4); border-radius: var(--r-l); text-align: center; background: linear-gradient(160deg, color-mix(in srgb, var(--ac-1) 34%, var(--c-sup)), var(--c-sup) 70%); }
+html #hoja-aj .acerca-hero img { width: 96px; height: 96px; border-radius: 26px; box-shadow: var(--sombra-2); }
+html #hoja-aj .acerca-hero b { font-size: 1.75rem; font-weight: 800; letter-spacing: -.02em; }
+html #hoja-aj .acerca-hero > span { color: var(--c-suave); font-weight: 500; }
+html #hoja-aj .acerca-datos { display: flex; flex-wrap: wrap; gap: var(--e2); justify-content: center; list-style: none; margin: var(--e2) 0 0; padding: 0; }
+html #hoja-aj .acerca-datos li { padding: 6px 12px; border-radius: 99px; background: rgba(var(--w), .08); font-size: .75rem; font-weight: 700; }
+
+/* Registro de errores */
+html #hoja-registro { padding-left: var(--e4); padding-right: var(--e4); }
+html #hoja-registro .registro { margin: var(--e2) 0; padding: var(--e4); border-radius: var(--r-m); background: var(--c-sup); font: .75rem/1.5 ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace; max-height: 55vh; }
+html #hoja-registro .acciones-detalle { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e2); }
+html #hoja-registro .boton { justify-content: center; min-height: 48px; }
+html #hoja-registro .boton.peligro { background: color-mix(in srgb, #ff453a 18%, var(--c-sup)) !important; color: #ff8f88; }
+
+/* los botones siguen el orden del HTML (antes se iban al final de la página) */
+html #hoja-aj .aj-pag > .boton { order: 0; }
+html #hoja-registro .acciones-detalle { margin: 0; }
