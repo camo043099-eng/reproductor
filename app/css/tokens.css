@@ -4,8 +4,8 @@
 
 :root {
   /* colores */
-  --c-fondo: #1c2129; --c-sup: #2a303a; --c-sup-alta: #343b47; --c-texto: #f2f4f7; --c-suave: #9aa3af;
-  --ac-1: #7c5cff; --ac-2: #3b82f6;                        /* respaldo: violeta → azul */
+  --c-fondo: #1c2129; --c-sup: #2a303a; --c-sup-alta: #343b47; --c-texto: #f2f4f7; --c-suave: #a4adb9;
+  --ac-1: #6d4df2; --ac-2: #2f6fe0;                        /* respaldo: violeta → azul */
   --acento: linear-gradient(135deg, var(--ac-1), var(--ac-2));
   /* radios */
   --r-s: 12px; --r-m: 20px; --r-l: 28px;
@@ -37,3 +37,18 @@ html .fila .mas { min-width: var(--toque); }
 html #hoja-cola .fichas .chip, html .fichas .chip { min-height: var(--toque); }
 html .cq button { min-width: var(--toque); min-height: var(--toque); }
 html #hoja-aj summary { min-height: var(--toque); display: flex; align-items: center; }
+
+/* pantallas muy estrechas (320 px) o texto grande: nada se sale del ancho */
+html .sec-cab { flex-wrap: wrap; row-gap: var(--e2); }
+html .sec-cab .pill { max-width: 100%; }
+html #hoja-aj .aj-hero > span { min-width: 0; overflow-wrap: anywhere; }
+html #hoja-aj .aj-hero > span { grid-template-columns: minmax(0, 1fr); flex: 1 1 0; }
+html #hoja-aj .aj-hero img { flex: 0 0 auto; }
+html #hoja-aj .aj-grupo { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+html #hoja-aj .aj-cat span, html #hoja-aj .aj-cat b, html #hoja-aj .aj-cat small { min-width: 0; overflow-wrap: anywhere; }
+
+/* foco visible para teclado, mando y lectores de pantalla (con el dedo no aparece) */
+html :focus-visible { outline: 3px solid var(--ac2); outline-offset: 2px; border-radius: inherit; }
+html input[type="range"]:focus-visible, html .interruptor input:focus-visible + span { outline-offset: 4px; }
+html :focus:not(:focus-visible) { outline: none; }
+html .hoja:focus-visible, html .hoja:focus, html #contenido:focus-visible { outline: none; }   /* el foco que se le da a una hoja al abrirla no dibuja marco */
