@@ -122,3 +122,8 @@ test("el reproductor completo está siempre renderizado fuera de pantalla (sin p
   const js = readFileSync(new URL("../app/js/main.js", import.meta.url), "utf8");
   assert.match(js, /if \(id !== "hoja-rep"\) h\._t = setTimeout/);
 });
+
+test("aplicarColores no reescribe data-fondo si no cambia (invalidaba los estilos de todo el DOM en cada canción)", () => {
+  const js = readFileSync(new URL("../app/js/main.js", import.meta.url), "utf8");
+  assert.match(js, /if \(r\.dataset\.fondo !== f\) r\.dataset\.fondo = f/);
+});

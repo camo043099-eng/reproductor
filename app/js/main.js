@@ -9,7 +9,7 @@ import { deslizar, arrastrarHoja, vibra, zoomUI } from "./gestos.js";
 import { crearMixes, bloqueDe } from "./recomendador.js";
 import { crearRegistro, donde } from "./registro.js";
 
-const VERSION = "0.21.3";
+const VERSION = "0.21.4";
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -630,7 +630,7 @@ function aplicarColores() {
   if (ac !== "auto") { r.style.setProperty("--ac-1", ac); r.style.setProperty("--ac-2", ac); r.style.setProperty("--ac2", ac); r.style.setProperty("--sw", ac); }
   else if (tono >= 0) { r.style.setProperty("--ac-1", `hsl(${tono} 70% 46%)`); r.style.setProperty("--ac-2", `hsl(${(tono + 38) % 360} 72% 38%)`); r.style.setProperty("--ac2", t.ac); r.style.setProperty("--sw", t.ac); }
   else for (const k of ["--ac-1", "--ac-2", "--ac2", "--sw"]) r.style.removeProperty(k);
-  const f = a.fondo || "degradado"; r.dataset.fondo = f;
+  const f = a.fondo || "degradado"; if (r.dataset.fondo !== f) r.dataset.fondo = f;   // reescribirlo igual invalida los estilos de los ~30 000 nodos (≈120 ms en el móvil) en cada canción
   const u = f === "portada" ? ultimaPortada : f === "imagen" ? fondoUsuario?.url : null;
   r.style.setProperty("--fondo-img", u ? `url("${u}")` : "none");
 }
